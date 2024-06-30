@@ -1,0 +1,2 @@
+add_executable(hexagon_test hexagon_test.cpp)
+target_link_libraries(hexagon_test hexagon)
