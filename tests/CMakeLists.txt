@@ -1,2 +1,6 @@
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(libigl CONFIG REQUIRED)
 add_executable(hexagon_test hexagon_test.cpp)
 target_link_libraries(hexagon_test hexagon)
+add_executable(vizualizator vizualizator.cpp)
+target_link_libraries(vizualizator hexagon Eigen3::Eigen igl::igl_core igl::glfw)

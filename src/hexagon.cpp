@@ -22,6 +22,23 @@ struct Point
   const double x;
   const double y;
   Point(double x_, double y_): x(x_), y(y_) {}
+
+  bool operator==(const Point& other) const {
+    return x == other.x && y == other.y;
+  }
+
+  bool operator!=(const Point& other) const {
+    return!(*this == other);
+  }
+
+  bool operator<(const Point& other) const {
+    if (x!= other.x) {
+      return x < other.x;
+    } else {
+      return y < other.y;
+    }
+  }
+
 };
 
 
