@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# Visual Studio
+*.sln
+*.vsidx
+*.db
+*.db-shm
+*.db-wal
+*.opendb
+*.vcxproj
+*.filters
+*.user
+*/x64/
+*/.vs/
+.vs/
+out/
