@@ -17,21 +17,21 @@ using std::vector;
 #define M_PI 3.14159265358979323846
 #endif
 
-struct Point
+struct Point1
 {
-  const double x;
-  const double y;
-  Point(double x_, double y_): x(x_), y(y_) {}
+  const float x;
+  const float y;
+  Point1(double x_, double y_): x(x_), y(y_) {}
 
-  bool operator==(const Point& other) const {
+  bool operator==(const Point1& other) const {
     return x == other.x && y == other.y;
   }
 
-  bool operator!=(const Point& other) const {
+  bool operator!=(const Point1& other) const {
     return!(*this == other);
   }
 
-  bool operator<(const Point& other) const {
+  bool operator<(const Point1& other) const {
     if (x!= other.x) {
       return x < other.x;
     } else {
@@ -98,9 +98,9 @@ struct Orientation
 struct Layout
 {
   const Orientation orientation;
-  const Point size;
-  const Point origin;
-  Layout(Orientation orientation_, Point size_, Point origin_): orientation(orientation_), size(size_), origin(origin_) {}
+  const Point1 size;
+  const Point1 origin;
+  Layout(Orientation orientation_, Point1 size_, Point1 origin_): orientation(orientation_), size(size_), origin(origin_) {}
 };
 
 
@@ -306,48 +306,48 @@ Hex rdoubled_to_cube(DoubledCoord h)
 
 
 
-const Orientation layout_pointy = Orientation(sqrt(3.0), sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5);
+const Orientation layout_Point1y = Orientation(sqrt(3.0), sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5);
 const Orientation layout_flat = Orientation(3.0 / 2.0, 0.0, sqrt(3.0) / 2.0, sqrt(3.0), 2.0 / 3.0, 0.0, -1.0 / 3.0, sqrt(3.0) / 3.0, 0.0);
-Point hex_to_pixel(Layout layout, Hex h)
+Point1 hex_to_pixel(Layout layout, Hex h)
 {
   Orientation M = layout.orientation;
-  Point size = layout.size;
-  Point origin = layout.origin;
+  Point1 size = layout.size;
+  Point1 origin = layout.origin;
   double x = (M.f0 * h.q + M.f1 * h.r) * size.x;
   double y = (M.f2 * h.q + M.f3 * h.r) * size.y;
-  return Point(x + origin.x, y + origin.y);
+  return Point1(x + origin.x, y + origin.y);
 }
 
 
-FractionalHex pixel_to_hex(Layout layout, Point p)
+FractionalHex pixel_to_hex(Layout layout, Point1 p)
 {
   Orientation M = layout.orientation;
-  Point size = layout.size;
-  Point origin = layout.origin;
-  Point pt = Point((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
+  Point1 size = layout.size;
+  Point1 origin = layout.origin;
+  Point1 pt = Point1((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
   double q = M.b0 * pt.x + M.b1 * pt.y;
   double r = M.b2 * pt.x + M.b3 * pt.y;
   return FractionalHex(q, r, -q - r);
 }
 
 
-Point hex_corner_offset(Layout layout, int corner)
+Point1 hex_corner_offset(Layout layout, int corner)
 {
   Orientation M = layout.orientation;
-  Point size = layout.size;
+  Point1 size = layout.size;
   double angle = 2.0 * M_PI * (M.start_angle - corner) / 6.0;
-  return Point(size.x * cos(angle), size.y * sin(angle));
+  return Point1(size.x * cos(angle), size.y * sin(angle));
 }
 
 
-vector<Point> polygon_corners(Layout layout, Hex h)
+vector<Point1> polygon_corners(Layout layout, Hex h)
 {
-  vector<Point> corners = {};
-  Point center = hex_to_pixel(layout, h);
+  vector<Point1> corners = {};
+  Point1 center = hex_to_pixel(layout, h);
   for (int i = 0; i < 6; i++)
   {
-    Point offset = hex_corner_offset(layout, i);
-    corners.push_back(Point(center.x + offset.x, center.y + offset.y));
+    Point1 offset = hex_corner_offset(layout, i);
+    corners.push_back(Point1(center.x + offset.x, center.y + offset.y));
   }
   return corners;
 }

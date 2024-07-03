@@ -1,165 +1,167 @@
+#include <stdio.h>
+#include <bx/bx.h>
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include <GLFW/glfw3.h>
-#include <bx/math.h>
-#include <iostream>
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include "src/hexagon.cpp"
-
-extern "C" {
-    void* glfwGetCocoaWindow(GLFWwindow* window);
-}
-
-const char* vs_shader = R"(
-#version 330 core
-layout(location = 0) in vec3 a_position;
-uniform mat4 u_modelViewProj;
-void main() {
-    gl_Position = u_modelViewProj * vec4(a_position, 1.0);
-}
-)";
-
-// Фрагментный шейдер (GLSL)
-const char* fs_shader = R"(
-#version 330 core
-out vec4 fragColor;
-void main() {
-    fragColor = vec4(1.0, 0.0, 0.0, 1.0); // Красный цвет
-}
-)";
-
-void glfw_errorCallback(int error, const char* description) {
-    std::cerr << "GLFW Error " << error << ": " << description << std::endl;
-}
-
-void initBGFX(GLFWwindow* window) {
-    bgfx::Init init;
-    init.type = bgfx::RendererType::Count;
-    init.resolution.width = 1280;
-    init.resolution.height = 720;
-    init.resolution.reset = BGFX_RESET_VSYNC;
-
-    bgfx::PlatformData pd;
-#if defined(__APPLE__)
-    pd.nwh = glfwGetCocoaWindow(window);
-#elif defined(_WIN32)
-    pd.nwh = glfwGetWin32Window(window);
-#elif defined(__linux__)
-    pd.nwh = (void*)(uintptr_t)glfwGetX11Window(window);
+#if BX_PLATFORM_LINUX
+#define GLFW_EXPOSE_NATIVE_X11
+#elif BX_PLATFORM_WINDOWS
+#define GLFW_EXPOSE_NATIVE_WIN32
+#elif BX_PLATFORM_OSX
+#define GLFW_EXPOSE_NATIVE_COCOA
 #endif
-    init.platformData = pd;
+#include <GLFW/glfw3native.h>
 
-    bgfx::init(init);
-    bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
-}
-
-static bgfx::VertexLayout PosVertexLayout;
-
-void initVertexLayout() {
-    PosVertexLayout.begin()
-        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-        .end();
-}
-
-struct PosVertex {
-    float x, y, z;
-
-    static void init() {
-        PosVertexLayout.begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .end();
+// Simple vertex shader
+static const char* vs_shader = R"(
+    void main() {
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
     }
-};
+)";
 
-bgfx::ShaderHandle compileShader(bgfx::RendererType::Enum type, const char* source, const char* name) {
-    const bgfx::Memory* mem = bgfx::copy(source, strlen(source) + 1);
+// Simple fragment shader
+static const char* fs_shader = R"(
+    void main() {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+)";
+
+static bool s_showStats = false;
+
+static void glfw_errorCallback(int error, const char *description)
+{
+    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+}
+
+static void glfw_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_F1 && action == GLFW_RELEASE)
+        s_showStats = !s_showStats;
+}
+
+bgfx::ShaderHandle loadShader(const char* shader)
+{
+    const bgfx::Memory* mem = bgfx::copy(shader, (uint32_t)strlen(shader) + 1);
     return bgfx::createShader(mem);
 }
 
-bgfx::ProgramHandle createProgram() {
-    bgfx::ShaderHandle vs = compileShader(bgfx::RendererType::Enum::OpenGL, vs_shader, "vs_shader");
-    bgfx::ShaderHandle fs = compileShader(bgfx::RendererType::Enum::OpenGL, fs_shader, "fs_shader");
-    return bgfx::createProgram(vs, fs, true);
+bgfx::ProgramHandle loadProgram(const char* vs_name, const char* fs_name)
+{
+    bgfx::ShaderHandle vsh = loadShader(vs_name);
+    bgfx::ShaderHandle fsh = loadShader(fs_name);
+    return bgfx::createProgram(vsh, fsh, true /* destroy shaders when program is destroyed */);
 }
 
-void renderHexagon(const Layout& layout, const Hex& hex, bgfx::ProgramHandle program) {
-    std::vector<Point> corners = polygon_corners(layout, hex);
-    std::vector<PosVertex> vertices;
-    for (const auto& corner : corners) {
-        vertices.push_back({float(corner.x), float(corner.y), 0.0f});
+struct PosColorVertex
+{
+    float x;
+    float y;
+    float z;
+    uint32_t abgr;
+
+    static void init()
+    {
+        ms_layout
+            .begin()
+            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true, true)
+            .end();
     }
 
-    bgfx::TransientVertexBuffer tvb;
-    bgfx::allocTransientVertexBuffer(&tvb, vertices.size(), PosVertexLayout);
+    static bgfx::VertexLayout ms_layout;
+};
 
-    memcpy(tvb.data, vertices.data(), vertices.size() * sizeof(PosVertex));
+bgfx::VertexLayout PosColorVertex::ms_layout;
 
-    const uint16_t indices[] = {0, 1, 2, 2, 3, 0, 3, 4, 5, 5, 0, 3};
-    bgfx::TransientIndexBuffer tib;
-    bgfx::allocTransientIndexBuffer(&tib, sizeof(indices) / sizeof(indices[0]));
-
-    memcpy(tib.data, indices, sizeof(indices));
-
-    float mtx[16];
-    bx::mtxIdentity(mtx);
-    bgfx::setTransform(mtx);
-
-    bgfx::setVertexBuffer(0, &tvb);
-    bgfx::setIndexBuffer(&tib);
-    bgfx::setState(BGFX_STATE_DEFAULT);
-    bgfx::submit(0, program);
-}
-
-int main() {
+int main(int argc, char **argv)
+{
     glfwSetErrorCallback(glfw_errorCallback);
-
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
-
+    if (!glfwInit())
+        return 1;
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Hexagon", nullptr, nullptr);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
+    GLFWwindow *window = glfwCreateWindow(1024, 768, "helloworld", nullptr, nullptr);
+    if (!window)
+        return 1;
+    glfwSetKeyCallback(window, glfw_keyCallback);
+    bgfx::renderFrame();
+    bgfx::Init init;
+#if BX_PLATFORM_LINUX || BX_PLATFORM_BSD
+    init.platformData.ndt = glfwGetX11Display();
+    init.platformData.nwh = (void*)(uintptr_t)glfwGetX11Window(window);
+#elif BX_PLATFORM_OSX
+    init.platformData.nwh = glfwGetCocoaWindow(window);
+#elif BX_PLATFORM_WINDOWS
+    init.platformData.nwh = glfwGetWin32Window(window);
+#endif
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    init.resolution.width = (uint32_t)width;
+    init.resolution.height = (uint32_t)height;
+    init.resolution.reset = BGFX_RESET_VSYNC;
+    if (!bgfx::init(init))
+        return 1;
+    const bgfx::ViewId kClearView = 0;
+    bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
+    bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
 
-    initBGFX(window);
-    initVertexLayout();
-    PosVertex::init();
+    bgfx::ProgramHandle program = loadProgram(vs_shader, fs_shader);
 
-    bgfx::ProgramHandle program = createProgram();
+    static PosColorVertex s_vertexData[7] =
+    {
+        {  0.0f,  0.0f, 0.0f, 0xff0000ff },
+        { -0.5f,  0.5f, 0.0f, 0xff00ff00 },
+        {  0.5f,  0.5f, 0.0f, 0xff00ff00 },
+        {  1.0f,  0.0f, 0.0f, 0xff00ff00 },
+        {  0.5f, -0.5f, 0.0f, 0xff00ff00 },
+        { -0.5f, -0.5f, 0.0f, 0xff00ff00 },
+        { -1.0f,  0.0f, 0.0f, 0xff00ff00 },
+    };
 
-    Orientation orientation = Orientation(
-        3.0 / 2.0, 0.0, sqrt(3.0) / 2.0, sqrt(3.0),
-        2.0 / 3.0, 0.0, -1.0 / 3.0, sqrt(3.0) / 3.0,
-        0.0
+    static const uint16_t s_indexData[18] =
+    {
+        0, 1, 2,
+        0, 2, 3,
+        0, 3, 4,
+        0, 4, 5,
+        0, 5, 6,
+        0, 6, 1,
+    };
+
+    PosColorVertex::init();
+
+    bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
+        bgfx::makeRef(s_vertexData, sizeof(s_vertexData)),
+        PosColorVertex::ms_layout
     );
-    Layout layout = Layout(orientation, Point(10.0, 10.0), Point(0.0, 0.0));
+
+    bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
+        bgfx::makeRef(s_indexData, sizeof(s_indexData))
+    );
 
     while (!glfwWindowShouldClose(window)) {
-        bgfx::touch(0); // Устанавливает кадр для очистки
-
-        for (int q = -2; q <= 2; ++q) {
-            for (int r = -2; r <= 2; ++r) {
-                int s = -q - r;
-                if (abs(q) <= 2 && abs(r) <= 2 && abs(s) <= 2) {
-                    Hex hex = Hex(q, r, s);
-                    renderHexagon(layout, hex, program);
-                }
-            }
+        glfwPollEvents();
+        int oldWidth = width, oldHeight = height;
+        glfwGetWindowSize(window, &width, &height);
+        if (width != oldWidth || height != oldHeight) {
+            bgfx::reset((uint32_t)width, (uint32_t)height, BGFX_RESET_VSYNC);
+            bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
         }
+        bgfx::touch(kClearView);
+        bgfx::dbgTextClear();
+        bgfx::dbgTextPrintf(0, 0, 0x0f, "Press F1 to toggle stats.");
+        const bgfx::Stats* stats = bgfx::getStats();
+        bgfx::dbgTextPrintf(0, 2, 0x0f, "Backbuffer %dW x %dH in pixels, debug text %dW x %dH in characters.", stats->width, stats->height, stats->textWidth, stats->textHeight);
+        // Enable stats or debug text.
+        bgfx::setDebug(s_showStats ? BGFX_DEBUG_STATS : BGFX_DEBUG_TEXT);
+
+        bgfx::setVertexBuffer(0, vbh);
+        bgfx::setIndexBuffer(ibh);
+
+        bgfx::submit(kClearView, program);
 
         bgfx::frame();
-        glfwPollEvents();
     }
-
     bgfx::shutdown();
-    glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
 }
