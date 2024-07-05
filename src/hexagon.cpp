@@ -364,6 +364,18 @@ public:
     p5(centr.x - 0.5f * v, centr.y + 0.25f * h), p6(centr.x - 0.5f * v, centr.y - 0.25f * h)
   {
   }
+  Eigen::MatrixXd HexMatrix_from_points(Hex_Points points) {
+    return (Eigen::MatrixXd(7, 3) <<
+      points.p_centr.x, points.p_centr.y, points.p_centr.z,
+      points.p1.x, points.p1.y, points.p1.z,
+      points.p2.x, points.p2.y, points.p2.z,
+      points.p3.x, points.p3.y, points.p3.z,
+      points.p4.x, points.p4.y, points.p4.z,
+      points.p5.x, points.p5.y, points.p5.z,
+      points.p6.x, points.p6.y, points.p6.z
+      ).finished();
+  }
+private:
   Point1 p_centr;
   Point1 p1;
   Point1 p2;
@@ -375,14 +387,4 @@ public:
 
 
 
-Eigen::MatrixXd HexMatrix_from_points(Hex_Points points) {
-  return (Eigen::MatrixXd(7, 3) <<
-    points.p_centr.x, points.p_centr.y, points.p_centr.z,
-    points.p1.x, points.p1.y, points.p1.z,
-    points.p2.x, points.p2.y, points.p2.z,
-    points.p3.x, points.p3.y, points.p3.z,
-    points.p4.x, points.p4.y, points.p4.z,
-    points.p5.x, points.p5.y, points.p5.z,
-    points.p6.x, points.p6.y, points.p6.z
-    ).finished();
-}
+

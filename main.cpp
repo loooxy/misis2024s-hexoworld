@@ -6,7 +6,7 @@ int main(int argc, char* argv[])
   // Inline mesh of a hex
 
 
-  Eigen::MatrixXd V = HexMatrix_from_points(Hex_Points(p1, 0));
+  Eigen::MatrixXd V = (Hex_Points({1.0f,0.0f}, 0)).HexMatrix_from_points();
   const Eigen::MatrixXi F = (Eigen::MatrixXi(6, 3) <<
     0, 1, 2,
     0, 2, 3,
