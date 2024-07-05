@@ -364,7 +364,8 @@ public:
     p5(centr.x - 0.5f * v, centr.y + 0.25f * h), p6(centr.x - 0.5f * v, centr.y - 0.25f * h)
   {
   }
-  Eigen::MatrixXd HexMatrix_from_points(Hex_Points points) {
+  Eigen::MatrixXd HexMatrix_from_points() {
+    Hex_Points points = *this;
     return (Eigen::MatrixXd(7, 3) <<
       points.p_centr.x, points.p_centr.y, points.p_centr.z,
       points.p1.x, points.p1.y, points.p1.z,
