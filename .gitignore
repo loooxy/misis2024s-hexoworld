@@ -1,6 +1,3 @@
-# Prerequisites
-*.d
-
 # Compiled Object files
 *.slo
 *.lo
@@ -18,7 +15,6 @@
 
 # Fortran module files
 *.mod
-*.smod
 
 # Compiled Static libraries
 *.lai
@@ -31,17 +27,8 @@
 *.out
 *.app
 
-# Visual Studio
-*.sln
-*.vsidx
-*.db
-*.db-shm
-*.db-wal
-*.opendb
-*.vcxproj
-*.filters
-*.user
-*/x64/
-*/.vs/
-.vs/
-out/
+*.un~
+*.swo
+*.swp
+
+build/*
