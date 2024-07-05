@@ -3,7 +3,7 @@
 //
 #include <iostream>
 #include <set>
-#include "src/hexagon.cpp"
+#include "../src/hexagon.cpp"
 #include <Eigen/Dense>
 #include <igl/opengl/glfw/Viewer.h>
 #include <Eigen/Core>
