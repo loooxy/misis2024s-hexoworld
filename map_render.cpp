@@ -1,5 +1,9 @@
 #include <stdio.h>
-#include <bgfx/bgfx.h>
+#include <string>
+#include <iostream>
+#include <vector>
+#define Debug(x) std::cout << #x << " = " << x << std::endl;
+#include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
 #include "bx/math.h"
 #include "GLFW/glfw3.h"
@@ -11,46 +15,11 @@
 #define GLFW_EXPOSE_NATIVE_COCOA
 #endif
 #include "GLFW/glfw3native.h"
-#include <string>
+
+#include<hexoworld/hexoworld.hpp>
 
 #define WNDW_WIDTH 1600
 #define WNDW_HEIGHT 900
-
-struct PosColorVertex
-{
-  float x;
-  float y;
-  float z;
-  uint32_t abgr;
-};
-
-static PosColorVertex cubeVertices[] =
-{
-  {-1.0f,  1.0f,  1.0f, 0xff000000 },
-  { 1.0f,  1.0f,  1.0f, 0xff0000ff },
-  {-1.0f, -1.0f,  1.0f, 0xff00ff00 },
-  { 1.0f, -1.0f,  1.0f, 0xff00ffff },
-  {-1.0f,  1.0f, -1.0f, 0xffff0000 },
-  { 1.0f,  1.0f, -1.0f, 0xffff00ff },
-  {-1.0f, -1.0f, -1.0f, 0xffffff00 },
-  { 1.0f, -1.0f, -1.0f, 0xffffffff },
-};
-
-static const uint16_t cubeTriList[] =
-{
-  0, 1, 2,
-  1, 3, 2,
-  4, 6, 5,
-  5, 6, 7,
-  0, 2, 4,
-  4, 2, 6,
-  1, 5, 3,
-  5, 7, 3,
-  0, 4, 1,
-  4, 5, 1,
-  2, 3, 6,
-  6, 3, 7,
-};
 
 bgfx::ShaderHandle loadShader(std::string filename)
 {
@@ -79,6 +48,8 @@ int main(void)
   GLFWwindow* window = glfwCreateWindow(WNDW_WIDTH, WNDW_HEIGHT, "Hello, bgfx!", NULL, NULL);
   glfwSetKeyCallback(window, key_callback);
 
+  bgfx::renderFrame();
+
   bgfx::Init bgfxInit;
 
 #if BX_PLATFORM_LINUX || BX_PLATFORM_BSD
@@ -90,11 +61,7 @@ int main(void)
   bgfxInit.platformData.nwh = glfwGetWin32Window(window);
 #endif
 
-
-  bgfx::renderFrame();
-
   bgfxInit.type = bgfx::RendererType::Count;
-  bgfxInit.platformData.nwh = glfwGetWin32Window(window);
   bgfxInit.resolution.width = WNDW_WIDTH;
   bgfxInit.resolution.height = WNDW_HEIGHT;
   bgfxInit.resolution.reset = BGFX_RESET_VSYNC;
@@ -103,13 +70,27 @@ int main(void)
   bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
   bgfx::setViewRect(0, 0, 0, WNDW_WIDTH, WNDW_HEIGHT);
 
+  std::vector<Point> Vertices;
+  std::vector<uint16_t> TriList;
+  HexagonGrid tmp(0.3f, Point(-2.0f, -2.0f, 0.0f, color(255, 255, 255)),
+    Vector(1, 0, 0), Vector(0, 0, 1), 10, 10);
+  tmp.set_random_colors();
+  tmp.print_in_vertices_and_triList(Vertices, TriList);
+
   bgfx::VertexLayout pcvDecl;
   pcvDecl.begin()
     .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
     .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
     .end();
-  bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(bgfx::makeRef(cubeVertices, sizeof(cubeVertices)), pcvDecl);
-  bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(bgfx::makeRef(cubeTriList, sizeof(cubeTriList)));
+  bgfx::VertexBufferHandle vbh = 
+    bgfx::createVertexBuffer(
+      bgfx::makeRef(Vertices.data(),
+        Vertices.size() * sizeof(Point)),
+      pcvDecl);
+  bgfx::IndexBufferHandle ibh = 
+    bgfx::createIndexBuffer(
+      bgfx::makeRef(TriList.data(),
+        TriList.size() * sizeof(uint16_t)));
 
   bgfx::ShaderHandle vsh = loadShader("vs_cubes.bin");
   bgfx::ShaderHandle fsh = loadShader("fs_cubes.bin");
@@ -127,9 +108,10 @@ int main(void)
     bx::mtxProj(proj, 60.0f, float(WNDW_WIDTH) / float(WNDW_HEIGHT), 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
     bgfx::setViewTransform(0, view, proj);
 
-    float mtx[16];
+    //Вращение TODO разобраться как сделать на заданный угол
+    /*float mtx[16];
     bx::mtxRotateXY(mtx, counter * 0.01f, counter * 0.01f);
-    bgfx::setTransform(mtx);
+    bgfx::setTransform(mtx);*/
 
     bgfx::setVertexBuffer(0, vbh);
     bgfx::setIndexBuffer(ibh);
