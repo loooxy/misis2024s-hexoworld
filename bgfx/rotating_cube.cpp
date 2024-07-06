@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "bgfx/bgfx.h"
+#include <bgfx/bgfx.h>
 #include "bgfx/platform.h"
 #include "bx/math.h"
 #include "GLFW/glfw3.h"
@@ -90,9 +90,6 @@ int main(void)
   bgfxInit.platformData.nwh = glfwGetWin32Window(window);
 #endif
 
-  bgfx::PlatformData pd;
-  pd.nwh = glfwGetWin32Window(window);
-  bgfx::setPlatformData(pd);
 
   bgfx::renderFrame();
 
