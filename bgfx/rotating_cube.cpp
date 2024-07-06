@@ -3,7 +3,13 @@
 #include "bgfx/platform.h"
 #include "bx/math.h"
 #include "GLFW/glfw3.h"
+#if BX_PLATFORM_LINUX
+#define GLFW_EXPOSE_NATIVE_X11
+#elif BX_PLATFORM_WINDOWS
 #define GLFW_EXPOSE_NATIVE_WIN32
+#elif BX_PLATFORM_OSX
+#define GLFW_EXPOSE_NATIVE_COCOA
+#endif
 #include "GLFW/glfw3native.h"
 #include <string>
 
@@ -73,13 +79,23 @@ int main(void)
   GLFWwindow* window = glfwCreateWindow(WNDW_WIDTH, WNDW_HEIGHT, "Hello, bgfx!", NULL, NULL);
   glfwSetKeyCallback(window, key_callback);
 
+  bgfx::Init bgfxInit;
+
+#if BX_PLATFORM_LINUX || BX_PLATFORM_BSD
+  bgfxInit.platformData.ndt = glfwGetX11Display();
+  bgfxInit.platformData.nwh = (void*)(uintptr_t)glfwGetX11Window(window);
+#elif BX_PLATFORM_OSX
+  bgfxInit.platformData.nwh = glfwGetCocoaWindow(window);
+#elif BX_PLATFORM_WINDOWS
+  bgfxInit.platformData.nwh = glfwGetWin32Window(window);
+#endif
+
   bgfx::PlatformData pd;
   pd.nwh = glfwGetWin32Window(window);
   bgfx::setPlatformData(pd);
 
   bgfx::renderFrame();
 
-  bgfx::Init bgfxInit;
   bgfxInit.type = bgfx::RendererType::Count;
   bgfxInit.platformData.nwh = glfwGetWin32Window(window);
   bgfxInit.resolution.width = WNDW_WIDTH;
