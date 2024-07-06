@@ -12,3 +12,4 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake")
 
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(bgfx)
