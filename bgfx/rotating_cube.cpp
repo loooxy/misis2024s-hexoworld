@@ -48,7 +48,7 @@ static const uint16_t cubeTriList[] =
 
 bgfx::ShaderHandle loadShader(std::string filename)
 {
-  std::string path = "../../../../bgfx/shaders/" + filename;
+  std::string path = "../shaders/" + filename;
   FILE* file = fopen(path.c_str(), "rb");
   fseek(file, 0, SEEK_END);
   long fileSize = ftell(file);
