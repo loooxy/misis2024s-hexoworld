@@ -1,12 +1,10 @@
+#include <igl/opengl/glfw/Viewer.h>
 #include <cmath>
 #include <cstdlib>
 #include <vector>
 #include <algorithm>
 #include <iterator>
-#include <igl/opengl/glfw/Viewer.h>
-using std::abs;
-using std::max;
-using std::vector;
+
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -14,10 +12,10 @@ using std::vector;
 
 struct Point1
 {
-  const float x = 0.0f;
-  const float y = 0.0f;
-  const float z = 0.0f;
-  Point1(double x_, double y_) : x(x_), y(y_) {}
+  const double x = 0.0f;
+  const double y = 0.0f;
+  const double z = 0.0f;
+  Point1(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {}
 
   bool operator==(const Point1& other) const {
     return x == other.x && y == other.y;
@@ -134,7 +132,7 @@ Hex hex_rotate_right(Hex a)
 }
 
 
-const vector<Hex> hex_directions = { Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1), Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1) };
+const std::vector<Hex> hex_directions = { Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1), Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1) };
 Hex hex_direction(int direction)
 {
   return hex_directions[direction];
@@ -147,7 +145,7 @@ Hex hex_neighbor(Hex hex, int direction)
 }
 
 
-const vector<Hex> hex_diagonals = { Hex(2, -1, -1), Hex(1, -2, 1), Hex(-1, -1, 2), Hex(-2, 1, 1), Hex(-1, 2, -1), Hex(1, 1, -2) };
+const std::vector<Hex> hex_diagonals = { Hex(2, -1, -1), Hex(1, -2, 1), Hex(-1, -1, 2), Hex(-2, 1, 1), Hex(-1, 2, -1), Hex(1, 1, -2) };
 Hex hex_diagonal_neighbor(Hex hex, int direction)
 {
   return hex_add(hex, hex_diagonals[direction]);
@@ -198,13 +196,13 @@ FractionalHex hex_lerp(FractionalHex a, FractionalHex b, double t)
 }
 
 
-vector<Hex> hex_linedraw(Hex a, Hex b)
+std::vector<Hex> hex_linedraw(Hex a, Hex b)
 {
   int N = hex_distance(a, b);
   FractionalHex a_nudge = FractionalHex(a.q + 1e-06, a.r + 1e-06, a.s - 2e-06);
   FractionalHex b_nudge = FractionalHex(b.q + 1e-06, b.r + 1e-06, b.s - 2e-06);
-  vector<Hex> results = {};
-  double step = 1.0 / max(N, 1);
+  std::vector<Hex> results = {};
+  double step = 1.0 / std::max(N, 1);
   for (int i = 0; i <= N; i++)
   {
     results.push_back(hex_round(hex_lerp(a_nudge, b_nudge, step * i)));
@@ -312,7 +310,7 @@ Point1 hex_to_pixel(Layout layout, Hex h)
   Point1 origin = layout.origin;
   double x = (M.f0 * h.q + M.f1 * h.r) * size.x;
   double y = (M.f2 * h.q + M.f3 * h.r) * size.y;
-  return Point1(x + origin.x, y + origin.y);
+  return Point1(x + origin.x, y + origin.y, 0.0); // need to be 3D
 }
 
 
@@ -321,7 +319,7 @@ FractionalHex pixel_to_hex(Layout layout, Point1 p)
   Orientation M = layout.orientation;
   Point1 size = layout.size;
   Point1 origin = layout.origin;
-  Point1 pt = Point1((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
+  Point1 pt = Point1((p.x - origin.x) / size.x, (p.y - origin.y) / size.y, 0.0); // need to be 3D
   double q = M.b0 * pt.x + M.b1 * pt.y;
   double r = M.b2 * pt.x + M.b3 * pt.y;
   return FractionalHex(q, r, -q - r);
@@ -333,59 +331,106 @@ Point1 hex_corner_offset(Layout layout, int corner)
   Orientation M = layout.orientation;
   Point1 size = layout.size;
   double angle = 2.0 * M_PI * (M.start_angle - corner) / 6.0;
-  return Point1(size.x * cos(angle), size.y * sin(angle));
+  return Point1(size.x * cos(angle), size.y * sin(angle), 0.0); //need to be 3D
 }
 
 
-vector<Point1> polygon_corners(Layout layout, Hex h)
+std::vector<Point1> polygon_corners(Layout layout, Hex h)
 {
-  vector<Point1> corners = {};
+  std::vector<Point1> corners = {};
   Point1 center = hex_to_pixel(layout, h);
   for (int i = 0; i < 6; i++)
   {
     Point1 offset = hex_corner_offset(layout, i);
-    corners.push_back(Point1(center.x + offset.x, center.y + offset.y));
+    corners.push_back(Point1(center.x + offset.x, center.y + offset.y, 0.0)); //need to be 3D
   }
   return corners;
 }
 
 
-static float size = 1.0f;
+
 //x = v
-static float v = 1.5f * size;
+static double v = 1.5;
 //y = h
-static float h = 1.5f * size;
+static double h = 1.5;
 
 class Hex_Points
 {
 public:
-  explicit Hex_Points(const Point1 centr, bool orintation) : p_centr(centr), p1(centr.x, centr.y - 0.5f * h),
-    p2(centr.x + 0.5 * v, centr.y - 0.25f * h), p3(centr.x + 0.5f * v, centr.y + 0.25f * h), p4(centr.x, centr.y + 0.5f * h),
-    p5(centr.x - 0.5f * v, centr.y + 0.25f * h), p6(centr.x - 0.5f * v, centr.y - 0.25f * h)
+  explicit Hex_Points(const Point1 centr, double size = 1.0, bool orintation = true) : p_centr(centr), p1(centr.x* size, centr.y - 0.5 * h * size, centr.z),
+    p2(centr.x + 0.5 * v * size, centr.y - 0.25 * h * size, centr.z), p3(centr.x + 0.5 * v * size, centr.y + 0.25 * h * size, centr.z), p4(centr.x, centr.y + 0.5 * h * size, centr.z),
+    p5(centr.x - 0.5 * v * size, centr.y + 0.25 * h * size, centr.z), p6(centr.x - 0.5 * v * size, centr.y - 0.25 * h * size, centr.z)
   {
-  }
-  Eigen::MatrixXd HexMatrix_from_points() {
+    size_ = size;
+  } // actually we need if else for our orintation
+
+
+  Eigen::Matrix3d HexMatrixd_from_points() const {
     Hex_Points points = *this;
-    return (Eigen::MatrixXd(7, 3) <<
+    Eigen::Matrix3d m(7);
+    m <<
       points.p_centr.x, points.p_centr.y, points.p_centr.z,
       points.p1.x, points.p1.y, points.p1.z,
       points.p2.x, points.p2.y, points.p2.z,
       points.p3.x, points.p3.y, points.p3.z,
       points.p4.x, points.p4.y, points.p4.z,
       points.p5.x, points.p5.y, points.p5.z,
-      points.p6.x, points.p6.y, points.p6.z
-      ).finished();
+      points.p6.x, points.p6.y, points.p6.z;
+    return m;
   }
+  //this method onle make sense when we need to append hex in hex map
+  Eigen::Matrix3i HexMatrixi_from_points(double size) const {
+    Eigen::Matrix3i m;
+    m <<
+      size * 7, size * 7 + 1, size * 7 + 2,
+      size * 7, size * 7 + 2, size * 7 + 3,
+      size * 7, size * 7 + 3, size * 7 + 4,
+      size * 7, size * 7 + 4, size * 7 + 5,
+      size * 7, size * 7 + 5, size * 7 + 6,
+      size * 7, size * 7 + 6, size * 7 + 1;
+
+    return m;
+  }
+
 private:
-  Point1 p_centr;
+  Point1 p_centr = { 0.0,0.0,0.0 };
   Point1 p1;
   Point1 p2;
   Point1 p3;
   Point1 p4;
   Point1 p5;
   Point1 p6;
+  double size_ = 1.0;
 };
 
-
+class Hex_map {
+public:
+  void Append(const Hex_Points& hex) {
+    //I dont understand how to do it more elegant way, maybe its gonna be okay with  resize(I have problem with it)
+    //append to matrix of points
+    matrix_points << hex.HexMatrixd_from_points();
+    std::cout << matrix_points;
+    std::cout << "-----";
+    //append to matrix of triangle
+    matrix_tri << hex.HexMatrixi_from_points(size);
+    std::cout << matrix_tri;
+    std::cout << "-----";
+    ++size;
+  }
+  uint16_t Get_size() {
+    return size;
+  }
+  Eigen::Matrix3d Matrixd_points() {
+    return matrix_points;
+  }
+  Eigen::Matrix3i Matrixi_tri() {
+    return matrix_tri;
+  }
+private:
+  std::vector<Hex_Points> hexs;
+  uint16_t size = 0;
+  Eigen::Matrix3d matrix_points;
+  Eigen::Matrix3i matrix_tri;
+};
 
 
