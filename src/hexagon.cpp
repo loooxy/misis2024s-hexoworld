@@ -427,6 +427,7 @@ public:
       matrix_tri = tmpi;
     }
     ++size;
+    hexs.push_back(hex);
   }
   uint16_t Get_size() {
     return size;
@@ -436,6 +437,18 @@ public:
   }
   Eigen::MatrixXi Matrixi_tri() {
     return matrix_tri;
+  }
+  void Make_qrid() {
+    for (int y = 0; y <= 4 ; ++y) {
+      for (int x = 0; x <= 4; ++x) {
+        if (y % 2 == 0) {
+          Append(Hex_Points({ x * v,y * h,0.0 }));
+        }
+        else {
+          Append(Hex_Points({ x * v - v / 2,y * h + h * 1 / 4,0.0 }));
+        }
+      }
+    }
   }
 private:
   std::vector<Hex_Points> hexs;
