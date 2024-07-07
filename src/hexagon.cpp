@@ -408,13 +408,24 @@ public:
   void Append(const Hex_Points& hex) {
     //I dont understand how to do it more elegant way, maybe its gonna be okay with  resize(I have problem with it)
     //append to matrix of points
-    matrix_points << hex.HexMatrixd_from_points();
-    std::cout << matrix_points;
-    std::cout << "-----";
-    //append to matrix of triangle
-    matrix_tri << hex.HexMatrixi_from_points(size);
-    std::cout << matrix_tri;
-    std::cout << "-----";
+    if (size == 0) {
+      //we cant concatenate empty matrix
+      Eigen::MatrixXd tmpd(size * 7 + 7, 3);
+      tmpd << hex.HexMatrixd_from_points();
+      matrix_points = tmpd;
+      Eigen::MatrixXi tmpi(size * 6 + 6, 3);
+      tmpi << hex.HexMatrixi_from_points(size);
+      matrix_tri = tmpi;
+    }
+    else {
+      Eigen::MatrixXd tmpd(size * 7 + 7, 3);
+      tmpd << matrix_points, hex.HexMatrixd_from_points();
+      matrix_points = tmpd;
+      //append to matrix of triangle
+      Eigen::MatrixXi tmpi(size * 6 + 6, 3);
+      tmpi << matrix_tri, hex.HexMatrixi_from_points(size);
+      matrix_tri = tmpi;
+    }
     ++size;
   }
   uint16_t Get_size() {

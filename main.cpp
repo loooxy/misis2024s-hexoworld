@@ -23,12 +23,4 @@ int main(int argc, char* argv[])
   viewer.data().set_mesh(V, F);
   viewer.data().set_face_based(true);
   viewer.launch();
-  Eigen::Matrix3i m1, m2, m3(3);
-  m1 <<
-    1, 2, 3,
-    4, 5, 6;
-  m2 <<
-    1, 2, 3;
-  m3 << m1, m2;
-  std::cout << m2;
 }
