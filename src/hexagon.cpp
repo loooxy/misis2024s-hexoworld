@@ -365,9 +365,9 @@ public:
   } // actually we need if else for our orintation
 
 
-  Eigen::Matrix3d HexMatrixd_from_points() const {
+  Eigen::MatrixXd HexMatrixd_from_points() const {
     Hex_Points points = *this;
-    Eigen::Matrix3d m(7);
+    Eigen::MatrixXd m(7,3);
     m <<
       points.p_centr.x, points.p_centr.y, points.p_centr.z,
       points.p1.x, points.p1.y, points.p1.z,
@@ -379,8 +379,8 @@ public:
     return m;
   }
   //this method onle make sense when we need to append hex in hex map
-  Eigen::Matrix3i HexMatrixi_from_points(double size) const {
-    Eigen::Matrix3i m;
+  Eigen::MatrixXi HexMatrixi_from_points(double size) const {
+    Eigen::MatrixXi m(6,3);
     m <<
       size * 7, size * 7 + 1, size * 7 + 2,
       size * 7, size * 7 + 2, size * 7 + 3,
@@ -409,11 +409,11 @@ public:
     //I dont understand how to do it more elegant way, maybe its gonna be okay with  resize(I have problem with it)
     //append to matrix of points
     if (size == 0) {
-      //we cant concatenate empty matrix
-      Eigen::MatrixXd tmpd(size * 7 + 7, 3);
+      //we can't concatenate empty matrix
+      Eigen::MatrixXd tmpd(7, 3);
       tmpd << hex.HexMatrixd_from_points();
       matrix_points = tmpd;
-      Eigen::MatrixXi tmpi(size * 6 + 6, 3);
+      Eigen::MatrixXi tmpi(6, 3);
       tmpi << hex.HexMatrixi_from_points(size);
       matrix_tri = tmpi;
     }
@@ -431,17 +431,17 @@ public:
   uint16_t Get_size() {
     return size;
   }
-  Eigen::Matrix3d Matrixd_points() {
+  Eigen::MatrixXd Matrixd_points() {
     return matrix_points;
   }
-  Eigen::Matrix3i Matrixi_tri() {
+  Eigen::MatrixXi Matrixi_tri() {
     return matrix_tri;
   }
 private:
   std::vector<Hex_Points> hexs;
   uint16_t size = 0;
-  Eigen::Matrix3d matrix_points;
-  Eigen::Matrix3i matrix_tri;
+  Eigen::MatrixXd matrix_points;
+  Eigen::MatrixXi matrix_tri;
 };
 
 

@@ -16,8 +16,8 @@ int main(int argc, char* argv[])
   Hex_map map;
   map.Append(P);
   map.Append(P1);
-  Eigen::Matrix3d V = map.Matrixd_points();
-  Eigen::Matrix3i F = map.Matrixi_tri();
+  Eigen::MatrixXd V = map.Matrixd_points();
+  Eigen::MatrixXi F = map.Matrixi_tri();
   // Plot the mesh
   igl::opengl::glfw::Viewer viewer;
   viewer.data().set_mesh(V, F);
