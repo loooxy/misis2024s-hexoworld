@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
   Hex_Points P = Hex_Points({ 0.0,0.0,0.0 });
   Hex_Points P1 = Hex_Points({ 4.0,5.0,0.0 });
   Hex_map map;
-  map.Make_qrid();
+  map.Make_qrid(20);
   Eigen::MatrixXd V = map.Matrixd_points();
   Eigen::MatrixXi F = map.Matrixi_tri();
   // Plot the mesh
