@@ -36,17 +36,68 @@ bgfx::ShaderHandle loadShader(std::string filename)
 
   return bgfx::createShader(mem);
 }
-
+Eigen::Vector3d at = { 0.0f, 0.0f,  4.0f };
+Eigen::Vector3d eye = { 0.0f, 0.0f, 5.0f };
+void rotate(Eigen::Vector3d normal, float degree) {
+  Eigen::Vector3d a = (at - eye).normalized();
+  Eigen::Vector3d b = a.cross(normal).normalized();
+  at += a * cos(degree) + b * sin(degree);
+}
+void move(Eigen::Vector3d direction, float step)
+{
+  direction.normalize();
+  at += direction * step;
+  eye += direction * step;
+}
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
-}
 
-int main(void)
+  if (action == GLFW_PRESS)
+  {
+    Eigen::Vector3d view = at - eye;
+    Eigen::Vector3d normal(0, 1, 0);
+    switch (key)
+    {
+    case GLFW_KEY_K:
+      move(-view, 1);
+      break;
+    case GLFW_KEY_I:
+      move(view, 1);
+      break;
+    case GLFW_KEY_J:
+      move(view.cross(normal), 1);
+      break;
+    case GLFW_KEY_L:
+      move((-view).cross(normal), 1);
+      break;
+    case GLFW_KEY_U:
+      move(normal, 1);
+      break;
+    case GLFW_KEY_O:
+      move(-normal, 1);
+      break;
+    case GLFW_KEY_A:
+      rotate(normal, 1);
+      break;
+    case GLFW_KEY_D:
+      rotate(normal, -1);
+      break;
+    }
+  }
+}
+bx::Vec3 conwert_vector(Eigen::Vector3d v) {
+  return bx::Vec3(v.x(), v.y(), v.z());
+}
+int main()
 {
   glfwInit();
   GLFWwindow* window = glfwCreateWindow(WNDW_WIDTH, WNDW_HEIGHT, "Hello, bgfx!", NULL, NULL);
   glfwSetKeyCallback(window, key_callback);
+
+  bgfx::PlatformData pd;
+  pd.nwh = glfwGetWin32Window(window);
+  bgfx::setPlatformData(pd);
 
   bgfx::renderFrame();
 
@@ -67,14 +118,19 @@ int main(void)
   bgfxInit.resolution.reset = BGFX_RESET_VSYNC;
   bgfx::init(bgfxInit);
 
+
   bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
   bgfx::setViewRect(0, 0, 0, WNDW_WIDTH, WNDW_HEIGHT);
 
-  std::vector<Point> Vertices;
-  std::vector<uint16_t> TriList;
-  HexagonGrid tmp(0.3f, Point(-2.0f, -2.0f, 0.0f, color(255, 255, 255)),
-    Vector(1, 0, 0), Vector(0, 0, 1), 10, 10);
+
+  HexagonGrid tmp(0.5f, Point(-2.0f, -2.0f, 0.0f, Color(255, 255, 0)),
+    Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 0, -1), 5, 5);
+  tmp.set_height(2, 2, 1.0f);
+  tmp.set_height(3, 2, 0.5f);
   tmp.set_random_colors();
+
+  std::vector<PrintingPoint> Vertices;
+  std::vector<uint16_t> TriList;
   tmp.print_in_vertices_and_triList(Vertices, TriList);
 
   bgfx::VertexLayout pcvDecl;
@@ -82,12 +138,12 @@ int main(void)
     .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
     .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
     .end();
-  bgfx::VertexBufferHandle vbh = 
+  bgfx::VertexBufferHandle vbh =
     bgfx::createVertexBuffer(
       bgfx::makeRef(Vertices.data(),
-        Vertices.size() * sizeof(Point)),
+        Vertices.size() * sizeof(PrintingPoint)),
       pcvDecl);
-  bgfx::IndexBufferHandle ibh = 
+  bgfx::IndexBufferHandle ibh =
     bgfx::createIndexBuffer(
       bgfx::makeRef(TriList.data(),
         TriList.size() * sizeof(uint16_t)));
@@ -100,18 +156,12 @@ int main(void)
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    const bx::Vec3 at = { 0.0f, 0.0f,  0.0f };
-    const bx::Vec3 eye = { 0.0f, 0.0f, -5.0f };
     float view[16];
-    bx::mtxLookAt(view, eye, at);
+    bx::mtxLookAt(view, conwert_vector(eye), conwert_vector(at));
     float proj[16];
     bx::mtxProj(proj, 60.0f, float(WNDW_WIDTH) / float(WNDW_HEIGHT), 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
     bgfx::setViewTransform(0, view, proj);
 
-    //Вращение TODO разобраться как сделать на заданный угол
-    /*float mtx[16];
-    bx::mtxRotateXY(mtx, counter * 0.01f, counter * 0.01f);
-    bgfx::setTransform(mtx);*/
 
     bgfx::setVertexBuffer(0, vbh);
     bgfx::setIndexBuffer(ibh);
@@ -120,7 +170,6 @@ int main(void)
     bgfx::frame();
     counter++;
   }
-
   bgfx::destroy(ibh);
   bgfx::destroy(vbh);
   bgfx::shutdown();
