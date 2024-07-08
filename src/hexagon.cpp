@@ -359,9 +359,10 @@ struct Point1
 class Hex_Points
 {
 public:
-  explicit Hex_Points(const Point1 centr, double size = 1.0, bool orintation = true) : p_centr(centr), p1(centr.x* size, centr.y - 0.5 * h * size, centr.z),
-    p2(centr.x + 0.5 * v * size, centr.y - 0.25 * h * size, centr.z), p3(centr.x + 0.5 * v * size, centr.y + 0.25 * h * size, centr.z), p4(centr.x, centr.y + 0.5 * h * size, centr.z),
-    p5(centr.x - 0.5 * v * size, centr.y + 0.25 * h * size, centr.z), p6(centr.x - 0.5 * v * size, centr.y - 0.25 * h * size, centr.z)
+  explicit Hex_Points(const Point1 centr, double size = 1.0, bool orintation = true) : p_centr(centr), p1(centr.x, centr.y - 0.5 * h * size, centr.z),
+    p2(centr.x + 0.5 * v * size, centr.y - 0.25 * h * size, centr.z), p3(centr.x + 0.5 * v * size, centr.y + 0.25 * h * size, centr.z),
+    p4(centr.x, centr.y + 0.5 * h * size, centr.z),p5(centr.x - 0.5 * v * size, centr.y + 0.25 * h * size, centr.z),
+    p6(centr.x - 0.5 * v * size, centr.y - 0.25 * h * size, centr.z)
   {
     size_ = size;
   } // actually we need if else for our orintation
@@ -410,29 +411,11 @@ public:
   void Append(const Hex_Points& hex) {
     //I dont understand how to do it more elegant way, maybe its gonna be okay with  resize(I have problem with it)
     //append to matrix of points
-    if (size == 0) {
-      //we can't concatenate empty matrix
-      Eigen::MatrixXd tmpd(7, 3);
-      tmpd << hex.HexMatrixd_from_points();
-      matrix_points = tmpd;
-      Eigen::MatrixXi tmpi(6, 3);
-      tmpi << hex.HexMatrixi_from_points(size);
-      matrix_tri = tmpi;
-    }
-    else {
-      Eigen::MatrixXd tmpd(size * 7 + 7, 3);
-      tmpd << matrix_points, hex.HexMatrixd_from_points();
-      matrix_points = tmpd;
-      //append to matrix of triangle
-      Eigen::MatrixXi tmpi(size * 6 + 6, 3);
-      tmpi << matrix_tri, hex.HexMatrixi_from_points(size);
-      matrix_tri = tmpi;
-    }
-    ++size;
+    ++size_;
     hexs.push_back(hex);
   }
   uint16_t Get_size() {
-    return size;
+    return size_;
   }
   Eigen::MatrixXd Matrixd_points() {
     return matrix_points;
@@ -444,17 +427,42 @@ public:
     for (int y = 0; y <= n ; ++y) {
       for (int x = 0; x <= n; ++x) {
         if (y % 2 == 0) {
+          Append(Hex_Points({ x * v,y * h * 0.75,0.0 },0.75));
           Append(Hex_Points({ x * v,y * h * 0.75,0.0 }));
         }
         else {
+          Append(Hex_Points({ x * v - v / 2,y * h * 0.75,0.0 },0.75));
           Append(Hex_Points({ x * v - v / 2,y * h * 0.75,0.0 }));
         }
       }
     }
   }
+  void Set() {
+    for (int size = 0; size < size_; ++size) {
+      Hex_Points hex = hexs[size];
+      if (size == 0) {
+        //we can't concatenate empty matrix
+        Eigen::MatrixXd tmpd(7, 3);
+        tmpd << hex.HexMatrixd_from_points();
+        matrix_points = tmpd;
+        Eigen::MatrixXi tmpi(6, 3);
+        tmpi << hex.HexMatrixi_from_points(size);
+        matrix_tri = tmpi;
+      }
+      else {
+        Eigen::MatrixXd tmpd(size * 7 + 7, 3);
+        tmpd << matrix_points, hex.HexMatrixd_from_points();
+        matrix_points = tmpd;
+        //append to matrix of triangle
+        Eigen::MatrixXi tmpi(size * 6 + 6, 3);
+        tmpi << matrix_tri, hex.HexMatrixi_from_points(size);
+        matrix_tri = tmpi;
+      }
+    }
+  }
 private:
   std::vector<Hex_Points> hexs;
-  uint16_t size = 0;
+  uint16_t size_ = 0;
   Eigen::MatrixXd matrix_points;
   Eigen::MatrixXi matrix_tri;
 };
