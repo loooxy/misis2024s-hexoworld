@@ -6,11 +6,10 @@
 #include <ctime>
 #include <algorithm>
 #include <iostream>
-#define ERR 0.01f
 
 Color::Color() : Color(0, 0, 0) {}
 Color::Color(uint8_t red, uint8_t blue,
-  uint8_t green, uint8_t alpha, uint32_t n_parts)
+  uint8_t green, uint8_t alpha, uint32_t n_parts) 
   : n_parts_(n_parts) {
   abgr_ = (uint32_t(red) << 0) |
     (uint32_t(blue) << 8) |
@@ -22,8 +21,8 @@ Color::Color(uint32_t abgr, uint32_t n_parts)
 Color Color::operator+(const Color& rhs) const
 {
   uint32_t a =
-    (uint8_t(abgr_ >> 24) * n_parts_ +
-      uint8_t(rhs.abgr_ >> 24) * rhs.n_parts_) /
+    (uint8_t(abgr_ >> 24) * n_parts_ + 
+      uint8_t(rhs.abgr_ >> 24) * rhs.n_parts_) / 
     (n_parts_ + rhs.n_parts_);
   uint32_t b =
     (uint8_t(abgr_ >> 16) * n_parts_ +
@@ -46,10 +45,10 @@ Color Color::operator-(const Color& rhs) const
       return Color(0, 0, 0);
     else
       throw std::invalid_argument("wrong parameter");
-
+    
   uint32_t a =
-    (uint8_t(abgr_ >> 24) * n_parts_ -
-      uint8_t(rhs.abgr_ >> 24) * rhs.n_parts_) /
+    (uint8_t(abgr_ >> 24) * n_parts_ - 
+      uint8_t(rhs.abgr_ >> 24) * rhs.n_parts_) / 
     (n_parts_ - rhs.n_parts_);
   uint32_t b =
     (uint8_t(abgr_ >> 16) * n_parts_ -
@@ -73,12 +72,11 @@ uint32_t Color::get_abgr() const
   return abgr_;
 }
 
-uint32_t connect(Point point, std::shared_ptr<Object> object)
+uint32_t HexagonGrid::connect(Point point, std::shared_ptr<HexagonGrid::Object> object)
 {
-  return Points::get_instance().connect_point_with_object(point, object);
+  return HexagonGrid::Points::get_instance().connect_point_with_object(point, object);
 }
-
-void printRect(std::pair<Point, Point> a,
+void HexagonGrid::printRect(std::pair<Point, Point> a,
   std::pair<Point, Point> b,
   std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList)
@@ -134,7 +132,7 @@ void printRect(std::pair<Point, Point> a,
   TriList.push_back(id3);
   TriList.push_back(id2);
 }
-void printTri(Point a, Point b, Point c,
+void HexagonGrid::printTri(Point a, Point b, Point c,
   std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList)
 {
@@ -173,20 +171,21 @@ void printTri(Point a, Point b, Point c,
   TriList.push_back(id2);
   TriList.push_back(id1);
 }
+
 //struct Point---------------------------------------------
 Point::Point() : position(0, 0, 0), color(0, 0, 0) {};
-Point::Point(Eigen::Vector3d pos,
+Point::Point(Eigen::Vector3d pos, 
   Color color)
   : position(pos), color(color) {}
 Point::Point(double x, double y, double z, Color color)
-  : Point(Eigen::Vector3d(x, y, z), color) {}
+ : Point(Eigen::Vector3d(x, y, z), color) {}
 Point Point::operator+(Eigen::Vector3d v)
 {
   return Point(position + v, color);
 }
 Point Point::operator-(Eigen::Vector3d v)
 {
-  return Point(position - v, color);
+  return Point(position  - v, color);
 }
 Point& Point::operator+=(Eigen::Vector3d v)
 {
@@ -195,7 +194,7 @@ Point& Point::operator+=(Eigen::Vector3d v)
 }
 bool Point::operator<(const Point& rhs) const
 {
-  double min_dif = ERR;
+  double min_dif = PRECISION_DBL_CALC;
   if (position.x() + min_dif < rhs.position.x())
     return true;
   else if (position.x() - min_dif > rhs.position.x())
@@ -213,12 +212,12 @@ bool Point::operator<(const Point& rhs) const
 }
 //struct PrintingPoint-------------------------------------
 PrintingPoint::PrintingPoint(Point p)
-  : x(p.position.x()),
-  y(p.position.y()),
-  z(p.position.z()),
+  : x(p.position.x()), 
+  y(p.position.y()), 
+  z(p.position.z()), 
   abgr(p.color.get_abgr()) {}
 //class Points---------------------------------------------
-uint32_t Points::connect_point_with_object(Point p,
+uint32_t HexagonGrid::Points::connect_point_with_object(Point p,
   std::shared_ptr<Object> object)
 {
   uint32_t id;
@@ -238,29 +237,38 @@ uint32_t Points::connect_point_with_object(Point p,
   return id;
 }
 
-bool Points::in_points(Point p) const
+bool HexagonGrid::Points::in_points(Point p) const
 {
   return (point_to_id.find(p) != point_to_id.end());
 }
-uint32_t Points::get_id_point(Point p) const
+uint32_t HexagonGrid::Points::get_id_point(Point p)
 {
+  uint32_t id;
   if (point_to_id.find(p) == point_to_id.end())
-    throw std::invalid_argument("unknown point");
-  return point_to_id.at(p);
+  {
+    id = point_to_id[p] = id_to_point.size();
+    id_to_point.push_back(p);
+    id_to_objects.push_back(std::vector<std::shared_ptr<Object>>());
+  }
+  else
+  {
+    id = point_to_id[p];
+  }
+  return id;
 }
-std::vector<std::shared_ptr<Object>> Points::get_objects(uint32_t id)
+std::vector<std::shared_ptr<HexagonGrid::Object>> HexagonGrid::Points::get_objects(uint32_t id)
 {
   if (id >= id_to_objects.size())
     throw std::invalid_argument("wrong id");
   return id_to_objects[id];
 }
-Point Points::get_point(uint32_t id) const
+Point HexagonGrid::Points::get_point(uint32_t id) const
 {
   if (id >= id_to_point.size())
     throw std::invalid_argument("wrong id");
   return id_to_point[id];
 }
-void Points::update_point(uint32_t id, Point new_point)
+void HexagonGrid::Points::update_point(uint32_t id, Point new_point)
 {
   Point point = Points::get_instance().id_to_point[id];
   Points::get_instance().point_to_id.erase(point);
@@ -270,63 +278,63 @@ void Points::update_point(uint32_t id, Point new_point)
 
 //struct Hexagon-------------------------------------------
 
-Hexagon::Hexagon(float big_size, float small_size,
+HexagonGrid::Hexagon::Hexagon(float big_size, float small_size,
   Eigen::Vector3d center,
-  Eigen::Vector3d pointDerection, Eigen::Vector3d floatDerection,
-  Color color) : center(center) {
-  if (abs(pointDerection.dot(floatDerection)) > PRECISION_DBL_CALC)
+  Eigen::Vector3d pointDirection, Eigen::Vector3d floatDirection,
+  Color color) : center(center){
+  if (abs(pointDirection.dot(floatDirection)) > PRECISION_DBL_CALC)
     throw std::invalid_argument("pointTop and floatTop not perpendicular");
-
-  pointDerection.normalize();
-  floatDerection.normalize();
+  
+  pointDirection.normalize();
+  floatDirection.normalize();
   outerPoints.resize(6);
   {
-    outerPoints[0] = Point(center + (pointDerection * big_size),
+    outerPoints[0] = Point(center + (pointDirection * big_size),
       color);
     outerPoints[1] = Point(
-      center + (pointDerection * (0.5 * big_size)) +
-      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      center + (pointDirection * (0.5 * big_size)) +
+      (floatDirection * (sqrtf(3) / 2 * big_size)),
       color);
     outerPoints[2] = Point(
-      center - (pointDerection * (0.5 * big_size)) +
-      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      center - (pointDirection * (0.5 * big_size)) +
+      (floatDirection * (sqrtf(3) / 2 * big_size)),
       color);
-    outerPoints[3] = Point(center - (pointDerection * big_size),
+    outerPoints[3] = Point(center - (pointDirection * big_size),
       color);
     outerPoints[4] = Point(
-      center - (pointDerection * (0.5 * big_size)) -
-      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      center - (pointDirection * (0.5 * big_size)) -
+      (floatDirection * (sqrtf(3) / 2 * big_size)),
       color);
     outerPoints[5] = Point(
-      center + (pointDerection * (0.5 * big_size)) -
-      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      center + (pointDirection * (0.5 * big_size)) -
+      (floatDirection * (sqrtf(3) / 2 * big_size)),
       color);
   }
   innerPoints.resize(6);
   {
-    innerPoints[0] = Point(center + (pointDerection * small_size),
+    innerPoints[0] = Point(center + (pointDirection * small_size),
       color);
     innerPoints[1] = Point(
-      center + (pointDerection * (0.5 * small_size)) +
-      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      center + (pointDirection * (0.5 * small_size)) +
+      (floatDirection * (sqrtf(3) / 2 * small_size)),
       color);
     innerPoints[2] = Point(
-      center - (pointDerection * (0.5 * small_size)) +
-      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      center - (pointDirection * (0.5 * small_size)) +
+      (floatDirection * (sqrtf(3) / 2 * small_size)),
       color);
-    innerPoints[3] = Point(center - (pointDerection * small_size),
+    innerPoints[3] = Point(center - (pointDirection * small_size),
       color);
     innerPoints[4] = Point(
-      center - (pointDerection * (0.5 * small_size)) -
-      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      center - (pointDirection * (0.5 * small_size)) -
+      (floatDirection * (sqrtf(3) / 2 * small_size)),
       color);
     innerPoints[5] = Point(
-      center + (pointDerection * (0.5 * small_size)) -
-      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      center + (pointDirection * (0.5 * small_size)) -
+      (floatDirection * (sqrtf(3) / 2 * small_size)),
       color);
   }
 }
-void Hexagon::connect_points(std::shared_ptr<Hexagon> ptr)
+void HexagonGrid::Hexagon::connect_points(std::shared_ptr<Hexagon> ptr)
 {
   innerPointsId.resize(6);
   for (int i = 0; i < 6; ++i)
@@ -335,7 +343,7 @@ void Hexagon::connect_points(std::shared_ptr<Hexagon> ptr)
   for (int i = 0; i < 6; ++i)
     outerPointsId[i] = connect(outerPoints[i], ptr);
 }
-void Hexagon::set_color(Color color)
+void HexagonGrid::Hexagon::set_color(Color color)
 {
   Color last_color = center.color;
   center.color = color;
@@ -349,7 +357,7 @@ void Hexagon::set_color(Color color)
     Points::get_instance().update_point(outerPointsId[i], p);
   }
 }
-void Hexagon::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
+void HexagonGrid::Hexagon::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
 {
   int ind = Vertices.size();
   Vertices.push_back(center);
@@ -357,20 +365,20 @@ void Hexagon::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices
   {
     TriList.push_back(ind);
     TriList.push_back(innerPointsId[i]);
-    TriList.push_back(innerPointsId[(i + 1) % 6]);
+    TriList.push_back(innerPointsId[(i + 1)%6]);
 
     TriList.push_back(innerPointsId[(i + 1) % 6]);
     TriList.push_back(innerPointsId[i]);
     TriList.push_back(ind);
   }
 }
+
 //struct Triangle------------------------------------------
 
-Triangle::Triangle(Point a, Point b, Point c,
-  HeightData heightData) : heightData_(heightData) {
-  std::vector<uint32_t> ids = {
-    Points::get_instance().get_id_point(a) ,
-    Points::get_instance().get_id_point(b) ,
+HexagonGrid::Triangle::Triangle(Point a, Point b, Point c){
+  std::vector<uint32_t> ids = { 
+    Points::get_instance().get_id_point(a) , 
+    Points::get_instance().get_id_point(b) , 
     Points::get_instance().get_id_point(c) };
   std::sort(ids.begin(), ids.end());
   AId = ids[0];
@@ -378,8 +386,7 @@ Triangle::Triangle(Point a, Point b, Point c,
   CId = ids[2];
 }
 
-Triangle::Triangle(uint32_t aId, uint32_t bId, uint32_t cId,
-  HeightData heightData) : heightData_(heightData)
+HexagonGrid::Triangle::Triangle(uint32_t aId, uint32_t bId, uint32_t cId)
 {
   std::vector<uint32_t> ids = { aId , bId , cId };
   std::sort(ids.begin(), ids.end());
@@ -388,13 +395,13 @@ Triangle::Triangle(uint32_t aId, uint32_t bId, uint32_t cId,
   CId = ids[2];
 }
 
-bool Triangle::operator<(const Triangle& rhs) const
+bool HexagonGrid::Triangle::operator<(const Triangle& rhs) const
 {
   if (AId < rhs.AId)
     return true;
   if (AId > rhs.AId)
     return false;
-
+  
   if (BId < rhs.BId)
     return true;
   if (BId > rhs.BId)
@@ -405,22 +412,26 @@ bool Triangle::operator<(const Triangle& rhs) const
   return false;
 }
 
-void Triangle::print_in_vertices_and_triList(
+void HexagonGrid::Triangle::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices,
-  std::vector<uint16_t>& TriList) const {
+  std::vector<uint16_t>& TriList,
+  const HexagonGrid& hexagonGrid) const {
   Point a = Points::get_instance().get_point(AId);
   Point b = Points::get_instance().get_point(BId);
   Point c = Points::get_instance().get_point(CId);
-
+  
   int32_t heightA =
-    round(heightData_.heightDirection_.dot(a.position - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      a.position - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
   int32_t heightB =
-    round(heightData_.heightDirection_.dot(b.position - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      b.position - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
   int32_t heightC =
-    round(heightData_.heightDirection_.dot(c.position - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      c.position - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
 
   std::vector<std::pair<int32_t, Point>> points;
   points.push_back({ heightA, a });
@@ -445,20 +456,20 @@ void Triangle::print_in_vertices_and_triList(
     {
       uint32_t nTerraces =
         (points[2].first - points[0].first) *
-        (heightData_.nTerracesOnHeightStep_ + 1) - 1;
+        (hexagonGrid.nTerracesOnHeightStep_ + 1) - 1;
       Eigen::Vector3d step =
         (points[2].second.position -
           points[0].second.position) / (nTerraces + 1);
       Eigen::Vector3d platformVector =
-        heightData_.heightDirection_
+        hexagonGrid.heightDirection_
         .cross(step)
-        .cross(heightData_.heightDirection_)
+        .cross(hexagonGrid.heightDirection_)
         .normalized();
       platformVector *= step.dot(platformVector) / 3;
-
+      
       Eigen::Vector3d goal = points[0].second.position +
-        step * (heightData_.nTerracesOnHeightStep_ + 1)
-        * (points[1].first - points[0].first);
+        step * (hexagonGrid.nTerracesOnHeightStep_ + 1)
+        *(points[1].first - points[0].first);
 
       double len = (points[0].second.position
         - points[2].second.position).norm();
@@ -466,11 +477,11 @@ void Triangle::print_in_vertices_and_triList(
       Point p1;
       p1.position = goal - platformVector;
       p1.color = Color(points[0].second.color.get_abgr(),
-        abs((p1.position - points[2].second.position).norm()
-          / len * 100) + 1) +
+        abs((p1.position - points[2].second.position).norm() 
+        / len * 100) + 1) +
         Color(points[2].second.color.get_abgr(),
-          abs((p1.position - points[0].second.position).norm()
-            / len * 100) + 1);
+          abs((p1.position - points[0].second.position).norm() 
+          / len * 100) + 1);
 
       Point p2;
       p2.position = goal + platformVector;
@@ -484,12 +495,12 @@ void Triangle::print_in_vertices_and_triList(
 
       print_stair(points[1].second, p1, points[0].second,
         points[1].second.position, goal, points[0].second.position,
-        heightData_, Vertices, TriList);
+        hexagonGrid, Vertices, TriList);
       print_stair(points[1].second, p2, points[2].second,
         points[1].second.position, goal, points[2].second.position,
-        heightData_, Vertices, TriList);
+        hexagonGrid, Vertices, TriList);
 
-      printTri(points[1].second, p1, p2,
+      printTri(points[1].second, p1, p2, 
         Vertices, TriList);
     }
     else
@@ -501,7 +512,7 @@ void Triangle::print_in_vertices_and_triList(
           points[0].second.position,
           points[1].second.position,
           points[2].second.position,
-          heightData_,
+          hexagonGrid,
           Vertices, TriList);
       else
         print_stair(points[1].second,
@@ -510,30 +521,30 @@ void Triangle::print_in_vertices_and_triList(
           points[1].second.position,
           points[2].second.position,
           points[0].second.position,
-          heightData_,
+          hexagonGrid,
           Vertices, TriList);
     }
   }
 }
 
-void Triangle::print_stair(Point a, Point b, Point c,
-  Eigen::Vector3d a_goal,
-  Eigen::Vector3d b_goal,
+void HexagonGrid::Triangle::print_stair(Point a, Point b, Point c,
+  Eigen::Vector3d a_goal, 
+  Eigen::Vector3d b_goal, 
   Eigen::Vector3d c_goal,
-  HeightData heightData_,
-  std::vector<PrintingPoint>& Vertices,
+  const HexagonGrid& hexagonGrid,
+  std::vector<PrintingPoint>& Vertices, 
   std::vector<uint16_t>& TriList) const
 {
   Point d = c;
   Eigen::Vector3d d_goal = c_goal;
   int32_t heightstart =
-    round(heightData_.heightDirection_.dot(
-      a_goal - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      a_goal - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
   int32_t heightend =
-    round(heightData_.heightDirection_.dot(
-      c_goal - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      c_goal - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
 
   if (heightstart > heightend)
   {
@@ -550,22 +561,22 @@ void Triangle::print_stair(Point a, Point b, Point c,
   {
     uint32_t nTerraces =
       (heightend - heightstart) *
-      (heightData_.nTerracesOnHeightStep_ + 1) - 1;
+      (hexagonGrid.nTerracesOnHeightStep_ + 1) - 1;
     Eigen::Vector3d step1 =
       (c_goal - a_goal) / (nTerraces + 1);
     Eigen::Vector3d platformVector1 =
-      heightData_.heightDirection_
+      hexagonGrid.heightDirection_
       .cross(step1)
-      .cross(heightData_.heightDirection_)
+      .cross(hexagonGrid.heightDirection_)
       .normalized();
     platformVector1 *= step1.dot(platformVector1) / 3;
 
     Eigen::Vector3d step2 =
       (d_goal - b_goal) / (nTerraces + 1);
     Eigen::Vector3d platformVector2 =
-      heightData_.heightDirection_
+      hexagonGrid.heightDirection_
       .cross(step2)
-      .cross(heightData_.heightDirection_)
+      .cross(hexagonGrid.heightDirection_)
       .normalized();
     platformVector2 *= step2.dot(platformVector2) / 3;
     for (int i = 1; i <= nTerraces; ++i)
@@ -610,18 +621,17 @@ void Triangle::print_stair(Point a, Point b, Point c,
 
 //struct Rectangle------------------------------------------
 
-BorderRectangle::BorderRectangle(Point a, Point b,
-  Point c, Point d, HeightData heightData)
-  : heightData_(heightData) {
+HexagonGrid::BorderRectangle::BorderRectangle(Point a, Point b,
+  Point c, Point d) {
   AId = Points::get_instance().get_id_point(a);
   BId = Points::get_instance().get_id_point(b);
   CId = Points::get_instance().get_id_point(c);
   DId = Points::get_instance().get_id_point(d);
 }
 
-BorderRectangle::BorderRectangle(uint32_t aId, uint32_t bId,
-  uint32_t cId, uint32_t dId, HeightData heightData)
-  : heightData_(heightData)
+HexagonGrid::BorderRectangle::BorderRectangle(
+  uint32_t aId, uint32_t bId,
+  uint32_t cId, uint32_t dId)
 {
   AId = aId;
   BId = bId;
@@ -629,15 +639,15 @@ BorderRectangle::BorderRectangle(uint32_t aId, uint32_t bId,
   DId = dId;
 }
 
-bool BorderRectangle::operator<(const BorderRectangle& rhs) const
+bool HexagonGrid::BorderRectangle::operator<(const BorderRectangle& rhs) const
 {
   std::vector<uint32_t> ids_lhs = { AId , BId , CId, DId };
-  std::vector<uint32_t> ids_rhs = { rhs.AId , rhs.BId ,
+  std::vector<uint32_t> ids_rhs = { rhs.AId , rhs.BId , 
     rhs.CId, rhs.DId };
 
   std::sort(ids_lhs.begin(), ids_lhs.end());
   std::sort(ids_rhs.begin(), ids_rhs.end());
-
+  
   for (int i = 0; i < 4; ++i)
   {
     if (ids_lhs[i] < ids_rhs[i])
@@ -648,22 +658,23 @@ bool BorderRectangle::operator<(const BorderRectangle& rhs) const
   return false;
 }
 
-void BorderRectangle::print_in_vertices_and_triList(
+void HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices,
-  std::vector<uint16_t>& TriList) const {
+  std::vector<uint16_t>& TriList,
+  const HexagonGrid& hexagonGrid) const {
   Point a = Points::get_instance().get_point(AId);
   Point b = Points::get_instance().get_point(BId);
   Point c = Points::get_instance().get_point(CId);
   Point d = Points::get_instance().get_point(DId);
 
   int32_t heightstart =
-    round(heightData_.heightDirection_.dot(
-      a.position - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      a.position - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
   int32_t heightend =
-    round(heightData_.heightDirection_.dot(
-      c.position - heightData_.origin_) /
-      heightData_.heightStep_);
+    round(hexagonGrid.heightDirection_.dot(
+      c.position - hexagonGrid.origin_) /
+      hexagonGrid.heightStep_);
 
   if (heightstart > heightend)
   {
@@ -678,21 +689,21 @@ void BorderRectangle::print_in_vertices_and_triList(
   {
     uint32_t nTerraces =
       (heightend - heightstart) *
-      (heightData_.nTerracesOnHeightStep_ + 1) - 1;
+      (hexagonGrid.nTerracesOnHeightStep_ + 1) - 1;
     Eigen::Vector3d step1 =
       (c.position - a.position) / (nTerraces + 1);
     Eigen::Vector3d platformVector1 =
-      heightData_.heightDirection_
+      hexagonGrid.heightDirection_
       .cross(step1)
-      .cross(heightData_.heightDirection_)
+      .cross(hexagonGrid.heightDirection_)
       .normalized();
     platformVector1 *= step1.dot(platformVector1) / 3;
     Eigen::Vector3d step2 =
       (d.position - b.position) / (nTerraces + 1);
     Eigen::Vector3d platformVector2 =
-      heightData_.heightDirection_
+      hexagonGrid.heightDirection_
       .cross(step2)
-      .cross(heightData_.heightDirection_)
+      .cross(hexagonGrid.heightDirection_)
       .normalized();
     platformVector2 *= step2.dot(platformVector2) / 3;
     for (int i = 1; i <= nTerraces; ++i)
@@ -704,9 +715,9 @@ void BorderRectangle::print_in_vertices_and_triList(
       Point p4 = b + step2 * i + platformVector2;
 
       p1.color = Color(c.color.get_abgr(),
-        (p1.position - a.position).norm() / len * 100) +
-        Color(a.color.get_abgr(),
-          (p1.position - c.position).norm() / len * 100);
+        (p1.position - a.position).norm()/len * 100) +
+        Color(a.color.get_abgr(), 
+        (p1.position - c.position).norm()/len * 100);
       p2.color = Color(d.color.get_abgr(),
         (p2.position - b.position).norm() / len * 100) +
         Color(b.color.get_abgr(),
@@ -732,25 +743,22 @@ void BorderRectangle::print_in_vertices_and_triList(
 
 //struct HexagonGrid---------------------------------------
 HexagonGrid::HexagonGrid(float size, Eigen::Vector3d origin,
-  Eigen::Vector3d row_direction, Eigen::Vector3d ñol_direction,
+  Eigen::Vector3d row_direction, Eigen::Vector3d  col_direction,
   uint32_t n_rows, uint32_t n_cols, Color color,
-  float height_step, int n_terraces_on_height_step)
-  : origin_(origin), size_(size), innerSize_(0.75 * size)
+  float height_step, uint32_t n_terraces_on_height_step)
+  : origin_(origin), size_(size), innerSize_(0.75 * size),
+  heightStep_(height_step), 
+  nTerracesOnHeightStep_(n_terraces_on_height_step)
 {
-  if (abs(ñol_direction.dot(row_direction)) > PRECISION_DBL_CALC)
-    throw std::invalid_argument("ñol_direction and row_direction not perpendicular");
+  if (abs( col_direction.dot(row_direction)) > PRECISION_DBL_CALC)
+    throw std::invalid_argument(" ol_direction and row_direction not perpendicular");
 
   row_direction.normalize();
-  ñol_direction.normalize();
-
+   col_direction.normalize();
+  
   rowDirection_ = row_direction;
-  ñolDirection_ = ñol_direction;
-  heightDirection_ = rowDirection_.cross(ñolDirection_);
-
-  heightData_.heightDirection_ = heightDirection_;
-  heightData_.origin_ = origin_;
-  heightData_.heightStep_ = height_step;
-  heightData_.nTerracesOnHeightStep_ = n_terraces_on_height_step;
+  colDirection_ =  col_direction;
+  heightDirection_ = rowDirection_.cross(colDirection_);
 
   for (int row = 0; row < n_rows; ++row)
   {
@@ -768,12 +776,12 @@ void HexagonGrid::add_hexagon(uint32_t row, uint32_t col,
 
   std::shared_ptr<Hexagon> ptr =
     std::make_shared<Hexagon>(size_, innerSize_,
-      origin_ +
-      ñolDirection_ *
+      origin_ + 
+       colDirection_ * 
       ((sqrtf(3) * col + (row % 2) * sqrt(3) / 2) * size_)
-      + rowDirection_ *
+      + rowDirection_ * 
       (1.5 * size_ * row),
-      rowDirection_, ñolDirection_, color);
+      rowDirection_,  colDirection_, color);
   grid_[Coord(row, col)] = ptr;
   ptr->connect_points(ptr);
 
@@ -784,7 +792,7 @@ void HexagonGrid::add_hexagon(uint32_t row, uint32_t col,
       Points::get_instance().get_objects(id);
     std::vector<std::shared_ptr<Hexagon>> hexs;
     for (const auto& obj : objs)
-      if (obj->is_hexadon())
+      if (obj->is_hexagon())
         hexs.push_back(std::static_pointer_cast<Hexagon>(obj));
 
     //init triangles-------------------------------------
@@ -797,9 +805,7 @@ void HexagonGrid::add_hexagon(uint32_t row, uint32_t col,
     if (idInnerPoints.size() == 3)
     {
       triangles.insert(Triangle(
-        idInnerPoints[0], idInnerPoints[1], idInnerPoints[2],
-        heightData_
-      ));
+        idInnerPoints[0], idInnerPoints[1], idInnerPoints[2]));
     }
 
     //init rectangles-------------------------------------
@@ -826,8 +832,7 @@ void HexagonGrid::add_hexagon(uint32_t row, uint32_t col,
           hex1_inds_common_vertex[0],
           hex1_inds_common_vertex[1],
           hex2_inds_common_vertex[0],
-          hex2_inds_common_vertex[1],
-          heightData_
+          hex2_inds_common_vertex[1]
         ));
       }
   }
@@ -848,9 +853,9 @@ void HexagonGrid::print_in_vertices_and_triList(
   for (const auto& [coord, hex] : grid_)
     hex->print_in_vertices_and_triList(Vertices, TriList);
   for (const auto& triangle : triangles)
-    triangle.print_in_vertices_and_triList(Vertices, TriList);
+    triangle.print_in_vertices_and_triList(Vertices, TriList, *this);
   for (const auto& rectangle : rectangles)
-    rectangle.print_in_vertices_and_triList(Vertices, TriList);
+    rectangle.print_in_vertices_and_triList(Vertices, TriList, *this);
 }
 void HexagonGrid::set_height(int row, int col, int32_t height)
 {
@@ -858,19 +863,19 @@ void HexagonGrid::set_height(int row, int col, int32_t height)
     throw std::invalid_argument("wrong coords");
 
   Point& center = grid_.at(Coord(row, col))->center;
-  int32_t last_height =
-    round(heightDirection_.dot(center.position - origin_) /
-      heightData_.heightStep_);
-  center += (height - last_height) * heightData_.heightStep_ * heightDirection_;
+  int32_t last_height = 
+    round(heightDirection_.dot(center.position - origin_) / 
+    heightStep_);
+  center += (height - last_height) * heightStep_ * heightDirection_;
   for (int i = 0; i < 6; ++i)
   {
     uint32_t id = grid_.at(Coord(row, col))->innerPointsId[i];
-
+    
     Point p = Points::get_instance().get_point(id);
-    last_height =
+    last_height = 
       round(heightDirection_.dot(p.position - origin_) /
-        heightData_.heightStep_);
-    p += (height - last_height) * heightData_.heightStep_ * heightDirection_;
+       heightStep_);
+    p += (height - last_height) * heightStep_ * heightDirection_;
 
     Points::get_instance().update_point(id, p);
   }
@@ -882,7 +887,7 @@ void HexagonGrid::set_height(int row, int col, int32_t height)
     Eigen::Matrix3d positions;
     int cnt = 0;
     for (const auto obj : Points::get_instance().get_objects(id))
-      if (obj->is_hexadon())
+      if (obj->is_hexagon())
       {
         const Hexagon& hex = *std::static_pointer_cast<Hexagon>(obj);
         positions(cnt, 0) = hex.center.position.x();
