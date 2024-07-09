@@ -38,6 +38,7 @@ bgfx::ShaderHandle loadShader(std::string filename)
 }
 Eigen::Vector3d at = { 0.0f, 0.0f,  4.0f };
 Eigen::Vector3d eye = { 0.0f, 0.0f, 5.0f };
+Eigen::Vector3d rotating_angles = { 0, 0, 0 };
 void rotate(Eigen::Vector3d normal, float degree) {
   Eigen::Vector3d a = (at - eye).normalized();
   Eigen::Vector3d b = a.cross(normal).normalized();
@@ -53,14 +54,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
 
-  if (action == GLFW_PRESS)
+  if (true)
   {
     Eigen::Vector3d view = at - eye;
     Eigen::Vector3d normal(0, 1, 0);
     switch (key)
     {
     case GLFW_KEY_K:
-      move(-view, 1);
+      move(view, -1);
       break;
     case GLFW_KEY_I:
       move(view, 1);
@@ -69,19 +70,35 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       move(view.cross(normal), 1);
       break;
     case GLFW_KEY_L:
-      move((-view).cross(normal), 1);
+      move(view.cross(normal), -1);
       break;
     case GLFW_KEY_U:
       move(normal, 1);
       break;
     case GLFW_KEY_O:
-      move(-normal, 1);
+      move(normal, -1);
       break;
     case GLFW_KEY_A:
+      rotating_angles += Eigen::Vector3d(0, 1, 0);
       rotate(normal, 1);
       break;
     case GLFW_KEY_D:
+      rotating_angles += Eigen::Vector3d(0, 1, 0);
       rotate(normal, -1);
+      break;
+    case GLFW_KEY_W:
+      if (rotating_angles.z() < 5)
+      {
+        rotating_angles += Eigen::Vector3d(0, 0, 0.1);
+        rotate(view.cross(normal).normalized(), 0.1);
+      }
+      break;
+    case GLFW_KEY_S:
+      if (rotating_angles.z() > -5)
+      {
+        rotating_angles += Eigen::Vector3d(0, 0, -0.1);
+        rotate(view.cross(normal).normalized(), -0.1);
+      }
       break;
     }
   }
@@ -89,6 +106,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 bx::Vec3 conwert_vector(Eigen::Vector3d v) {
   return bx::Vec3(v.x(), v.y(), v.z());
 }
+
+HexagonGrid generateField() {
+  HexagonGrid tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
+    Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 0, -1), 9, 9);
+
+  tmp.generate_random_field();
+  for (int i = 0; i < 9; ++i)
+  {
+    tmp.set_height(i, 0, 0);
+    tmp.set_height(0, i, 0);
+    tmp.set_height(i, 8, 0);
+    tmp.set_height(8, i, 0);
+
+    tmp.set_height(i, 1, 0);
+    tmp.set_height(1, i, 0);
+    tmp.set_height(i, 7, 0);
+    tmp.set_height(7, i, 0);
+  }
+  return tmp;
+}
+
+
 int main()
 {
   glfwInit();
@@ -123,12 +162,8 @@ int main()
   bgfx::setViewRect(0, 0, 0, WNDW_WIDTH, WNDW_HEIGHT);
 
 
-  HexagonGrid tmp(0.5f, Point(-2.0f, -2.0f, 0.0f, Color(255, 255, 0)),
-    Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 0, -1), 5, 5);
-  tmp.set_height(2, 2, 1.0f);
-  tmp.set_height(3, 2, 0.5f);
-  tmp.set_random_colors();
 
+  HexagonGrid tmp = generateField();
   std::vector<PrintingPoint> Vertices;
   std::vector<uint16_t> TriList;
   tmp.print_in_vertices_and_triList(Vertices, TriList);
@@ -158,8 +193,11 @@ int main()
 
     float view[16];
     bx::mtxLookAt(view, conwert_vector(eye), conwert_vector(at));
+
     float proj[16];
-    bx::mtxProj(proj, 60.0f, float(WNDW_WIDTH) / float(WNDW_HEIGHT), 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
+    bx::mtxProj(proj, 60.0f,
+      float(WNDW_WIDTH) / float(WNDW_HEIGHT),
+      0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
     bgfx::setViewTransform(0, view, proj);
 
 

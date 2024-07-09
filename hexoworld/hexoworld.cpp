@@ -6,6 +6,7 @@
 #include <ctime>
 #include <algorithm>
 #include <iostream>
+#define ERR 0.01f
 
 Color::Color() : Color(0, 0, 0) {}
 Color::Color(uint8_t red, uint8_t blue,
@@ -16,6 +17,8 @@ Color::Color(uint8_t red, uint8_t blue,
     (uint32_t(green) << 16) |
     (uint32_t(alpha) << 24);
 }
+Color::Color(uint32_t abgr, uint32_t n_parts)
+  : abgr_(abgr), n_parts_(n_parts) {}
 Color Color::operator+(const Color& rhs) const
 {
   uint32_t a =
@@ -75,6 +78,101 @@ uint32_t connect(Point point, std::shared_ptr<Object> object)
   return Points::get_instance().connect_point_with_object(point, object);
 }
 
+void printRect(std::pair<Point, Point> a,
+  std::pair<Point, Point> b,
+  std::vector<PrintingPoint>& Vertices,
+  std::vector<uint16_t>& TriList)
+{
+  uint32_t id1;
+  if (Points::get_instance().in_points(a.first))
+    id1 = Points::get_instance().get_id_point(a.first);
+  else
+  {
+    id1 = Vertices.size();
+    Vertices.push_back(a.first);
+  }
+
+  uint32_t id2;
+  if (Points::get_instance().in_points(a.second))
+    id2 = Points::get_instance().get_id_point(a.second);
+  else
+  {
+    id2 = Vertices.size();
+    Vertices.push_back(a.second);
+  }
+
+  uint32_t id3;
+  if (Points::get_instance().in_points(b.first))
+    id3 = Points::get_instance().get_id_point(b.first);
+  else
+  {
+    id3 = Vertices.size();
+    Vertices.push_back(b.first);
+  }
+  uint32_t id4;
+  if (Points::get_instance().in_points(b.second))
+    id4 = Points::get_instance().get_id_point(b.second);
+  else
+  {
+    id4 = Vertices.size();
+    Vertices.push_back(b.second);
+  }
+
+  TriList.push_back(id1);
+  TriList.push_back(id2);
+  TriList.push_back(id3);
+
+  TriList.push_back(id3);
+  TriList.push_back(id2);
+  TriList.push_back(id1);
+
+  TriList.push_back(id2);
+  TriList.push_back(id3);
+  TriList.push_back(id4);
+
+  TriList.push_back(id4);
+  TriList.push_back(id3);
+  TriList.push_back(id2);
+}
+void printTri(Point a, Point b, Point c,
+  std::vector<PrintingPoint>& Vertices,
+  std::vector<uint16_t>& TriList)
+{
+  uint32_t id1;
+  if (Points::get_instance().in_points(a))
+    id1 = Points::get_instance().get_id_point(a);
+  else
+  {
+    id1 = Vertices.size();
+    Vertices.push_back(a);
+  }
+
+  uint32_t id2;
+  if (Points::get_instance().in_points(b))
+    id2 = Points::get_instance().get_id_point(b);
+  else
+  {
+    id2 = Vertices.size();
+    Vertices.push_back(b);
+  }
+
+  uint32_t id3;
+  if (Points::get_instance().in_points(c))
+    id3 = Points::get_instance().get_id_point(c);
+  else
+  {
+    id3 = Vertices.size();
+    Vertices.push_back(c);
+  }
+
+  TriList.push_back(id1);
+  TriList.push_back(id2);
+  TriList.push_back(id3);
+
+  TriList.push_back(id3);
+  TriList.push_back(id2);
+  TriList.push_back(id1);
+}
 //struct Point---------------------------------------------
 Point::Point() : position(0, 0, 0), color(0, 0, 0) {};
 Point::Point(Eigen::Vector3d pos,
@@ -97,7 +195,7 @@ Point& Point::operator+=(Eigen::Vector3d v)
 }
 bool Point::operator<(const Point& rhs) const
 {
-  double min_dif = PRECISION_DBL_CALC;
+  double min_dif = ERR;
   if (position.x() + min_dif < rhs.position.x())
     return true;
   else if (position.x() - min_dif > rhs.position.x())
@@ -140,11 +238,15 @@ uint32_t Points::connect_point_with_object(Point p,
   return id;
 }
 
-uint32_t Points::get_id_point(Point p)
+bool Points::in_points(Point p) const
+{
+  return (point_to_id.find(p) != point_to_id.end());
+}
+uint32_t Points::get_id_point(Point p) const
 {
   if (point_to_id.find(p) == point_to_id.end())
     throw std::invalid_argument("unknown point");
-  return point_to_id[p];
+  return point_to_id.at(p);
 }
 std::vector<std::shared_ptr<Object>> Points::get_objects(uint32_t id)
 {
@@ -152,7 +254,7 @@ std::vector<std::shared_ptr<Object>> Points::get_objects(uint32_t id)
     throw std::invalid_argument("wrong id");
   return id_to_objects[id];
 }
-Point Points::get_point(uint32_t id)
+Point Points::get_point(uint32_t id) const
 {
   if (id >= id_to_point.size())
     throw std::invalid_argument("wrong id");
@@ -168,9 +270,10 @@ void Points::update_point(uint32_t id, Point new_point)
 
 //struct Hexagon-------------------------------------------
 
-Hexagon::Hexagon(float big_size, float small_size, Point center,
-  Eigen::Vector3d pointDerection, Eigen::Vector3d floatDerection) :
-  center(center) {
+Hexagon::Hexagon(float big_size, float small_size,
+  Eigen::Vector3d center,
+  Eigen::Vector3d pointDerection, Eigen::Vector3d floatDerection,
+  Color color) : center(center) {
   if (abs(pointDerection.dot(floatDerection)) > PRECISION_DBL_CALC)
     throw std::invalid_argument("pointTop and floatTop not perpendicular");
 
@@ -178,37 +281,49 @@ Hexagon::Hexagon(float big_size, float small_size, Point center,
   floatDerection.normalize();
   outerPoints.resize(6);
   {
-    outerPoints[0] = center + (pointDerection * big_size);
-    outerPoints[1] =
+    outerPoints[0] = Point(center + (pointDerection * big_size),
+      color);
+    outerPoints[1] = Point(
       center + (pointDerection * (0.5 * big_size)) +
-      (floatDerection * (sqrtf(3) / 2 * big_size));
-    outerPoints[2] =
+      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      color);
+    outerPoints[2] = Point(
       center - (pointDerection * (0.5 * big_size)) +
-      (floatDerection * (sqrtf(3) / 2 * big_size));
-    outerPoints[3] = center - (pointDerection * big_size);
-    outerPoints[4] =
+      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      color);
+    outerPoints[3] = Point(center - (pointDerection * big_size),
+      color);
+    outerPoints[4] = Point(
       center - (pointDerection * (0.5 * big_size)) -
-      (floatDerection * (sqrtf(3) / 2 * big_size));
-    outerPoints[5] =
+      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      color);
+    outerPoints[5] = Point(
       center + (pointDerection * (0.5 * big_size)) -
-      (floatDerection * (sqrtf(3) / 2 * big_size));
+      (floatDerection * (sqrtf(3) / 2 * big_size)),
+      color);
   }
   innerPoints.resize(6);
   {
-    innerPoints[0] = center + (pointDerection * small_size);
-    innerPoints[1] =
+    innerPoints[0] = Point(center + (pointDerection * small_size),
+      color);
+    innerPoints[1] = Point(
       center + (pointDerection * (0.5 * small_size)) +
-      (floatDerection * (sqrtf(3) / 2 * small_size));
-    innerPoints[2] =
+      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      color);
+    innerPoints[2] = Point(
       center - (pointDerection * (0.5 * small_size)) +
-      (floatDerection * (sqrtf(3) / 2 * small_size));
-    innerPoints[3] = center - (pointDerection * small_size);
-    innerPoints[4] =
+      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      color);
+    innerPoints[3] = Point(center - (pointDerection * small_size),
+      color);
+    innerPoints[4] = Point(
       center - (pointDerection * (0.5 * small_size)) -
-      (floatDerection * (sqrtf(3) / 2 * small_size));
-    innerPoints[5] =
+      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      color);
+    innerPoints[5] = Point(
       center + (pointDerection * (0.5 * small_size)) -
-      (floatDerection * (sqrtf(3) / 2 * small_size));
+      (floatDerection * (sqrtf(3) / 2 * small_size)),
+      color);
   }
 }
 void Hexagon::connect_points(std::shared_ptr<Hexagon> ptr)
@@ -220,14 +335,18 @@ void Hexagon::connect_points(std::shared_ptr<Hexagon> ptr)
   for (int i = 0; i < 6; ++i)
     outerPointsId[i] = connect(outerPoints[i], ptr);
 }
-void Hexagon::set_color(Color abgr)
+void Hexagon::set_color(Color color)
 {
-  center.color = abgr;
+  Color last_color = center.color;
+  center.color = color;
   for (int i = 0; i < 6; ++i)
   {
     Point p = Points::get_instance().get_point(innerPointsId[i]);
-    p.color = abgr;
+    p.color = color;
     Points::get_instance().update_point(innerPointsId[i], p);
+    p = Points::get_instance().get_point(outerPointsId[i]);
+    p.color = p.color - last_color + color;
+    Points::get_instance().update_point(outerPointsId[i], p);
   }
 }
 void Hexagon::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
@@ -247,7 +366,8 @@ void Hexagon::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices
 }
 //struct Triangle------------------------------------------
 
-Triangle::Triangle(Point a, Point b, Point c) {
+Triangle::Triangle(Point a, Point b, Point c,
+  HeightData heightData) : heightData_(heightData) {
   std::vector<uint32_t> ids = {
     Points::get_instance().get_id_point(a) ,
     Points::get_instance().get_id_point(b) ,
@@ -258,7 +378,8 @@ Triangle::Triangle(Point a, Point b, Point c) {
   CId = ids[2];
 }
 
-Triangle::Triangle(uint32_t aId, uint32_t bId, uint32_t cId)
+Triangle::Triangle(uint32_t aId, uint32_t bId, uint32_t cId,
+  HeightData heightData) : heightData_(heightData)
 {
   std::vector<uint32_t> ids = { aId , bId , cId };
   std::sort(ids.begin(), ids.end());
@@ -284,21 +405,214 @@ bool Triangle::operator<(const Triangle& rhs) const
   return false;
 }
 
-void Triangle::print_in_triList(
+void Triangle::print_in_vertices_and_triList(
+  std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList) const {
-  TriList.push_back(AId);
-  TriList.push_back(BId);
-  TriList.push_back(CId);
+  Point a = Points::get_instance().get_point(AId);
+  Point b = Points::get_instance().get_point(BId);
+  Point c = Points::get_instance().get_point(CId);
 
-  TriList.push_back(CId);
-  TriList.push_back(BId);
-  TriList.push_back(AId);
+  int32_t heightA =
+    round(heightData_.heightDirection_.dot(a.position - heightData_.origin_) /
+      heightData_.heightStep_);
+  int32_t heightB =
+    round(heightData_.heightDirection_.dot(b.position - heightData_.origin_) /
+      heightData_.heightStep_);
+  int32_t heightC =
+    round(heightData_.heightDirection_.dot(c.position - heightData_.origin_) /
+      heightData_.heightStep_);
+
+  std::vector<std::pair<int32_t, Point>> points;
+  points.push_back({ heightA, a });
+  points.push_back({ heightB, b });
+  points.push_back({ heightC, c });
+  std::sort(points.begin(), points.end());
+
+  if (points[0].first == points[2].first)
+  {
+    TriList.push_back(AId);
+    TriList.push_back(BId);
+    TriList.push_back(CId);
+
+    TriList.push_back(CId);
+    TriList.push_back(BId);
+    TriList.push_back(AId);
+  }
+  else
+  {
+    if (points[0].first != points[1].first &&
+      points[1].first != points[2].first)
+    {
+      uint32_t nTerraces =
+        (points[2].first - points[0].first) *
+        (heightData_.nTerracesOnHeightStep_ + 1) - 1;
+      Eigen::Vector3d step =
+        (points[2].second.position -
+          points[0].second.position) / (nTerraces + 1);
+      Eigen::Vector3d platformVector =
+        heightData_.heightDirection_
+        .cross(step)
+        .cross(heightData_.heightDirection_)
+        .normalized();
+      platformVector *= step.dot(platformVector) / 3;
+
+      Eigen::Vector3d goal = points[0].second.position +
+        step * (heightData_.nTerracesOnHeightStep_ + 1)
+        * (points[1].first - points[0].first);
+
+      double len = (points[0].second.position
+        - points[2].second.position).norm();
+
+      Point p1;
+      p1.position = goal - platformVector;
+      p1.color = Color(points[0].second.color.get_abgr(),
+        abs((p1.position - points[2].second.position).norm()
+          / len * 100) + 1) +
+        Color(points[2].second.color.get_abgr(),
+          abs((p1.position - points[0].second.position).norm()
+            / len * 100) + 1);
+
+      Point p2;
+      p2.position = goal + platformVector;
+      p2.color = Color(points[0].second.color.get_abgr(),
+        (p2.position - points[2].second.position).norm()
+        / len * 100 + 1) +
+        Color(points[2].second.color.get_abgr(),
+          (p2.position - points[0].second.position).norm()
+          / len * 100 + 1);
+
+
+      print_stair(points[1].second, p1, points[0].second,
+        points[1].second.position, goal, points[0].second.position,
+        heightData_, Vertices, TriList);
+      print_stair(points[1].second, p2, points[2].second,
+        points[1].second.position, goal, points[2].second.position,
+        heightData_, Vertices, TriList);
+
+      printTri(points[1].second, p1, p2,
+        Vertices, TriList);
+    }
+    else
+    {
+      if (points[0].first == points[1].first)
+        print_stair(points[0].second,
+          points[1].second,
+          points[2].second,
+          points[0].second.position,
+          points[1].second.position,
+          points[2].second.position,
+          heightData_,
+          Vertices, TriList);
+      else
+        print_stair(points[1].second,
+          points[2].second,
+          points[0].second,
+          points[1].second.position,
+          points[2].second.position,
+          points[0].second.position,
+          heightData_,
+          Vertices, TriList);
+    }
+  }
+}
+
+void Triangle::print_stair(Point a, Point b, Point c,
+  Eigen::Vector3d a_goal,
+  Eigen::Vector3d b_goal,
+  Eigen::Vector3d c_goal,
+  HeightData heightData_,
+  std::vector<PrintingPoint>& Vertices,
+  std::vector<uint16_t>& TriList) const
+{
+  Point d = c;
+  Eigen::Vector3d d_goal = c_goal;
+  int32_t heightstart =
+    round(heightData_.heightDirection_.dot(
+      a_goal - heightData_.origin_) /
+      heightData_.heightStep_);
+  int32_t heightend =
+    round(heightData_.heightDirection_.dot(
+      c_goal - heightData_.origin_) /
+      heightData_.heightStep_);
+
+  if (heightstart > heightend)
+  {
+    std::swap(a, c);
+    std::swap(b, d);
+    std::swap(a_goal, c_goal);
+    std::swap(b_goal, d_goal);
+    std::swap(heightstart, heightend);
+  }
+
+  std::vector<std::pair<Point, Point>> stairs;
+  stairs.push_back({ a, b });
+  if (heightstart != heightend)
+  {
+    uint32_t nTerraces =
+      (heightend - heightstart) *
+      (heightData_.nTerracesOnHeightStep_ + 1) - 1;
+    Eigen::Vector3d step1 =
+      (c_goal - a_goal) / (nTerraces + 1);
+    Eigen::Vector3d platformVector1 =
+      heightData_.heightDirection_
+      .cross(step1)
+      .cross(heightData_.heightDirection_)
+      .normalized();
+    platformVector1 *= step1.dot(platformVector1) / 3;
+
+    Eigen::Vector3d step2 =
+      (d_goal - b_goal) / (nTerraces + 1);
+    Eigen::Vector3d platformVector2 =
+      heightData_.heightDirection_
+      .cross(step2)
+      .cross(heightData_.heightDirection_)
+      .normalized();
+    platformVector2 *= step2.dot(platformVector2) / 3;
+    for (int i = 1; i <= nTerraces; ++i)
+    {
+      double len = (a.position - c.position).norm();
+      Point p1, p2, p3, p4;
+
+      p1.position = a_goal + step1 * i - platformVector1;
+      p2.position = b_goal + step2 * i - platformVector2;
+      p3.position = a_goal + step1 * i + platformVector1;
+      p4.position = b_goal + step2 * i + platformVector2;
+
+      p1.color = Color(c.color.get_abgr(),
+        abs((p1.position - a_goal).norm() / len * 100) + 1) +
+        Color(a.color.get_abgr(),
+          abs((p1.position - c_goal).norm() / len * 100) + 1);
+
+      p2.color = Color(d.color.get_abgr(),
+        abs((p2.position - b_goal).norm() / len * 100) + 1) +
+        Color(b.color.get_abgr(),
+          abs((p2.position - d_goal).norm() / len * 100) + 1);
+
+      p3.color = Color(c.color.get_abgr(),
+        abs((p3.position - a_goal).norm() / len * 100) + 1) +
+        Color(a.color.get_abgr(),
+          abs((p3.position - c_goal).norm() / len * 100) + 1);
+
+      p4.color = Color(d.color.get_abgr(),
+        abs((p4.position - b_goal).norm() / len * 100) + 1) +
+        Color(b.color.get_abgr(),
+          abs((p4.position - d_goal).norm() / len * 100) + 1);
+
+      stairs.push_back({ p1, p2 });
+      stairs.push_back({ p3, p4 });
+    }
+  }
+  stairs.push_back({ c, d });
+
+  for (int i = 0; i < stairs.size() - 1; ++i)
+    printRect(stairs[i], stairs[i + 1], Vertices, TriList);
 }
 
 //struct Rectangle------------------------------------------
 
 BorderRectangle::BorderRectangle(Point a, Point b,
-  Point c, Point d) {
+  Point c, Point d, HeightData heightData)
+  : heightData_(heightData) {
   AId = Points::get_instance().get_id_point(a);
   BId = Points::get_instance().get_id_point(b);
   CId = Points::get_instance().get_id_point(c);
@@ -306,7 +620,8 @@ BorderRectangle::BorderRectangle(Point a, Point b,
 }
 
 BorderRectangle::BorderRectangle(uint32_t aId, uint32_t bId,
-  uint32_t cId, uint32_t dId)
+  uint32_t cId, uint32_t dId, HeightData heightData)
+  : heightData_(heightData)
 {
   AId = aId;
   BId = bId;
@@ -333,49 +648,132 @@ bool BorderRectangle::operator<(const BorderRectangle& rhs) const
   return false;
 }
 
-void BorderRectangle::print_in_triList(
+void BorderRectangle::print_in_vertices_and_triList(
+  std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList) const {
+  Point a = Points::get_instance().get_point(AId);
+  Point b = Points::get_instance().get_point(BId);
+  Point c = Points::get_instance().get_point(CId);
+  Point d = Points::get_instance().get_point(DId);
 
-  Triangle(AId, BId, CId).print_in_triList(TriList);
-  Triangle(CId, DId, BId).print_in_triList(TriList);
+  int32_t heightstart =
+    round(heightData_.heightDirection_.dot(
+      a.position - heightData_.origin_) /
+      heightData_.heightStep_);
+  int32_t heightend =
+    round(heightData_.heightDirection_.dot(
+      c.position - heightData_.origin_) /
+      heightData_.heightStep_);
+
+  if (heightstart > heightend)
+  {
+    std::swap(a, c);
+    std::swap(b, d);
+    std::swap(heightstart, heightend);
+  }
+
+  std::vector<std::pair<Point, Point>> stairs;
+  stairs.push_back({ a, b });
+  if (heightstart != heightend)
+  {
+    uint32_t nTerraces =
+      (heightend - heightstart) *
+      (heightData_.nTerracesOnHeightStep_ + 1) - 1;
+    Eigen::Vector3d step1 =
+      (c.position - a.position) / (nTerraces + 1);
+    Eigen::Vector3d platformVector1 =
+      heightData_.heightDirection_
+      .cross(step1)
+      .cross(heightData_.heightDirection_)
+      .normalized();
+    platformVector1 *= step1.dot(platformVector1) / 3;
+    Eigen::Vector3d step2 =
+      (d.position - b.position) / (nTerraces + 1);
+    Eigen::Vector3d platformVector2 =
+      heightData_.heightDirection_
+      .cross(step2)
+      .cross(heightData_.heightDirection_)
+      .normalized();
+    platformVector2 *= step2.dot(platformVector2) / 3;
+    for (int i = 1; i <= nTerraces; ++i)
+    {
+      double len = (a.position - c.position).norm();
+      Point p1 = a + step1 * i - platformVector1;
+      Point p2 = b + step2 * i - platformVector2;
+      Point p3 = a + step1 * i + platformVector1;
+      Point p4 = b + step2 * i + platformVector2;
+
+      p1.color = Color(c.color.get_abgr(),
+        (p1.position - a.position).norm() / len * 100) +
+        Color(a.color.get_abgr(),
+          (p1.position - c.position).norm() / len * 100);
+      p2.color = Color(d.color.get_abgr(),
+        (p2.position - b.position).norm() / len * 100) +
+        Color(b.color.get_abgr(),
+          (p2.position - d.position).norm() / len * 100);
+      p3.color = Color(c.color.get_abgr(),
+        (p3.position - a.position).norm() / len * 100) +
+        Color(a.color.get_abgr(),
+          (p3.position - c.position).norm() / len * 100);
+      p4.color = Color(d.color.get_abgr(),
+        (p4.position - b.position).norm() / len * 100) +
+        Color(b.color.get_abgr(),
+          (p4.position - d.position).norm() / len * 100);
+
+      stairs.push_back({ p1, p2 });
+      stairs.push_back({ p3, p4 });
+    }
+  }
+  stairs.push_back({ c, d });
+
+  for (int i = 0; i < stairs.size() - 1; ++i)
+    printRect(stairs[i], stairs[i + 1], Vertices, TriList);
 }
 
 //struct HexagonGrid---------------------------------------
-HexagonGrid::HexagonGrid(float size, Point origin,
+HexagonGrid::HexagonGrid(float size, Eigen::Vector3d origin,
   Eigen::Vector3d row_direction, Eigen::Vector3d ñol_direction,
-  uint32_t n_rows, uint32_t n_cols)
-  : origin_(origin), size_(size), inner_size_(0.75 * size)
+  uint32_t n_rows, uint32_t n_cols, Color color,
+  float height_step, int n_terraces_on_height_step)
+  : origin_(origin), size_(size), innerSize_(0.75 * size)
 {
   if (abs(ñol_direction.dot(row_direction)) > PRECISION_DBL_CALC)
     throw std::invalid_argument("ñol_direction and row_direction not perpendicular");
 
   row_direction.normalize();
   ñol_direction.normalize();
-  row_direction_ = row_direction;
-  ñol_direction_ = ñol_direction;
-  height_direction_ = row_direction_.cross(ñol_direction_);
+
+  rowDirection_ = row_direction;
+  ñolDirection_ = ñol_direction;
+  heightDirection_ = rowDirection_.cross(ñolDirection_);
+
+  heightData_.heightDirection_ = heightDirection_;
+  heightData_.origin_ = origin_;
+  heightData_.heightStep_ = height_step;
+  heightData_.nTerracesOnHeightStep_ = n_terraces_on_height_step;
 
   for (int row = 0; row < n_rows; ++row)
   {
     for (int col = 0; col < n_cols; ++col)
     {
-      add_hexagon(row, col);
+      add_hexagon(row, col, color);
     }
   }
 }
-void HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
+void HexagonGrid::add_hexagon(uint32_t row, uint32_t col,
+  Color color)
 {
   if (grid_.find(Coord(row, col)) != grid_.end())
     return;
 
   std::shared_ptr<Hexagon> ptr =
-    std::make_shared<Hexagon>(size_, inner_size_,
+    std::make_shared<Hexagon>(size_, innerSize_,
       origin_ +
-      ñol_direction_ *
+      ñolDirection_ *
       ((sqrtf(3) * col + (row % 2) * sqrt(3) / 2) * size_)
-      + row_direction_ *
+      + rowDirection_ *
       (1.5 * size_ * row),
-      row_direction_, ñol_direction_);
+      rowDirection_, ñolDirection_, color);
   grid_[Coord(row, col)] = ptr;
   ptr->connect_points(ptr);
 
@@ -397,9 +795,12 @@ void HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
           idInnerPoints.push_back(hex->innerPointsId[j]);
 
     if (idInnerPoints.size() == 3)
+    {
       triangles.insert(Triangle(
-        idInnerPoints[0], idInnerPoints[1], idInnerPoints[2]
+        idInnerPoints[0], idInnerPoints[1], idInnerPoints[2],
+        heightData_
       ));
+    }
 
     //init rectangles-------------------------------------
     for (int i_hex1 = 0; i_hex1 < hexs.size(); ++i_hex1)
@@ -425,16 +826,20 @@ void HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
           hex1_inds_common_vertex[0],
           hex1_inds_common_vertex[1],
           hex2_inds_common_vertex[0],
-          hex2_inds_common_vertex[1]
+          hex2_inds_common_vertex[1],
+          heightData_
         ));
       }
   }
 }
-void HexagonGrid::set_random_colors()
+void HexagonGrid::generate_random_field()
 {
   srand(time(0));
   for (const auto& [coord, hex] : grid_)
+  {
     hex->set_color(Color(rand() % 255, rand() % 255, rand() % 255));
+    set_height(coord.row, coord.col, rand() % 3 - 1);
+  }
 }
 void HexagonGrid::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
@@ -443,23 +848,61 @@ void HexagonGrid::print_in_vertices_and_triList(
   for (const auto& [coord, hex] : grid_)
     hex->print_in_vertices_and_triList(Vertices, TriList);
   for (const auto& triangle : triangles)
-    triangle.print_in_triList(TriList);
+    triangle.print_in_vertices_and_triList(Vertices, TriList);
   for (const auto& rectangle : rectangles)
-    rectangle.print_in_triList(TriList);
+    rectangle.print_in_vertices_and_triList(Vertices, TriList);
 }
-void HexagonGrid::set_height(int row, int col, float height)
+void HexagonGrid::set_height(int row, int col, int32_t height)
 {
   if (grid_.find(Coord(row, col)) == grid_.end())
     throw std::invalid_argument("wrong coords");
 
-  grid_.at(Coord(row, col))->center += (height_direction_ * height);
+  Point& center = grid_.at(Coord(row, col))->center;
+  int32_t last_height =
+    round(heightDirection_.dot(center.position - origin_) /
+      heightData_.heightStep_);
+  center += (height - last_height) * heightData_.heightStep_ * heightDirection_;
   for (int i = 0; i < 6; ++i)
   {
     uint32_t id = grid_.at(Coord(row, col))->innerPointsId[i];
 
-    Point new_p = Points::get_instance().get_point(id) +
-      (height_direction_ * height);
+    Point p = Points::get_instance().get_point(id);
+    last_height =
+      round(heightDirection_.dot(p.position - origin_) /
+        heightData_.heightStep_);
+    p += (height - last_height) * heightData_.heightStep_ * heightDirection_;
 
-    Points::get_instance().update_point(id, new_p);
+    Points::get_instance().update_point(id, p);
   }
+  for (int i = 0; i < 6; ++i)
+  {
+    uint32_t id = grid_.at(Coord(row, col))->outerPointsId[i];
+    Point p = Points::get_instance().get_point(id);
+
+    Eigen::Matrix3d positions;
+    int cnt = 0;
+    for (const auto obj : Points::get_instance().get_objects(id))
+      if (obj->is_hexadon())
+      {
+        const Hexagon& hex = *std::static_pointer_cast<Hexagon>(obj);
+        positions(cnt, 0) = hex.center.position.x();
+        positions(cnt, 1) = hex.center.position.y();
+        positions(cnt, 2) = hex.center.position.z();
+        cnt++;
+      }
+
+    p.position = Eigen::Vector3d(
+      positions.col(0).mean(),
+      positions.col(1).mean(),
+      positions.col(2).mean());
+
+    Points::get_instance().update_point(id, p);
+  }
+}
+void HexagonGrid::set_color(int row, int col, Color color)
+{
+  if (grid_.find(Coord(row, col)) == grid_.end())
+    throw std::invalid_argument("wrong coords");
+
+  grid_.at(Coord(row, col))->set_color(color);
 }
