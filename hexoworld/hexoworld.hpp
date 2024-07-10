@@ -6,12 +6,12 @@
 #include <memory>
 #include <Eigen/Dense>
 #define PRECISION_DBL_CALC 0.0001 
-
+namespace Hexoworld {
 /// <summary>
 /// Класс Color нужен для хранения цвета.
 /// </summary>
 class Color {
-public:
+  public:
   /// <summary>
   /// Создаёт чёрный непрозрачный цвет.
   /// </summary>
@@ -48,7 +48,7 @@ public:
   /// Число частей цвета (нужно будет для смешивания).
   /// </param>
   Color(uint32_t abgr, uint32_t n_parts = 1);
-  
+
   /// <summary>
   /// Операция + смешивает два цвета в пропорциях n_parts.
   /// </summary>
@@ -76,7 +76,7 @@ public:
   /// Цвет в формате alpha-blue-green-red.
   /// </returns>
   uint32_t get_abgr() const;
-private:
+  private:
   uint32_t abgr_;
   uint32_t n_parts_;
 };
@@ -115,36 +115,36 @@ struct Point
   /// z координата.
   /// </param>
   /// <param name="color">
-  /// Цвет точки. 
+  /// Цвет точки.
   /// </param>
-  Point(double x, double y, double z, 
+  Point(double x, double y, double z,
     Color color = Color(0, 0, 0));
 
   /// <summary>
   /// Возвращает точку, смещённую на вектор.
   /// </summary>
-  /// <param name="v"> 
-  /// Вектор смещения. 
+  /// <param name="v">
+  /// Вектор смещения.
   /// </param>
-  /// <returns> 
-  /// Полученная точка. 
+  /// <returns>
+  /// Полученная точка.
   /// </returns>
   Point operator+ (Eigen::Vector3d v);
 
   /// <summary>
   /// Возвращает точку, смещённую на вектор, обратный к данному.
   /// </summary>
-  /// <param name="v"> 
-  /// Вектор смещения. 
+  /// <param name="v">
+  /// Вектор смещения.
   /// Точка будет смещена на вектор, обратный к данному.
   /// </param>
-  /// <returns> 
-  /// Полученная точка. 
+  /// <returns>
+  /// Полученная точка.
   /// </returns>
   Point operator- (Eigen::Vector3d v);
 
   /// <summary>
-  /// Смещает точку на вектор. 
+  /// Смещает точку на вектор.
   /// </summary>
   /// <param name="v">
   /// Вектор смещения.
@@ -179,7 +179,7 @@ struct Point
 /// </summary>
 struct PrintingPoint {
   /// <summary>
-  /// Создаёт точку в формате вывода. 
+  /// Создаёт точку в формате вывода.
   /// </summary>
   /// <param name="p">
   /// Точка.
@@ -194,7 +194,7 @@ struct PrintingPoint {
 /// Класс шестиугольной сетки.
 /// </summary>
 class HexagonGrid {
-public:
+  public:
   /// <summary>
   /// Создание сетки.
   /// </summary>
@@ -228,9 +228,9 @@ public:
   /// </param>
   HexagonGrid(float size, Eigen::Vector3d origin,
     Eigen::Vector3d row_direction, Eigen::Vector3d сol_direction,
-    uint32_t n_rows = 0, uint32_t n_cols = 0, 
-    Color color = Color(0, 0, 0), 
-    float height_step = 1.0f, 
+    uint32_t n_rows = 0, uint32_t n_cols = 0,
+    Color color = Color(0, 0, 0),
+    float height_step = 1.0f,
     uint32_t n_terraces_on_height_step = 2);
 
   /// <summary>
@@ -245,7 +245,7 @@ public:
   /// <param name="color">
   /// Цвет шестиугольника.
   /// </param>
-  void add_hexagon(uint32_t row, uint32_t col, 
+  void add_hexagon(uint32_t row, uint32_t col,
     Color color = Color(0, 0, 0));
 
   /// <summary>
@@ -294,10 +294,10 @@ public:
   /// </param>
   void set_color(int row, int col, Color color);
 
-private:
+  private:
   /// <summary>
-/// Базовая структура всех объектов
-/// </summary>
+  /// Базовая структура всех объектов
+  /// </summary>
   struct Object {
     virtual bool is_hexagon() { return false; }
     virtual bool is_triangle() { return false; }
@@ -308,6 +308,7 @@ private:
   /// Структура координат
   /// </summary>
   struct Coord {
+    Coord(uint32_t row_, uint32_t col_) : row(row_), col(col_) {};
     /// <summary>
     /// Сравнение координат.
     /// </summary>
@@ -322,14 +323,15 @@ private:
       return (row < rhs.row) ||
         ((row == rhs.row) && (col < rhs.col));
     }
-    uint32_t row, col;
+    uint32_t row;
+    uint32_t col;
   };
 
   /// <summary>
   /// Класс-синглтон, хранящий точки, которые требуются несколько раз.
   /// </summary>
   class Points {
-  public:
+    public:
     /// <summary>
     /// Получение экземпляра.
     /// </summary>
@@ -419,7 +421,7 @@ private:
       for (const Point& p : id_to_point)
         Vertices.push_back(p);
     }
-  private:
+    private:
     std::map<Point, uint32_t> point_to_id;
     std::vector<Point> id_to_point;
     std::vector<std::vector<std::shared_ptr<Object>>> id_to_objects;
@@ -501,7 +503,7 @@ private:
   /// Класс треугольник.
   /// </summary>
   class Triangle : Object {
-  public:
+    public:
     bool is_triangle() { return true; }
 
     /// <summary>
@@ -564,11 +566,11 @@ private:
     /// </param>
     void print_in_vertices_and_triList(
       std::vector<PrintingPoint>& Vertices,
-      std::vector<uint16_t>& TriList, 
+      std::vector<uint16_t>& TriList,
       const HexagonGrid& hexagonGrid) const;
 
     uint32_t AId, BId, CId;
-  private:
+    private:
     /// <summary>
     /// Вывод террас.
     /// </summary>
@@ -602,17 +604,17 @@ private:
     void print_stair(Point a, Point b, Point c,
       Eigen::Vector3d a_goal,
       Eigen::Vector3d b_goal,
-      Eigen::Vector3d c_goal, 
+      Eigen::Vector3d c_goal,
       const HexagonGrid& hexagonGrid,
       std::vector<PrintingPoint>& Vertices,
       std::vector<uint16_t>& TriList) const;
   };
 
   /// <summary>
-  /// Класс прямоугольник между двух шестиугольников 
+  /// Класс прямоугольник между двух шестиугольников
   /// </summary>
   class BorderRectangle : Object {
-  public:
+    public:
     bool is_rectangle() { return true; }
 
     /// <summary>
@@ -705,3 +707,4 @@ private:
   float heightStep_;
   uint32_t nTerracesOnHeightStep_;
 };
+}

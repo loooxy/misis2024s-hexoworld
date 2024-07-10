@@ -1,3 +1,4 @@
+#include<hexoworld/hexoworld.hpp>
 #include <stdio.h>
 #include <string>
 #include <iostream>
@@ -16,14 +17,28 @@
 #endif
 #include "GLFW/glfw3native.h"
 
-#include<hexoworld/hexoworld.hpp>
+using namespace Hexoworld;
 
 #define WNDW_WIDTH 1600
 #define WNDW_HEIGHT 900
 
 bgfx::ShaderHandle loadShader(std::string filename)
 {
-  std::string path = "../shaders/" + filename;
+  std::string path = "../shaders/";
+
+  switch (bgfx::getRendererType()) {
+    case bgfx::RendererType::Noop:
+    case bgfx::RendererType::Direct3D11:
+    case bgfx::RendererType::Direct3D12: path += "dx11/";  break;
+    case bgfx::RendererType::Gnm:        path += "pssl/";  break;
+    case bgfx::RendererType::Metal:      path += "metal/"; break;
+    case bgfx::RendererType::OpenGL:     path += "glsl/";  break;
+    case bgfx::RendererType::OpenGLES:   path += "essl/";  break;
+    case bgfx::RendererType::Vulkan:     path += "spirv/"; break;
+  }
+
+  path += filename;
+
   FILE* file = fopen(path.c_str(), "rb");
   fseek(file, 0, SEEK_END);
   long fileSize = ftell(file);
@@ -131,12 +146,8 @@ HexagonGrid generateField() {
 int main()
 {
   glfwInit();
-  GLFWwindow* window = glfwCreateWindow(WNDW_WIDTH, WNDW_HEIGHT, "Hello, bgfx!", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(WNDW_WIDTH, WNDW_HEIGHT, "HexoWorld", NULL, NULL);
   glfwSetKeyCallback(window, key_callback);
-
-  bgfx::PlatformData pd;
-  pd.nwh = glfwGetWin32Window(window);
-  bgfx::setPlatformData(pd);
 
   bgfx::renderFrame();
 
