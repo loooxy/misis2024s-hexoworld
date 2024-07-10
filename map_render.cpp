@@ -17,8 +17,6 @@
 #endif
 #include "GLFW/glfw3native.h"
 
-using namespace Hexoworld;
-
 #define WNDW_WIDTH 1600
 #define WNDW_HEIGHT 900
 
@@ -27,14 +25,14 @@ bgfx::ShaderHandle loadShader(std::string filename)
   std::string path = "../shaders/";
 
   switch (bgfx::getRendererType()) {
-    case bgfx::RendererType::Noop:
-    case bgfx::RendererType::Direct3D11:
-    case bgfx::RendererType::Direct3D12: path += "dx11/";  break;
-    case bgfx::RendererType::Gnm:        path += "pssl/";  break;
-    case bgfx::RendererType::Metal:      path += "metal/"; break;
-    case bgfx::RendererType::OpenGL:     path += "glsl/";  break;
-    case bgfx::RendererType::OpenGLES:   path += "essl/";  break;
-    case bgfx::RendererType::Vulkan:     path += "spirv/"; break;
+  case bgfx::RendererType::Noop:
+  case bgfx::RendererType::Direct3D11:
+  case bgfx::RendererType::Direct3D12: path += "dx11/";  break;
+  case bgfx::RendererType::Gnm:        path += "pssl/";  break;
+  case bgfx::RendererType::Metal:      path += "metal/"; break;
+  case bgfx::RendererType::OpenGL:     path += "glsl/";  break;
+  case bgfx::RendererType::OpenGLES:   path += "essl/";  break;
+  case bgfx::RendererType::Vulkan:     path += "spirv/"; break;
   }
 
   path += filename;
@@ -122,26 +120,15 @@ bx::Vec3 conwert_vector(Eigen::Vector3d v) {
   return bx::Vec3(v.x(), v.y(), v.z());
 }
 
-HexagonGrid generateField() {
-  HexagonGrid tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
+Hexoworld generateField() {
+  Hexoworld tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
     Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 0, -1), 9, 9);
-
-  tmp.generate_random_field();
-  for (int i = 0; i < 9; ++i)
-  {
-    tmp.set_height(i, 0, 0);
-    tmp.set_height(0, i, 0);
-    tmp.set_height(i, 8, 0);
-    tmp.set_height(8, i, 0);
-
-    tmp.set_height(i, 1, 0);
-    tmp.set_height(1, i, 0);
-    tmp.set_height(i, 7, 0);
-    tmp.set_height(7, i, 0);
-  }
+  tmp.set_hex_height(3, 3, 2);
+  tmp.set_hex_height(3, 4, 1);
+  tmp.set_hex_height(4, 3, -1);
+  tmp.set_hex_color(3, 3, Eigen::Vector4i(255, 255, 255, 255));
   return tmp;
 }
-
 
 int main()
 {
@@ -174,7 +161,7 @@ int main()
 
 
 
-  HexagonGrid tmp = generateField();
+  Hexoworld tmp = generateField();
   std::vector<PrintingPoint> Vertices;
   std::vector<uint16_t> TriList;
   tmp.print_in_vertices_and_triList(Vertices, TriList);

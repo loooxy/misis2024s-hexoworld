@@ -1,710 +1,481 @@
 #pragma once
 #include <stdint.h>
 #include <vector>
+#include <Eigen/Dense>
 #include <map>
 #include <set>
 #include <memory>
-#include <Eigen/Dense>
-#define PRECISION_DBL_CALC 0.0001 
-namespace Hexoworld {
-/// <summary>
-/// Класс Color нужен для хранения цвета.
-/// </summary>
-class Color {
-  public:
-  /// <summary>
-  /// Создаёт чёрный непрозрачный цвет.
-  /// </summary>
-  Color();
 
-  /// <summary>
-  /// Создаёт цвет.
-  /// </summary>
-  /// <param name="red">
-  /// Красная компонента цвета
-  /// </param>
-  /// <param name="blue">
-  /// Синяя компонента цвета
-  /// </param>
-  /// <param name="green">
-  /// Зелёная компонента цвета
-  /// </param>
-  /// <param name="alpha">
-  /// Компонента прозрачности цвета
-  /// </param>
-  /// <param name="n_parts">
-  /// Число частей цвета (нужно будет для смешивания).
-  /// </param>
-  Color(uint8_t red, uint8_t blue,
-    uint8_t green, uint8_t alpha = 255, uint32_t n_parts = 1);
-
-  /// <summary>
-  /// Создаёт цвет.
-  /// </summary>
-  /// <param name="abgr">
-  /// Цвет в формате alpha-blue-green-red.
-  /// </param>
-  /// <param name="n_parts">
-  /// Число частей цвета (нужно будет для смешивания).
-  /// </param>
-  Color(uint32_t abgr, uint32_t n_parts = 1);
-
-  /// <summary>
-  /// Операция + смешивает два цвета в пропорциях n_parts.
-  /// </summary>
-  /// <param name="rhs">
-  /// Цвет, с которым смешиваем.
-  /// </param>
-  /// <returns>
-  /// Новый цвет.
-  /// </returns>
-  Color operator+ (const Color& rhs) const;
-
-  /// <summary>
-  /// Операция - находит цвет, который надо смешать с вычитаемом, чтобы получить исходный цвет.
-  /// </summary>
-  /// <param name="rhs">
-  /// Вычитаемый цвет.
-  /// </param>
-  /// <returns> </returns>
-  Color operator- (const Color& rhs) const;
-
-  /// <summary>
-  /// get_abgr() возвращает цвет в формате alpha-blue-green-red.
-  /// </summary>
-  /// <returns>
-  /// Цвет в формате alpha-blue-green-red.
-  /// </returns>
-  uint32_t get_abgr() const;
-  private:
-  uint32_t abgr_;
-  uint32_t n_parts_;
-};
-
-/// <summary>
-/// Структура точки.
-/// </summary>
-struct Point
-{
-  /// <summary>
-  /// Создаёт точку с координатами (0, 0, 0) чёрного непрозрачного цвета.
-  /// </summary>
-  Point();
-
-  /// <summary>
-  /// Создаёт точку по позиции и цвету.
-  /// </summary>
-  /// <param name="pos">
-  /// Позиция точки.
-  /// </param>
-  /// <param name="color">
-  /// Цвет точки.
-  /// </param>
-  Point(Eigen::Vector3d pos, Color color = Color(0, 0, 0));
-
-  /// <summary>
-  /// Создаёт точку по координатам и цвету
-  /// </summary>
-  /// <param name="x">
-  /// x координата.
-  /// </param>
-  /// <param name="y">
-  /// y координата.
-  /// </param>
-  /// <param name="z">
-  /// z координата.
-  /// </param>
-  /// <param name="color">
-  /// Цвет точки.
-  /// </param>
-  Point(double x, double y, double z,
-    Color color = Color(0, 0, 0));
-
-  /// <summary>
-  /// Возвращает точку, смещённую на вектор.
-  /// </summary>
-  /// <param name="v">
-  /// Вектор смещения.
-  /// </param>
-  /// <returns>
-  /// Полученная точка.
-  /// </returns>
-  Point operator+ (Eigen::Vector3d v);
-
-  /// <summary>
-  /// Возвращает точку, смещённую на вектор, обратный к данному.
-  /// </summary>
-  /// <param name="v">
-  /// Вектор смещения.
-  /// Точка будет смещена на вектор, обратный к данному.
-  /// </param>
-  /// <returns>
-  /// Полученная точка.
-  /// </returns>
-  Point operator- (Eigen::Vector3d v);
-
-  /// <summary>
-  /// Смещает точку на вектор.
-  /// </summary>
-  /// <param name="v">
-  /// Вектор смещения.
-  /// </param>
-  /// <returns></returns>
-  Point& operator+= (Eigen::Vector3d v);
-
-  /// <summary>
-  /// Сравнивает позиции точек с точностью PRECISION_DBL_CALC.
-  /// </summary>
-  /// <param name="rhs">
-  /// Точка для сравнения.
-  /// </param>
-  /// <returns>
-  /// Результат сравнения.
-  /// </returns>
-  bool operator< (const Point& rhs) const;
-
-  /// <summary>
-  /// Позиция точки.
-  /// </summary>
-  Eigen::Vector3d position;
-
-  /// <summary>
-  /// Цвет точки.
-  /// </summary>
-  Color color;
-};
-
-/// <summary>
-/// Структура формата вывода точки.
-/// </summary>
+/// \brief Структура формата вывода точки.
 struct PrintingPoint {
-  /// <summary>
-  /// Создаёт точку в формате вывода.
-  /// </summary>
-  /// <param name="p">
-  /// Точка.
-  /// </param>
-  PrintingPoint(Point p);
-
+  /// \brief Конструктор по умолчанию
+  PrintingPoint() = default;
+  /// \brief Конструктор по позиции.
+  /// \param position Позиция точки.
+  PrintingPoint(Eigen::Vector3d position);
   float x, y, z;
   uint32_t abgr;
 };
 
-/// <summary>
-/// Класс шестиугольной сетки.
-/// </summary>
-class HexagonGrid {
-  public:
-  /// <summary>
-  /// Создание сетки.
-  /// </summary>
-  /// <param name="size">
-  /// Радиус шестиугольника покрытия.
-  /// </param>
-  /// <param name="origin">
-  /// Начало координат.
-  /// </param>
-  /// <param name="row_direction">
-  /// Направление увеличения номера строки.
-  /// </param>
-  /// <param name="сol_direction">
-  /// Направление увеличения номера столбца.
+/// \brief Класс шестиугольного мира.
+class Hexoworld
+{
+public:
+  /// \brief Конструктор по умолчанию запрещён, так как необходимы параметры мира.
+  Hexoworld() = delete;
+
+  /// \brief Создает шестиугольный мир.
+  /// \param size Радиус шестиугольников покрытия.
+  /// \param origin Начало координат.
+  /// \param row_direction Направление увеличения номера строки.
+  /// \param сol_direction Направление увеличения номера столбца.
   /// !!! должно быть перпендикулярно row_direction !!!
-  /// </param>
-  /// <param name="n_rows">
-  /// Количество строк.
-  /// </param>
-  /// <param name="n_cols">
-  /// Количество столбцов.
-  /// </param>
-  /// <param name="color">
-  /// Цвет сетки.
-  /// </param>
-  /// <param name="height_step">
-  /// Высота между соседними уровнями.
-  /// </param>
-  /// <param name="n_terraces_on_height_step">
-  /// Количество террас между соседними уровнями.
-  /// </param>
-  HexagonGrid(float size, Eigen::Vector3d origin,
+  /// \param n_rows Количество строк.
+  /// \param n_cols Количество столбцов.
+  /// \param height_step Высота между соседними уровнями.
+  /// \param n_terraces_on_height_step Количество террас между соседними уровнями.
+  Hexoworld(float size, Eigen::Vector3d origin,
     Eigen::Vector3d row_direction, Eigen::Vector3d сol_direction,
     uint32_t n_rows = 0, uint32_t n_cols = 0,
-    Color color = Color(0, 0, 0),
     float height_step = 1.0f,
     uint32_t n_terraces_on_height_step = 2);
 
-  /// <summary>
-  /// Добавить шестиугольник.
-  /// </summary>
-  /// <param name="row">
-  /// Номер строки.
-  /// </param>
-  /// <param name="col">
-  /// Номер столбца.
-  /// </param>
-  /// <param name="color">
-  /// Цвет шестиугольника.
-  /// </param>
-  void add_hexagon(uint32_t row, uint32_t col,
-    Color color = Color(0, 0, 0));
+  /// \brief Добавить шестиугольник.
+  /// \param row Номер строки.
+  /// \param col Номер столбца.
+  /// \param color Цвет шестиугольника.
+  void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color);
 
-  /// <summary>
-  /// Создать случайную сетку.
-  /// </summary>
-  void generate_random_field();
+  /// \brief Установить высоту шестиугольнику.
+  /// \param row Номер строки.
+  /// \param col Номер столбца.
+  /// \param height Новая высота.
+  void set_hex_height(uint32_t row, uint32_t col, int32_t height);
 
-  /// <summary>
-  /// Вывести вершины и треугольники, на который треангулируется сетка.
-  /// </summary>
-  /// <param name="Vertices">
-  /// Куда выводить вершины.
-  /// </param>
-  /// <param name="TriList">
-  /// Куда выводить треугольники.
-  /// </param>
+  /// \brief Установить цвет шестиугольнику.
+  /// \param row Номер строки.
+  /// \param col Номер столбца.
+  /// \param color Новый цвет шестиугольника.
+  void set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color);
+
+  /// \brief Вывести вершины и треугольники, на который треангулируется мир.
+  /// \param Vertices Куда выводить вершины.
+  /// \param TriList Куда выводить треугольники.
   void print_in_vertices_and_triList(
     std::vector<PrintingPoint>& Vertices,
     std::vector<uint16_t>& TriList) const;
+private:
+  /// \brief Класс-компаратор для Eigen::Vector3d
+  class EigenVector3dComp {
+  public:
+    EigenVector3dComp() = default;
+    bool operator()(const Eigen::Vector3d& a,
+      const Eigen::Vector3d& b) const {
+      if (a.x() + PRECISION_DBL_CALC < b.x())
+        return true;
+      if (b.x() + PRECISION_DBL_CALC < a.x())
+        return false;
 
-  /// <summary>
-  /// Установить высоту шестиугольнику.
-  /// </summary>
-  /// <param name="row">
-  /// Номер строки.
-  /// </param>
-  /// <param name="col">
-  /// Номер столбца.
-  /// </param>
-  /// <param name="height">
-  /// Новая высота.
-  /// </param>
-  void set_height(int row, int col, int32_t height);
+      if (a.y() + PRECISION_DBL_CALC < b.y())
+        return true;
+      if (b.y() + PRECISION_DBL_CALC < a.y())
+        return false;
 
-  /// <summary>
-  /// Установить цвет шестиугольнику.
-  /// </summary>
-  /// <param name="row">
-  /// Номер строки.
-  /// </param>
-  /// <param name="col">
-  /// Номер столбца.
-  /// </param>
-  /// <param name="color">
-  /// Новый цвет.
-  /// </param>
-  void set_color(int row, int col, Color color);
+      if (a.z() + PRECISION_DBL_CALC < b.z())
+        return true;
+
+      return false;
+    }
+  };
+
+  /// \brief Класс текстур
+  class TextureGrid {
+  public:
+    /// \brief Конструктор по умолчанию.
+    TextureGrid() = default;
+
+    /// \brief Установить цвет точки.
+    /// \param pos Позиция точки.
+    /// \param color Устанавливаемый цвет.
+    /// \param n_parts Число частей цвета (нужно будет для смешивания).
+    void set_point(Eigen::Vector3d pos, Eigen::Vector4i color, uint32_t n_parts = 1);
+
+    /// \brief Раскрасить вершины. 
+    /// \param Vertices Вершины.
+    void colorize_vertices(std::vector<PrintingPoint>& Vertices) const;
+  private:
+    /// \brief Класс Color нужен для хранения цвета.
+    class Color {
+    public:
+      /// \brief Создаёт чёрный непрозрачный цвет.
+      Color();
+
+      /// \brief Создаёт цвет.
+      /// \param red Красная компонента цвета
+      /// \param blue Синяя компонента цвета
+      /// \param green Зелёная компонента цвета
+      /// \param alpha Компонента прозрачности цвета
+      /// \param n_parts Число частей цвета (нужно будет для смешивания).
+      Color(uint8_t red, uint8_t blue,
+        uint8_t green, uint8_t alpha = 255, uint32_t n_parts = 1);
+
+      /// \brief Создаёт цвет.
+      /// \param abgr Цвет в формате alpha-blue-green-red.
+      /// \param n_parts Число частей цвета (нужно будет для смешивания).
+      Color(uint32_t abgr, uint32_t n_parts = 1);
+
+      /// \brief Операция + смешивает два цвета в пропорциях n_parts.
+      /// \param rhs Цвет, с которым смешиваем.
+      /// \return Новый цвет.
+      Color operator+ (const Color& rhs) const;
+
+      /// \brief get_abgr() возвращает цвет в формате alpha-blue-green-red.
+      /// \return Цвет в формате alpha-blue-green-red.
+      uint32_t get_abgr() const;
+    private:
+      uint32_t abgr_; ///< Цвет в формате alpha-blue-green-red.
+      uint32_t n_parts_; ///< Число частей цвета (нужно будет для смешивания).
+    };
+
+    /// \brief Получить цвет точки, по её позиции.
+    /// \param position Позиция точки.
+    /// \return Цвет точки.
+    Color get_point_color(Eigen::Vector3d position) const;
+
+    std::map<Eigen::Vector3d, Color, EigenVector3dComp> points; ///< Цвета точек.
+  };
+
+  /// \brief Класс шестиугольной сетки.
+  class HexagonGrid {
+  public:
+    /// \brief Конструктор по умолчанию запрещён, так как необходимы параметры сетки.
+    HexagonGrid() = delete;
+
+    /// \brief Создание сетки.
+    /// \param size Мир, к которому принадлежит шестиугольная сетка.
+    /// \param size Радиус шестиугольника покрытия.
+    /// \param origin Начало координат.
+    /// \param row_direction Направление увеличения номера строки.
+    /// \param сol_direction Направление увеличения номера столбца.
+    /// !!! должно быть перпендикулярно row_direction !!!
+    /// \param height_step Высота между соседними уровнями.
+    /// \param n_terraces_on_height_step Количество террас между соседними уровнями.
+    HexagonGrid(Hexoworld& hexoworld,
+      float size, Eigen::Vector3d origin,
+      Eigen::Vector3d row_direction, Eigen::Vector3d сol_direction,
+      float height_step = 1.0f,
+      uint32_t n_terraces_on_height_step = 2);
+
+    /// \brief Добавить шестиугольник.
+    /// \param row Номер строки.
+    /// \param col Номер столбца.
+    void add_hexagon(uint32_t row, uint32_t col);
+
+    /// \brief Вывести вершины и треугольники, на который треангулируется сетка.
+    /// \param Vertices Куда выводить вершины.
+    /// \param TriList Куда выводить треугольники.
+    void print_in_vertices_and_triList(
+      std::vector<PrintingPoint>& Vertices,
+      std::vector<uint16_t>& TriList) const;
+
+    /// \brief Установить высоту шестиугольнику.
+    /// \param row Номер строки.
+    /// \param col Номер столбца.
+    /// \param height Новая высота.
+    void set_height(int row, int col, int32_t height);
+
+    /// \brief Получить точки видимого шестиугольника по координатам
+    /// \param row Номер строки.
+    /// \param col Номер столбца.
+    /// \return Шесть точек видимого шестиугольника(0-5я точка) и центр(6я точка).
+    std::vector<Eigen::Vector3d> get_hex_points(int row, int col);
 
   private:
-  /// <summary>
-  /// Базовая структура всех объектов
-  /// </summary>
-  struct Object {
-    virtual bool is_hexagon() { return false; }
-    virtual bool is_triangle() { return false; }
-    virtual bool is_rectangle() { return false; }
-  };
+    /// \brief Базовая структура всех объектов
+    struct Object {
+      /// \brief Конструктор по умолчанию.
+      Object() = default;
 
-  /// <summary>
-  /// Структура координат
-  /// </summary>
-  struct Coord {
-    Coord(uint32_t row_, uint32_t col_) : row(row_), col(col_) {};
-    /// <summary>
-    /// Сравнение координат.
-    /// </summary>
-    /// <param name="rhs">
-    /// Координаты для сравнения.
-    /// </param>
-    /// <returns>
-    /// Результат сравнения
-    /// </returns>
-    bool operator< (const Coord& rhs) const
-    {
-      return (row < rhs.row) ||
-        ((row == rhs.row) && (col < rhs.col));
-    }
-    uint32_t row;
-    uint32_t col;
-  };
+      virtual bool is_hexagon() const { return false; }
+      virtual bool is_triangle() const { return false; }
+      virtual bool is_rectangle() const { return false; }
+    };
 
-  /// <summary>
-  /// Класс-синглтон, хранящий точки, которые требуются несколько раз.
-  /// </summary>
-  class Points {
+    /// \brief Структура координат
+    struct Coord {
+      /// \brief Конструктор по умолчанию.
+      Coord() = default;
+
+      /// \brief Конструктор от номера строки и номера столбца.
+      /// \param row Номер строки.
+      /// \param col Номер столбца.
+      Coord(uint32_t row, uint32_t col) : row(row), col(col) {}
+
+      /// \brief Сравнение координат.
+      /// \param rhs Координаты для сравнения.
+      /// \return Результат сравнения
+      bool operator< (const Coord& rhs) const
+      {
+        return (row < rhs.row) ||
+          ((row == rhs.row) && (col < rhs.col));
+      }
+      uint32_t row; ///< Номер строки.
+      uint32_t col; ///< Номер столбца.
+    };
+
+    /// \brief Класс-синглтон, хранящий точки, которые требуются несколько раз.
+    class Points {
     public:
-    /// <summary>
-    /// Получение экземпляра.
-    /// </summary>
-    /// <returns>
-    /// Экземпляр.
-    /// </returns>
-    static Points& get_instance() {
-      static Points instance;
-      return instance;
-    }
+      /// \brief Конструктор по умолчанию.
+      Points() = default;
 
-    /// <summary>
-    /// Соединение точки с объектом.
-    /// </summary>
-    /// <param name="p">
-    /// Точка.
-    /// </param>
-    /// <param name="object">
-    /// Объект.
-    /// </param>
-    /// <returns>
-    /// Id точки
-    /// </returns>
-    uint32_t connect_point_with_object(Point p,
-      std::shared_ptr<Object> object);
+      /// \brief Получение экземпляра.
+      /// \return Экземпляр.
+      static Points& get_instance() {
+        static Points instance;
+        return instance;
+      }
 
-    /// <summary>
-    /// Проверка наличия точки.
-    /// </summary>
-    /// <param name="p">
-    /// Точка.
-    /// </param>
-    /// <returns> </returns>
-    bool in_points(Point p) const;
+      /// \brief Соединение точки с объектом.
+      /// \param p Точка.
+      /// \param object Объект.
+      /// \return Id точки
+      uint32_t connect_point_with_object(Eigen::Vector3d p,
+        std::shared_ptr<Object> object);
 
-    /// <summary>
-    /// Получение Id точки.
-    /// </summary>
-    /// <param name="p">
-    /// Точка.
-    /// </param>
-    /// <returns>
-    /// Id.
-    /// </returns>
-    uint32_t get_id_point(Point p);
+      /// \brief Проверка наличия точки.
+      /// \param p Точка.
+      /// \return true - если точка есть, иначе false
+      bool in_points(Eigen::Vector3d p) const;
 
-    /// <summary>
-    /// Получение объектов, связанных с точкой.
-    /// </summary>
-    /// <param name="id">
-    /// Id точки.
-    /// </param>
-    /// <returns>
-    /// Объекты.
-    /// </returns>
-    std::vector<std::shared_ptr<Object>> get_objects(uint32_t id);
+      /// \brief Получение Id точки.
+      /// \param p Точка.
+      /// \return Id.
+      uint32_t get_id_point(Eigen::Vector3d p);
 
-    /// <summary>
-    /// Получение точки по Id.
-    /// </summary>
-    /// <param name="id">
-    /// Id.
-    /// </param>
-    /// <returns>
-    /// Точка.
-    /// </returns>
-    Point get_point(uint32_t id) const;
+      /// \brief Получение объектов, связанных с точкой.
+      /// \param id Id точки.
+      /// \return Объекты.
+      std::vector<std::shared_ptr<Object>> get_objects(uint32_t id);
 
-    /// <summary>
-    /// Присвоить Id новую точку.
-    /// </summary>
-    /// <param name="id">
-    /// Id.
-    /// </param>
-    /// <param name="new_point">
-    /// Новая точка.
-    /// </param>
-    void update_point(uint32_t id, Point new_point);
+      /// \brief Получение точки по Id.
+      /// \param id Id.
+      /// \return Точка.
+      Eigen::Vector3d get_point(uint32_t id) const;
 
-    /// <summary>
-    /// Записать все точки в массив точек.
-    /// </summary>
-    /// <param name="Vertices">
-    /// Массив точек.
-    /// </param>
-    void print_in_vertices(std::vector<PrintingPoint>& Vertices) {
-      for (const Point& p : id_to_point)
-        Vertices.push_back(p);
-    }
+      /// \brief Присвоить Id новую точку.
+      /// \param id Id.
+      /// \param new_point Новая точка.
+      void update_point(uint32_t id, Eigen::Vector3d new_point);
+
+      /// \brief Записать все точки в массив точек.
+      /// \param Vertices Массив точек.
+      void print_in_vertices(std::vector<PrintingPoint>& Vertices) {
+        for (const Eigen::Vector3d& p : id_to_point)
+          Vertices.push_back(p);
+      }
     private:
-    std::map<Point, uint32_t> point_to_id;
-    std::vector<Point> id_to_point;
-    std::vector<std::vector<std::shared_ptr<Object>>> id_to_objects;
-  };
+      std::map<Eigen::Vector3d, uint32_t, EigenVector3dComp> point_to_id;
+      std::vector<Eigen::Vector3d> id_to_point;
+      std::vector<std::vector<std::shared_ptr<Object>>> id_to_objects;
+    };
 
-  /// <summary>
-  /// Структура шестиугольник.
-  /// </summary>
-  struct Hexagon : Object {
-    bool is_hexagon() { return true; }
+    /// \brief Структура шестиугольник.
+    struct Hexagon : Object {
+      bool is_hexagon() const { return true; }
 
-    /// <summary>
-    /// Создание пустого шестиугольника
-    /// </summary>
-    Hexagon() {}
+      /// \brief Конструктор по умолчанию.
+      Hexagon() = default;
 
-    /// <summary>
-    /// Создание шестиугольника.
-    /// </summary>
-    /// <param name="big_size">
-    /// Радиус области покрытия.
-    /// </param>
-    /// <param name="small_size">
-    /// Радиус отображаемого шестиугольника.
-    /// </param>
-    /// <param name="center">
-    /// Центр шестиугольника.
-    /// </param>
-    /// <param name="pointDirection">
-    /// Направление от центра на вершину.
-    /// </param>
-    /// <param name="floatDirection">
-    /// Направление от центра на центр плоской грани.
-    /// !!! должно быть перпендикулярно pointDirection !!!
-    /// </param>
-    /// <param name="color">
-    /// Цвет шестиугольника.
-    /// </param>
-    Hexagon(float big_size, float small_size, Eigen::Vector3d center,
-      Eigen::Vector3d pointDirection, Eigen::Vector3d floatDirection,
-      Color color = Color(0, 0, 0));
+      /// \brief Создание пустого шестиугольника
+      /// \param hexoworld Мир к которому принадлежит шестиугольник.
+      Hexagon(Hexoworld& hexoworld) : world(hexoworld) {}
 
-    /// <summary>
-    /// Соединение точек с множеством всех точек.
-    /// </summary>
-    /// <param name="ptr">
-    /// Указатель на наш шестиугольник.
-    /// </param>
-    void connect_points(std::shared_ptr<Hexagon> ptr);
+      /// \brief Создание шестиугольника.
+      /// \param hexoworld Мир к которому принадлежит шестиугольник.
+      /// \param big_size Радиус области покрытия.
+      /// \param small_size Радиус отображаемого шестиугольника.
+      /// \param center Центр шестиугольника.
+      /// \param pointDirection Направление от центра на вершину.
+      /// \param floatDirection Направление от центра на центр плоской грани.
+      /// !!! должно быть перпендикулярно pointDirection !!!
+      Hexagon(Hexoworld& hexoworld,
+        float big_size, float small_size, Eigen::Vector3d center,
+        Eigen::Vector3d pointDirection, Eigen::Vector3d floatDirection);
 
-    /// <summary>
-    /// Установить цвет шестиугольнику.
-    /// </summary>
-    /// <param name="color">
-    /// Цвет.
-    /// </param>
-    void set_color(Color color);
+      /// \brief Соединение точек с множеством всех точек.
+      /// \param ptr Указатель на наш шестиугольник.
+      void connect_points(std::shared_ptr<Hexagon> ptr);
 
-    /// <summary>
-    /// Вывести вершины и треугольники
-    /// </summary>
-    /// <param name="Vertices">
-    /// Куда выводить вершины.
-    /// </param>
-    /// <param name="TriList">
-    /// Куда выводить треугольники.
-    /// </param>
-    void print_in_vertices_and_triList(
-      std::vector<PrintingPoint>& Vertices,
-      std::vector<uint16_t>& TriList) const;
+      /// \brief Получить точки видимого шестиугольника
+      std::vector<Eigen::Vector3d> get_points();
 
-    std::vector<uint32_t> innerPointsId, outerPointsId;
-    Point center;
-    std::vector<Point> innerPoints;
-    std::vector<Point> outerPoints;
-  };
+      /// \brief Вывести вершины и треугольники
+      /// \param Vertices Куда выводить вершины.
+      /// \param TriList Куда выводить треугольники.
+      void print_in_vertices_and_triList(
+        std::vector<PrintingPoint>& Vertices,
+        std::vector<uint16_t>& TriList) const;
 
-  /// <summary>
-  /// Класс треугольник.
-  /// </summary>
-  class Triangle : Object {
+      std::vector<uint32_t> innerPointsId; ///< Id отображаемых точек.
+      std::vector<uint32_t> outerPointsId; ///< Id точек покрытия
+      Eigen::Vector3d center; ///< центр шестиугольника
+      std::vector<Eigen::Vector3d> innerPoints; ///< Отображаемые точки.
+      std::vector<Eigen::Vector3d> outerPoints; ///< Точки покрытия
+      Hexoworld& world; ///< мир к которому принадлежит шестиугольник.
+    };
+
+    /// \brief Класс треугольник.
+    class Triangle : Object {
     public:
-    bool is_triangle() { return true; }
+      bool is_triangle() const { return true; }
 
-    /// <summary>
-    /// Создать треугольник.
-    /// </summary>
-    /// <param name="a">
-    /// Точка a.
-    /// </param>
-    /// <param name="b">
-    /// Точка b.
-    /// </param>
-    /// <param name="c">
-    /// Точка с.
-    /// </param>
-    /// <param name="heightData">
-    /// Данные для расчёта высот и террас.
-    /// </param>
-    Triangle(Point a, Point b, Point c);
+      /// \brief Конструктор по умолчанию.
+      Triangle() = default;
 
-    /// <summary>
-    /// Создать треугольник.
-    /// </summary>
-    /// <param name="aId">
-    /// Id точки a.
-    /// </param>
-    /// <param name="bId">
-    /// Id точки b.
-    /// </param>
-    /// <param name="cId">
-    /// Id точки c.
-    /// </param>
-    /// <param name="heightData">
-    /// Данные для расчёта высот и террас.
-    /// </param>
-    Triangle(uint32_t aId, uint32_t bId, uint32_t cId);
+      /// \brief Создать треугольник.
+      /// \param hexoworld Мир к которому принадлежит треугольник.
+      /// \param a Точка a.
+      /// \param b Точка b.
+      /// \param c Точка с.
+      Triangle(Hexoworld& hexoworld,
+        Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c);
 
-    /// <summary>
-    /// Оператор сравнения.
-    /// Нужен для составления set и map треугольников.
-    /// </summary>
-    /// <param name="rhs">
-    /// Треугольник для сравнения.
-    /// </param>
-    /// <returns>
-    /// Результат сравнения.
-    /// </returns>
-    bool operator< (const Triangle& rhs) const;
+      /// \brief Создать треугольник.
+      /// \param hexoworld Мир к которому принадлежит треугольник.
+      /// \param aId Id точки a.
+      /// \param bId Id точки b.
+      /// \param cId Id точки c.
+      Triangle(Hexoworld& hexoworld,
+        uint32_t aId, uint32_t bId, uint32_t cId);
 
-    /// <summary>
-    /// Вывести вершины и треугольники, на который треангулируется треугольник.
-    /// </summary>
-    /// <param name="Vertices">
-    /// Куда выводить вершины.
-    /// </param>
-    /// <param name="TriList">
-    /// Куда выводить треугольники.
-    /// </param>
-    /// </param name="hexagonGrid">
-    /// Шестиугольная сетка к которой принадлежит треугольник.
-    /// </param>
-    void print_in_vertices_and_triList(
-      std::vector<PrintingPoint>& Vertices,
-      std::vector<uint16_t>& TriList,
-      const HexagonGrid& hexagonGrid) const;
+      /// \brief Оператор сравнения.
+      /// Нужен для составления set и map треугольников.
+      /// \param rhs Треугольник для сравнения.
+      /// \return Результат сравнения.
+      bool operator< (const Triangle& rhs) const;
 
-    uint32_t AId, BId, CId;
+      /// \brief Вывести вершины и треугольники, на который треангулируется треугольник.
+      /// \param Vertices Куда выводить вершины.
+      /// \param TriList Куда выводить треугольники.
+      void print_in_vertices_and_triList(
+        std::vector<PrintingPoint>& Vertices,
+        std::vector<uint16_t>& TriList) const;
+
+      uint32_t AId; ///< Id точки a
+      uint32_t BId; ///< Id точки b
+      uint32_t CId; ///< Id точки c
     private:
-    /// <summary>
-    /// Вывод террас.
-    /// </summary>
-    /// <param name="a">
-    /// Точка a треугольника.
-    /// </param>
-    /// <param name="b">
-    /// Точка b треугольника.
-    /// </param>
-    /// <param name="c">
-    /// Точка c треугольника.
-    /// </param>
-    /// <param name="a_goal">
-    /// Мнимая позиция точки a.
-    /// </param>
-    /// <param name="b_goal">
-    /// Мнимая позиция точки b.
-    /// </param>
-    /// <param name="c_goal">
-    /// Мнимая позиция точки c.
-    /// </param>
-    /// </param name="hexagonGrid">
-    /// Шестиугольная сетка к которой принадлежит треугольник.
-    /// </param>
-    /// <param name="Vertices">
-    /// Куда выводить вершины.
-    /// </param>
-    /// <param name="TriList">
-    /// Куда выводить треугольники.
-    /// </param>
-    void print_stair(Point a, Point b, Point c,
-      Eigen::Vector3d a_goal,
-      Eigen::Vector3d b_goal,
-      Eigen::Vector3d c_goal,
-      const HexagonGrid& hexagonGrid,
-      std::vector<PrintingPoint>& Vertices,
-      std::vector<uint16_t>& TriList) const;
-  };
+      /// \brief Вывод террас.
+      /// \param a Точка a треугольника.
+      /// \param b Точка b треугольника.
+      /// \param c Точка c треугольника.
+      /// \param a_goal Мнимая позиция точки a.
+      /// \param b_goal Мнимая позиция точки b.
+      /// \param c_goal Мнимая позиция точки c.
+      /// \param Vertices Куда выводить вершины.
+      /// \param TriList Куда выводить треугольники.
+      void print_stair(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c,
+        Eigen::Vector3d a_goal,
+        Eigen::Vector3d b_goal,
+        Eigen::Vector3d c_goal,
+        std::vector<PrintingPoint>& Vertices,
+        std::vector<uint16_t>& TriList) const;
 
-  /// <summary>
-  /// Класс прямоугольник между двух шестиугольников
-  /// </summary>
-  class BorderRectangle : Object {
+      Hexoworld& world; ///< Мир к которому принадлежит треугольник.
+    };
+
+    /// \brief Класс прямоугольник между двух шестиугольников 
+    class BorderRectangle : Object {
     public:
-    bool is_rectangle() { return true; }
+      bool is_rectangle() const { return true; }
 
-    /// <summary>
-    /// Создание прямоугольника
-    /// </summary>
-    /// <param name="a">
-    /// Точка a.
-    /// </param>
-    /// <param name="b">
-    /// Точка b.
-    /// </param>
-    /// <param name="c">
-    /// Точка c.
-    /// </param>
-    /// <param name="d">
-    /// Точка d.
-    /// </param>
-    /// <param name="heightData">
-    /// Данные для расчёта высот и террас.
-    /// </param>
-    BorderRectangle(Point a, Point b, Point c, Point d);
+      /// \brief Конструктор по умолчанию
+      BorderRectangle() = default;
 
-    /// <summary>
-    /// Создание прямоугольника
-    /// </summary>
-    /// <param name="aId">
-    /// Id точки a.
-    /// </param>
-    /// <param name="bId">
-    /// Id точки b.
-    /// </param>
-    /// <param name="cId">
-    /// Id точки c.
-    /// </param>
-    /// <param name="dId">
-    /// Id точки d.
-    /// </param>
-    /// <param name="heightData">
-    /// Данные для расчёта высот и террас.
-    /// </param>
-    BorderRectangle(uint32_t aId, uint32_t bId,
-      uint32_t cId, uint32_t dId);
+      /// \brief Создание прямоугольника.
+      /// \param hexoworld Мир к которому принадлежит прямоугольник.
+      /// \param a Точка a.
+      /// \param b Точка b.
+      /// \param c Точка c.
+      /// \param d Точка d.
+      BorderRectangle(Hexoworld& hexoworld,
+        Eigen::Vector3d a, Eigen::Vector3d b,
+        Eigen::Vector3d c, Eigen::Vector3d d);
 
-    /// <summary>
-    /// Оператор сравнения.
-    /// Нужен для составления set и map прямоугольников.
-    /// </summary>
-    /// <param name="rhs">
-    /// Прямоугольник для сравнения.
-    /// </param>
-    /// <returns>
-    /// Результат сравнения.
-    /// </returns>
-    bool operator< (const BorderRectangle& rhs) const;
+      /// \brief Создание прямоугольника.
+      /// \param hexoworld Мир к которому принадлежит прямоугольник.
+      /// \param aId Id точки a.
+      /// \param bId Id точки b.
+      /// \param cId Id точки c.
+      /// \param dId Id точки d.
+      BorderRectangle(Hexoworld& hexoworld,
+        uint32_t aId, uint32_t bId,
+        uint32_t cId, uint32_t dId);
 
-    /// <summary>
-    /// Вывести вершины и треугольники, на который треангулируется прямоугольник.
-    /// </summary>
-    /// <param name="Vertices">
-    /// Куда выводить вершины.
-    /// </param>
-    /// <param name="TriList">
-    /// Куда выводить треугольники.
-    /// </param>
-    void print_in_vertices_and_triList(
+      /// \brief Оператор сравнения.
+      /// Нужен для составления set и map прямоугольников.
+      /// \param rhs Прямоугольник для сравнения.
+      /// \return Результат сравнения.
+      bool operator< (const BorderRectangle& rhs) const;
+
+      /// \brief Вывести вершины и треугольники, на который треангулируется прямоугольник.
+      /// \param Vertices Куда выводить вершины.
+      /// \param TriList Куда выводить треугольники.
+      void print_in_vertices_and_triList(
+        std::vector<PrintingPoint>& Vertices,
+        std::vector<uint16_t>& TriList) const;
+
+      uint32_t AId; ///< Id точки a
+      uint32_t BId; ///< Id точки b
+      uint32_t CId; ///< Id точки c
+      uint32_t DId; ///< Id точки d
+    private:
+      Hexoworld& world; ///< Мир к которому принадлежит прямоугольник.
+    };
+
+    /// \brief Соединить точку с объектом.
+    /// \param point Точка.
+    /// \param object Объект.
+    /// \return Id точки.
+    static uint32_t connect(Eigen::Vector3d point, std::shared_ptr<HexagonGrid::Object> object);
+    
+    /// \brief Вывод прямоугольника.
+    /// \param a Первая пара точек.
+    /// \param b Вторая пара точек.
+    /// a.first-b.first должно быть параллельно a.second-b.second
+    /// \param Vertices Куда выводить вершины.
+    /// \param TriList Куда выводить треугольники.
+    static void printRect(std::pair<Eigen::Vector3d, Eigen::Vector3d> a,
+      std::pair<Eigen::Vector3d, Eigen::Vector3d> b,
       std::vector<PrintingPoint>& Vertices,
-      std::vector<uint16_t>& TriList,
-      const HexagonGrid& hexagonGrid) const;
+      std::vector<uint16_t>& TriList);
 
-    uint32_t AId, BId, CId, DId;
+    /// \brief Вывод треугольника.
+    /// \param a Точка a
+    /// \param b Точка b
+    /// \param c Точка c
+    /// \param Vertices Куда выводить вершины.
+    /// \param TriList Куда выводить треугольники.
+    static void printTri(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c,
+      std::vector<PrintingPoint>& Vertices,
+      std::vector<uint16_t>& TriList);
+
+    std::map<Coord, std::shared_ptr<Hexagon>> grid_; ///< Сетка.
+    std::set<Triangle> triangles; ///< Все межшестиугольные треугольники.
+    std::set<BorderRectangle> rectangles; ///< Все межшестиугольные прямоугольники.
+    Eigen::Vector3d rowDirection_; ///< Направление увеличения номера строки.
+    Eigen::Vector3d colDirection_; ///< Направление увеличения номера столбца.
+    Eigen::Vector3d heightDirection_;///< Направление вверх.
+    Eigen::Vector3d origin_; ///< Начало координат.
+    float size_; ///< Радиус шестиугольника покрытия.
+    float innerSize_; ///< Радиус внутреннего шестиугольника.
+    float heightStep_; ///< Расстояние между соседними уровнями. 
+    uint32_t nTerracesOnHeightStep_;///< Число террас между соседними уровнями.
+    Hexoworld& world; ///< Мир, к которому принадлежит шестиугольная сетка.
   };
 
-  static uint32_t connect(Point point, std::shared_ptr<HexagonGrid::Object> object);
-  static void printRect(std::pair<Point, Point> a,
-    std::pair<Point, Point> b,
-    std::vector<PrintingPoint>& Vertices,
-    std::vector<uint16_t>& TriList);
-  static void printTri(Point a, Point b, Point c,
-    std::vector<PrintingPoint>& Vertices,
-    std::vector<uint16_t>& TriList);
-
-  std::map<Coord, std::shared_ptr<Hexagon>> grid_;
-  std::set<Triangle> triangles;
-  std::set<BorderRectangle> rectangles;
-  Eigen::Vector3d rowDirection_;
-  Eigen::Vector3d colDirection_;
-  Eigen::Vector3d heightDirection_;
-  Eigen::Vector3d origin_;
-  float size_, innerSize_;
-  float heightStep_;
-  uint32_t nTerracesOnHeightStep_;
+  HexagonGrid hexagonGrid_; ///< Шестиугольная сетка.
+  TextureGrid textureGrid_; ///< Текстурная сетка.
+  static const double PRECISION_DBL_CALC; ///< Точность вещественных вычислений.
 };
-}
