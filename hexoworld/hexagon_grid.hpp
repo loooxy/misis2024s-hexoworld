@@ -49,7 +49,7 @@ public:
   /// \brief Получить точки видимого шестиугольника по координатам
   /// \param row Номер строки.
   /// \param col Номер столбца.
-  /// \return Шесть точек видимого шестиугольника(0-5я точка) и центр(6я точка).
+  /// \return Видимые точки шестиугольника.
   std::vector<Eigen::Vector3d> get_hex_points(int row, int col);
 
 private:
@@ -169,20 +169,39 @@ private:
     /// \param ptr Указатель на наш шестиугольник.
     void connect_points(std::shared_ptr<Hexagon> ptr);
 
+    /// \brief Установить высоту шестиугольнику
+    /// \param height Новая высота
+    void set_height(int32_t height);
+
     /// \brief Получить точки видимого шестиугольника
     std::vector<Eigen::Vector3d> get_points();
+    
+    uint32_t get_ind_extraPoints(uint32_t vertex1, uint32_t vertex2);
 
-    /// \brief Вывести вершины и треугольники
+    /// \brief Вывести треугольники
     /// \param TriList Куда выводить треугольники.
-    void print_in_vertices_and_triList(
+    void print_in_triList(
       std::vector<uint16_t>& TriList) const;
 
     std::vector<uint32_t> innerPointsId; ///< Id отображаемых точек.
     std::vector<uint32_t> outerPointsId; ///< Id точек покрытия
+    std::vector<std::vector<uint32_t>> extraPointsId; ///< Id дополнительных точек
     Eigen::Vector3d center; ///< центр шестиугольника
     mutable std::vector<Eigen::Vector3d> innerPoints; ///< Отображаемые точки.
     mutable std::vector<Eigen::Vector3d> outerPoints; ///< Точки покрытия
+    mutable std::vector<std::vector<Eigen::Vector3d>> extraPoints; ///< Дополнительные точки
     Hexoworld& world; ///< мир к которому принадлежит шестиугольник.
+  private:
+    /// \brief Установить высоту точке.
+    /// \param point Точка.
+    /// \param height Новая высота.
+    void set_new_height_to_point(Eigen::Vector3d& point, int32_t height);
+
+    /// \brief сместить точки в случайном направлении. Шестиугольник остаётся плоским.
+    void disturb_the_points();
+
+    uint32_t gen_init;
+    bool was_init_gen = false;
   };
 
   /// \brief Класс треугольник.
@@ -215,9 +234,9 @@ private:
     /// \return Результат сравнения.
     bool operator< (const Triangle& rhs) const;
 
-    /// \brief Вывести вершины и треугольники, на который треангулируется треугольник.
+    /// \brief Вывести треугольники, на который треангулируется треугольник.
     /// \param TriList Куда выводить треугольники.
-    void print_in_vertices_and_triList(
+    void print_in_triList(
       std::vector<uint16_t>& TriList) const;
 
     uint32_t AId; ///< Id точки a
@@ -281,9 +300,9 @@ private:
     /// \return Результат сравнения.
     bool operator< (const BorderRectangle& rhs) const;
 
-    /// \brief Вывести вершины и треугольники, на который треангулируется прямоугольник.
+    /// \brief Вывести треугольники, на который треангулируется прямоугольник.
     /// \param TriList Куда выводить треугольники.
-    void print_in_vertices_and_triList(
+    void print_in_triList(
       std::vector<uint16_t>& TriList) const;
 
     uint32_t AId; ///< Id точки a

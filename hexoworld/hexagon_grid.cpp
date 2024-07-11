@@ -3,6 +3,7 @@
 #include <map>
 #include <stdexcept>
 #include <algorithm>
+#include <random>
 
 uint32_t Hexoworld::HexagonGrid::connect(Eigen::Vector3d point, std::shared_ptr<HexagonGrid::Object> object)
 {
@@ -172,6 +173,47 @@ Hexoworld::HexagonGrid::Hexagon::Hexagon(Hexoworld& hexoworld,
       center + (pointDirection * (0.5 * small_size)) -
       (floatDirection * (sqrtf(3) / 2 * small_size));
   }
+  extraPoints.resize(6);
+  for (int i = 0; i < 6; ++i)
+  {
+    Eigen::Vector3d a = innerPoints[i];
+    Eigen::Vector3d b = innerPoints[(i + 1) % 6];
+    Eigen::Vector3d v = (b - a) / 4;
+    extraPoints[i].resize(3);
+    for (int j = 0; j < 3; ++j)
+      extraPoints[i][j] = a + v * (j + 1);
+  }
+
+  disturb_the_points();
+}
+void Hexoworld::HexagonGrid::Hexagon::disturb_the_points()
+{
+  if (!was_init_gen)
+  {
+    was_init_gen = true;
+    std::random_device rd;
+    gen_init = rd();
+  }
+  std::mt19937 gen(gen_init);
+  std::uniform_real_distribution<> dis(-0.1, 0.1);
+  double height_move = dis(gen);
+  for (Eigen::Vector3d& point : innerPoints)
+  {
+    point +=
+      world.hexagonGrid_->rowDirection_ * dis(gen) +
+      world.hexagonGrid_->colDirection_ * dis(gen) +
+      world.hexagonGrid_->heightDirection_ * height_move;
+  }
+  for (auto& i : extraPoints)
+    for (Eigen::Vector3d& point : i)
+      point +=
+      world.hexagonGrid_->rowDirection_ * dis(gen) +
+      world.hexagonGrid_->colDirection_ * dis(gen) +
+      world.hexagonGrid_->heightDirection_ * height_move;
+  center +=
+    world.hexagonGrid_->rowDirection_ * dis(gen) +
+    world.hexagonGrid_->colDirection_ * dis(gen) +
+    world.hexagonGrid_->heightDirection_ * height_move;
 }
 void Hexoworld::HexagonGrid::Hexagon::connect_points(std::shared_ptr<Hexagon> ptr)
 {
@@ -181,8 +223,36 @@ void Hexoworld::HexagonGrid::Hexagon::connect_points(std::shared_ptr<Hexagon> pt
   outerPointsId.resize(6);
   for (int i = 0; i < 6; ++i)
     outerPointsId[i] = connect(outerPoints[i], ptr);
+  extraPointsId.resize(6);
+  for (int i = 0; i < 6; ++i)
+  {
+    extraPointsId[i].resize(extraPoints[i].size());
+    for (int j = 0; j < extraPoints[i].size(); ++j)
+      extraPointsId[i][j] = connect(extraPoints[i][j], ptr);
+  }
 }
+void Hexoworld::HexagonGrid::Hexagon::set_height(int32_t height) {
+  set_new_height_to_point(center, height);
 
+  for (int i = 0; i < 6; ++i)
+  {
+    uint32_t id = innerPointsId[i];
+
+    Eigen::Vector3d p = Points::get_instance().get_point(id);
+    set_new_height_to_point(p, height);
+    Points::get_instance().update_point(id, p);
+  }
+
+  for (int i = 0; i < 6; ++i)
+    for (int j = 0; j < extraPointsId[i].size(); ++j)
+    {
+      uint32_t id = extraPointsId[i][j];
+
+      Eigen::Vector3d p = Points::get_instance().get_point(id);
+      set_new_height_to_point(p, height);
+      Points::get_instance().update_point(id, p);
+    }
+}
 std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::Hexagon::get_points()
 {
   std::vector<Eigen::Vector3d> answer;
@@ -192,18 +262,55 @@ std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::Hexagon::get_points()
     answer.push_back(p);
   }
   answer.push_back(center);
+  for (int i = 0; i < 6; ++i)
+    for (int j = 0; j < extraPointsId[i].size(); ++j)
+    {
+      Eigen::Vector3d p = Points::get_instance().get_point(extraPointsId[i][j]);
+      answer.push_back(p);
+    }
   return answer;
 }
-void Hexoworld::HexagonGrid::Hexagon::print_in_vertices_and_triList(std::vector<uint16_t>& TriList) const
+uint32_t Hexoworld::HexagonGrid::Hexagon::get_ind_extraPoints(uint32_t vertex1, uint32_t vertex2)
+{
+  if (vertex1 > vertex2)
+    std::swap(vertex1, vertex2);
+
+  if (vertex1 == 0 && vertex2 == 5)
+    return 5;
+  else
+    return vertex1;
+}
+void Hexoworld::HexagonGrid::Hexagon::print_in_triList(std::vector<uint16_t>& TriList) const
 {
   for (int i = 0; i < 6; ++i)
     innerPoints[i] = Points::get_instance().get_point(innerPointsId[i]);
-
   for (int i = 0; i < 6; ++i)
-    printTri(center, innerPoints[i], innerPoints[(i + 1) % 6],
+    for (int j = 0; j < extraPoints[i].size(); ++j)
+      extraPoints[i][j] = Points::get_instance().get_point(extraPointsId[i][j]);
+
+  std::vector<Eigen::Vector3d> points;
+  for (int i = 0; i < 6; ++i)
+  {
+    points.push_back(innerPoints[i]);
+    for (int j = 0; j < extraPoints[i].size(); ++j)
+      points.push_back(extraPoints[i][j]);
+  }
+
+  for (int i = 0; i < points.size(); ++i)
+    printTri(center, points[i], points[(i + 1) % points.size()],
       TriList);
 }
+void Hexoworld::HexagonGrid::Hexagon::set_new_height_to_point(Eigen::Vector3d& point, int32_t height)
+{
+  int32_t last_height =
+    round(world.hexagonGrid_->heightDirection_
+      .dot(point - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
 
+  point += (height - last_height) *
+    world.hexagonGrid_->heightStep_ *
+    world.hexagonGrid_->heightDirection_;
+}
 //struct Triangle------------------------------------------
 
 Hexoworld::HexagonGrid::Triangle::Triangle(Hexoworld& hexoworld, 
@@ -246,7 +353,7 @@ bool Hexoworld::HexagonGrid::Triangle::operator<(const Triangle& rhs) const
   return false;
 }
 
-void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
+void Hexoworld::HexagonGrid::Triangle::print_in_triList(
   std::vector<uint16_t>& TriList) const {
   Eigen::Vector3d a = Points::get_instance().get_point(AId);
   Eigen::Vector3d b = Points::get_instance().get_point(BId);
@@ -477,7 +584,7 @@ bool Hexoworld::HexagonGrid::BorderRectangle::operator<(const BorderRectangle& r
   return false;
 }
 
-void Hexoworld::HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
+void Hexoworld::HexagonGrid::BorderRectangle::print_in_triList(
   std::vector<uint16_t>& TriList) const {
   Eigen::Vector3d a = Points::get_instance().get_point(AId);
   Eigen::Vector3d b = Points::get_instance().get_point(BId);
@@ -607,8 +714,10 @@ void Hexoworld::HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
       {
         const auto& hex1 = hexs[i_hex1];
         const auto& hex2 = hexs[i_hex2];
-        std::vector<int> hex1_inds_common_vertex;
-        std::vector<int> hex2_inds_common_vertex;
+        std::vector<uint32_t> hex1_inds_common_vertex;
+        std::vector<uint32_t> hex2_inds_common_vertex;
+        std::vector<uint32_t> vertex1_;
+        std::vector<uint32_t> vertex2_;
         for (int vertex1 = 0; vertex1 < 6; vertex1++)
           for (int vertex2 = 0; vertex2 < 6; vertex2++)
           {
@@ -619,14 +728,45 @@ void Hexoworld::HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
                 hex1->innerPointsId[vertex1]);
               hex2_inds_common_vertex.push_back(
                 hex2->innerPointsId[vertex2]);
+              vertex1_.push_back(vertex1);
+              vertex2_.push_back(vertex2);
             }
           }
-        rectangles.insert(BorderRectangle(world,
-          hex1_inds_common_vertex[0],
-          hex1_inds_common_vertex[1],
-          hex2_inds_common_vertex[0],
-          hex2_inds_common_vertex[1]
-        ));
+
+
+        uint32_t ep_ind1 = hex1->get_ind_extraPoints(
+          vertex1_[0],
+          vertex1_[1]);
+        uint32_t ep_ind2 = hex2->get_ind_extraPoints(
+          vertex2_[0],
+          vertex2_[1]);
+
+        bool flag = vertex2_[1] < vertex2_[0];
+
+        std::vector<std::pair<uint32_t, uint32_t>> lines;
+        lines.push_back({ hex1_inds_common_vertex[0] ,
+            hex2_inds_common_vertex[0] });
+        for (uint32_t i = 0; i < hex1->extraPointsId[ep_ind1].size(); ++i)
+        {
+          lines.push_back({
+            hex1->extraPointsId[ep_ind1][
+              (flag? i :
+                hex1->extraPointsId[ep_ind1].size() - i - 1)],
+            hex2->extraPointsId[ep_ind2][
+              (!flag ? i : 
+              hex2->extraPointsId[ep_ind2].size() - i - 1)]
+            });
+        }
+        lines.push_back({ hex1_inds_common_vertex[1] ,
+          hex2_inds_common_vertex[1] });
+
+        for (int i = 0; i < lines.size() - 1; ++i)
+          rectangles.insert(BorderRectangle(world,
+            lines[i].first,
+            lines[i + 1].first,
+            lines[i].second,
+            lines[i + 1].second
+          ));
       }
   }
 }
@@ -635,11 +775,11 @@ void Hexoworld::HexagonGrid::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
 {
   for (const auto& [coord, hex] : grid_)
-    hex->print_in_vertices_and_triList(TriList);
+    hex->print_in_triList(TriList);
   for (const auto& triangle : triangles)
-    triangle.print_in_vertices_and_triList(TriList);
+    triangle.print_in_triList(TriList);
   for (const auto& rectangle : rectangles)
-    rectangle.print_in_vertices_and_triList(TriList);
+    rectangle.print_in_triList(TriList);
 
   Points::get_instance().print_in_vertices(Vertices);
 }
@@ -648,47 +788,7 @@ void Hexoworld::HexagonGrid::set_height(int row, int col, int32_t height)
   if (grid_.find(Coord(row, col)) == grid_.end())
     throw std::invalid_argument("wrong coords");
 
-  Eigen::Vector3d& center = grid_.at(Coord(row, col))->center;
-  int32_t last_height =
-    round(heightDirection_.dot(center - origin_) /
-      heightStep_);
-  center += (height - last_height) * heightStep_ * heightDirection_;
-  for (int i = 0; i < 6; ++i)
-  {
-    uint32_t id = grid_.at(Coord(row, col))->innerPointsId[i];
-
-    Eigen::Vector3d p = Points::get_instance().get_point(id);
-    last_height =
-      round(heightDirection_.dot(p - origin_) /
-        heightStep_);
-    p += (height - last_height) * heightStep_ * heightDirection_;
-
-    Points::get_instance().update_point(id, p);
-  }
-  for (int i = 0; i < 6; ++i)
-  {
-    uint32_t id = grid_.at(Coord(row, col))->outerPointsId[i];
-    Eigen::Vector3d p = Points::get_instance().get_point(id);
-
-    Eigen::Matrix3d positions;
-    int cnt = 0;
-    for (const auto obj : Points::get_instance().get_objects(id))
-      if (obj->is_hexagon())
-      {
-        const Hexagon& hex = *std::static_pointer_cast<Hexagon>(obj);
-        positions(cnt, 0) = hex.center.x();
-        positions(cnt, 1) = hex.center.y();
-        positions(cnt, 2) = hex.center.z();
-        cnt++;
-      }
-
-    p = Eigen::Vector3d(
-      positions.col(0).mean(),
-      positions.col(1).mean(),
-      positions.col(2).mean());
-
-    Points::get_instance().update_point(id, p);
-  }
+  grid_.at(Coord(row, col))->set_height(height);
 }
 std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::get_hex_points(int row, int col)
 {
