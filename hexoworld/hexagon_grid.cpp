@@ -10,43 +10,19 @@ uint32_t Hexoworld::HexagonGrid::connect(Eigen::Vector3d point, std::shared_ptr<
 }
 void Hexoworld::HexagonGrid::printRect(std::pair<Eigen::Vector3d, Eigen::Vector3d> a,
   std::pair<Eigen::Vector3d, Eigen::Vector3d> b,
-  std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList)
 {
   uint32_t id1;
-  if (Points::get_instance().in_points(a.first))
-    id1 = Points::get_instance().get_id_point(a.first);
-  else
-  {
-    id1 = Vertices.size();
-    Vertices.push_back(a.first);
-  }
+  id1 = Points::get_instance().get_id_point(a.first);
 
   uint32_t id2;
-  if (Points::get_instance().in_points(a.second))
-    id2 = Points::get_instance().get_id_point(a.second);
-  else
-  {
-    id2 = Vertices.size();
-    Vertices.push_back(a.second);
-  }
+  id2 = Points::get_instance().get_id_point(a.second);
 
   uint32_t id3;
-  if (Points::get_instance().in_points(b.first))
-    id3 = Points::get_instance().get_id_point(b.first);
-  else
-  {
-    id3 = Vertices.size();
-    Vertices.push_back(b.first);
-  }
+  id3 = Points::get_instance().get_id_point(b.first);
+
   uint32_t id4;
-  if (Points::get_instance().in_points(b.second))
-    id4 = Points::get_instance().get_id_point(b.second);
-  else
-  {
-    id4 = Vertices.size();
-    Vertices.push_back(b.second);
-  }
+  id4 = Points::get_instance().get_id_point(b.second);
 
   TriList.push_back(id1);
   TriList.push_back(id2);
@@ -65,35 +41,16 @@ void Hexoworld::HexagonGrid::printRect(std::pair<Eigen::Vector3d, Eigen::Vector3
   TriList.push_back(id2);
 }
 void Hexoworld::HexagonGrid::printTri(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c,
-  std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList)
 {
   uint32_t id1;
-  if (Points::get_instance().in_points(a))
-    id1 = Points::get_instance().get_id_point(a);
-  else
-  {
-    id1 = Vertices.size();
-    Vertices.push_back(a);
-  }
+  id1 = Points::get_instance().get_id_point(a);
 
   uint32_t id2;
-  if (Points::get_instance().in_points(b))
-    id2 = Points::get_instance().get_id_point(b);
-  else
-  {
-    id2 = Vertices.size();
-    Vertices.push_back(b);
-  }
+  id2 = Points::get_instance().get_id_point(b);
 
   uint32_t id3;
-  if (Points::get_instance().in_points(c))
-    id3 = Points::get_instance().get_id_point(c);
-  else
-  {
-    id3 = Vertices.size();
-    Vertices.push_back(c);
-  }
+  id3 = Points::get_instance().get_id_point(c);
 
   TriList.push_back(id1);
   TriList.push_back(id2);
@@ -145,7 +102,7 @@ uint32_t Hexoworld::HexagonGrid::Points::get_id_point(Eigen::Vector3d p)
   return id;
 }
 
-std::vector<std::shared_ptr<Hexoworld::HexagonGrid::Object>> 
+std::vector<std::shared_ptr<Hexoworld::HexagonGrid::Object>>
 Hexoworld::HexagonGrid::Points::get_objects(uint32_t id)
 {
   if (id >= id_to_objects.size())
@@ -153,7 +110,7 @@ Hexoworld::HexagonGrid::Points::get_objects(uint32_t id)
   return id_to_objects[id];
 }
 
-Eigen::Vector3d 
+Eigen::Vector3d
 Hexoworld::HexagonGrid::Points::get_point(uint32_t id) const
 {
   if (id >= id_to_point.size())
@@ -237,27 +194,21 @@ std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::Hexagon::get_points()
   answer.push_back(center);
   return answer;
 }
-void Hexoworld::HexagonGrid::Hexagon::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
+void Hexoworld::HexagonGrid::Hexagon::print_in_vertices_and_triList(std::vector<uint16_t>& TriList) const
 {
-  int ind = Vertices.size();
-  Vertices.push_back(center);
   for (int i = 0; i < 6; ++i)
-  {
-    TriList.push_back(ind);
-    TriList.push_back(innerPointsId[i]);
-    TriList.push_back(innerPointsId[(i + 1) % 6]);
+    innerPoints[i] = Points::get_instance().get_point(innerPointsId[i]);
 
-    TriList.push_back(innerPointsId[(i + 1) % 6]);
-    TriList.push_back(innerPointsId[i]);
-    TriList.push_back(ind);
-  }
+  for (int i = 0; i < 6; ++i)
+    printTri(center, innerPoints[i], innerPoints[(i + 1) % 6],
+      TriList);
 }
 
 //struct Triangle------------------------------------------
 
-Hexoworld::HexagonGrid::Triangle::Triangle(Hexoworld& hexoworld, 
+Hexoworld::HexagonGrid::Triangle::Triangle(Hexoworld& hexoworld,
   Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c)
-: world(hexoworld) {
+  : world(hexoworld) {
   std::vector<uint32_t> ids = {
     Points::get_instance().get_id_point(a) ,
     Points::get_instance().get_id_point(b) ,
@@ -296,7 +247,6 @@ bool Hexoworld::HexagonGrid::Triangle::operator<(const Triangle& rhs) const
 }
 
 void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
-  std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList) const {
   Eigen::Vector3d a = Points::get_instance().get_point(AId);
   Eigen::Vector3d b = Points::get_instance().get_point(BId);
@@ -319,7 +269,7 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
   points.push_back({ heightA, a });
   points.push_back({ heightB, b });
   points.push_back({ heightC, c });
-  std::sort(points.begin(), points.end(), 
+  std::sort(points.begin(), points.end(),
     [](const std::pair<int32_t, Eigen::Vector3d>& a,
       const std::pair<int32_t, Eigen::Vector3d>& b)
     {
@@ -335,13 +285,11 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
 
   if (points[0].first == points[2].first)
   {
-    TriList.push_back(AId);
-    TriList.push_back(BId);
-    TriList.push_back(CId);
-
-    TriList.push_back(CId);
-    TriList.push_back(BId);
-    TriList.push_back(AId);
+    printTri(
+      points[0].second,
+      points[1].second,
+      points[2].second,
+      TriList);
   }
   else
   {
@@ -376,14 +324,11 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
 
 
       print_stair(points[1].second, p1, points[0].second,
-        points[1].second, goal, points[0].second,
-        Vertices, TriList);
+        points[1].second, goal, points[0].second, TriList,
+        (points[0].first + 1 == points[1].first ? 2 : 3));
       print_stair(points[1].second, p2, points[2].second,
-        points[1].second, goal, points[2].second,
-        Vertices, TriList);
-
-      printTri(points[1].second, p1, p2,
-        Vertices, TriList);
+        points[1].second, goal, points[2].second, TriList,
+        (points[1].first + 1 == points[2].first ? 2 : 3));
     }
     else
     {
@@ -394,7 +339,8 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
           points[0].second,
           points[1].second,
           points[2].second,
-          Vertices, TriList);
+          TriList,
+          (points[0].first + 1 == points[2].first ? 0 : 3));
       else
         print_stair(points[1].second,
           points[2].second,
@@ -402,7 +348,8 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
           points[1].second,
           points[2].second,
           points[0].second,
-          Vertices, TriList);
+          TriList,
+          (points[0].first + 1 == points[2].first ? 0 : 3));
     }
   }
 }
@@ -411,9 +358,13 @@ void Hexoworld::HexagonGrid::Triangle::print_stair(Eigen::Vector3d a, Eigen::Vec
   Eigen::Vector3d a_goal,
   Eigen::Vector3d b_goal,
   Eigen::Vector3d c_goal,
-  std::vector<PrintingPoint>& Vertices,
-  std::vector<uint16_t>& TriList) const
+  std::vector<uint16_t>& TriList,
+  uint8_t cliff) const
 {
+  if ((cliff & 1) > 0)
+    a = a_goal;
+  if ((cliff & 2) > 0)
+    b = b_goal;
   Eigen::Vector3d d = c;
   Eigen::Vector3d d_goal = c_goal;
   int32_t heightstart =
@@ -425,39 +376,44 @@ void Hexoworld::HexagonGrid::Triangle::print_stair(Eigen::Vector3d a, Eigen::Vec
       c_goal - world.hexagonGrid_->origin_) /
       world.hexagonGrid_->heightStep_);
 
-  if (heightstart > heightend)
-  {
-    std::swap(a, c);
-    std::swap(b, d);
-    std::swap(a_goal, c_goal);
-    std::swap(b_goal, d_goal);
-    std::swap(heightstart, heightend);
-  }
-
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> stairs;
   stairs.push_back({ a, b });
   if (heightstart != heightend)
   {
     uint32_t nTerraces =
-      (heightend - heightstart) *
+      abs(heightend - heightstart) *
       (world.hexagonGrid_->nTerracesOnHeightStep_ + 1) - 1;
-    Eigen::Vector3d step1 =
-      (c_goal - a_goal) / (nTerraces + 1);
-    Eigen::Vector3d platformVector1 =
-      world.hexagonGrid_->heightDirection_
-      .cross(step1)
-      .cross(world.hexagonGrid_->heightDirection_)
-      .normalized();
-    platformVector1 *= step1.dot(platformVector1) / 3;
 
-    Eigen::Vector3d step2 =
-      (d_goal - b_goal) / (nTerraces + 1);
-    Eigen::Vector3d platformVector2 =
-      world.hexagonGrid_->heightDirection_
-      .cross(step2)
-      .cross(world.hexagonGrid_->heightDirection_)
-      .normalized();
-    platformVector2 *= step2.dot(platformVector2) / 3;
+    Eigen::Vector3d step1, platformVector1;
+    if ((cliff & 1) == 0)
+    {
+      step1 = (c_goal - a_goal) / (nTerraces + 1);
+      platformVector1 = world.hexagonGrid_->heightDirection_
+        .cross(step1)
+        .cross(world.hexagonGrid_->heightDirection_)
+        .normalized();
+      platformVector1 *= step1.dot(platformVector1) / 3;
+    }
+    else
+    {
+      platformVector1 = step1 = Eigen::Vector3d(0, 0, 0);
+    }
+
+    Eigen::Vector3d step2, platformVector2;
+    if ((cliff & 2) == 0)
+    {
+      step2 = (d_goal - b_goal) / (nTerraces + 1);
+      platformVector2 = world.hexagonGrid_->heightDirection_
+        .cross(step2)
+        .cross(world.hexagonGrid_->heightDirection_)
+        .normalized();
+      platformVector2 *= step2.dot(platformVector2) / 3;
+    }
+    else
+    {
+      platformVector2 = step2 = Eigen::Vector3d(0, 0, 0);
+    }
+
     for (int i = 1; i <= nTerraces; ++i)
     {
       double len = (a - c).norm();
@@ -475,7 +431,7 @@ void Hexoworld::HexagonGrid::Triangle::print_stair(Eigen::Vector3d a, Eigen::Vec
   stairs.push_back({ c, d });
 
   for (int i = 0; i < stairs.size() - 1; ++i)
-    printRect(stairs[i], stairs[i + 1], Vertices, TriList);
+    printRect(stairs[i], stairs[i + 1], TriList);
 }
 
 //struct Rectangle------------------------------------------
@@ -483,8 +439,8 @@ void Hexoworld::HexagonGrid::Triangle::print_stair(Eigen::Vector3d a, Eigen::Vec
 Hexoworld::HexagonGrid::BorderRectangle::BorderRectangle(
   Hexoworld& hexoworld,
   Eigen::Vector3d a, Eigen::Vector3d b,
-  Eigen::Vector3d c, Eigen::Vector3d d) 
-: world(hexoworld) {
+  Eigen::Vector3d c, Eigen::Vector3d d)
+  : world(hexoworld) {
   AId = Points::get_instance().get_id_point(a);
   BId = Points::get_instance().get_id_point(b);
   CId = Points::get_instance().get_id_point(c);
@@ -522,7 +478,6 @@ bool Hexoworld::HexagonGrid::BorderRectangle::operator<(const BorderRectangle& r
 }
 
 void Hexoworld::HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
-  std::vector<PrintingPoint>& Vertices,
   std::vector<uint16_t>& TriList) const {
   Eigen::Vector3d a = Points::get_instance().get_point(AId);
   Eigen::Vector3d b = Points::get_instance().get_point(BId);
@@ -547,7 +502,7 @@ void Hexoworld::HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
 
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> stairs;
   stairs.push_back({ a, b });
-  if (heightstart != heightend)
+  if (heightstart + 1 == heightend)
   {
     uint32_t nTerraces =
       (heightend - heightstart) *
@@ -582,12 +537,12 @@ void Hexoworld::HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
   stairs.push_back({ c, d });
 
   for (int i = 0; i < stairs.size() - 1; ++i)
-    printRect(stairs[i], stairs[i + 1], Vertices, TriList);
+    printRect(stairs[i], stairs[i + 1], TriList);
 }
 
 //struct HexagonGrid---------------------------------------
 Hexoworld::HexagonGrid::HexagonGrid(
-  Hexoworld& hexoworld, 
+  Hexoworld& hexoworld,
   float size, Eigen::Vector3d origin,
   Eigen::Vector3d row_direction, Eigen::Vector3d  col_direction,
   float height_step, uint32_t n_terraces_on_height_step)
@@ -597,7 +552,7 @@ Hexoworld::HexagonGrid::HexagonGrid(
   world(hexoworld)
 {
   if (abs(col_direction.dot(row_direction)) > PRECISION_DBL_CALC)
-    throw std::invalid_argument("ñol_direction and row_direction not perpendicular");
+    throw std::invalid_argument(" ol_direction and row_direction not perpendicular");
 
   row_direction.normalize();
   col_direction.normalize();
@@ -679,13 +634,14 @@ void Hexoworld::HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
 void Hexoworld::HexagonGrid::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
 {
-  Points::get_instance().print_in_vertices(Vertices);
   for (const auto& [coord, hex] : grid_)
-    hex->print_in_vertices_and_triList(Vertices, TriList);
+    hex->print_in_vertices_and_triList(TriList);
   for (const auto& triangle : triangles)
-    triangle.print_in_vertices_and_triList(Vertices, TriList);
+    triangle.print_in_vertices_and_triList(TriList);
   for (const auto& rectangle : rectangles)
-    rectangle.print_in_vertices_and_triList(Vertices, TriList);
+    rectangle.print_in_vertices_and_triList(TriList);
+
+  Points::get_instance().print_in_vertices(Vertices);
 }
 void Hexoworld::HexagonGrid::set_height(int row, int col, int32_t height)
 {

@@ -7,6 +7,7 @@
 #include <memory>
 #include <hexoworld/hexoworld.hpp>
 
+/// \brief Класс шестиугольной сетки.
 class Hexoworld::HexagonGrid {
 public:
   /// \brief Конструктор по умолчанию запрещён, так как необходимы параметры сетки.
@@ -172,17 +173,15 @@ private:
     std::vector<Eigen::Vector3d> get_points();
 
     /// \brief Вывести вершины и треугольники
-    /// \param Vertices Куда выводить вершины.
     /// \param TriList Куда выводить треугольники.
     void print_in_vertices_and_triList(
-      std::vector<PrintingPoint>& Vertices,
       std::vector<uint16_t>& TriList) const;
 
     std::vector<uint32_t> innerPointsId; ///< Id отображаемых точек.
     std::vector<uint32_t> outerPointsId; ///< Id точек покрытия
     Eigen::Vector3d center; ///< центр шестиугольника
-    std::vector<Eigen::Vector3d> innerPoints; ///< Отображаемые точки.
-    std::vector<Eigen::Vector3d> outerPoints; ///< Точки покрытия
+    mutable std::vector<Eigen::Vector3d> innerPoints; ///< Отображаемые точки.
+    mutable std::vector<Eigen::Vector3d> outerPoints; ///< Точки покрытия
     Hexoworld& world; ///< мир к которому принадлежит шестиугольник.
   };
 
@@ -217,10 +216,8 @@ private:
     bool operator< (const Triangle& rhs) const;
 
     /// \brief Вывести вершины и треугольники, на который треангулируется треугольник.
-    /// \param Vertices Куда выводить вершины.
     /// \param TriList Куда выводить треугольники.
     void print_in_vertices_and_triList(
-      std::vector<PrintingPoint>& Vertices,
       std::vector<uint16_t>& TriList) const;
 
     uint32_t AId; ///< Id точки a
@@ -234,14 +231,18 @@ private:
     /// \param a_goal Мнимая позиция точки a.
     /// \param b_goal Мнимая позиция точки b.
     /// \param c_goal Мнимая позиция точки c.
-    /// \param Vertices Куда выводить вершины.
     /// \param TriList Куда выводить треугольники.
+    /// \param cliff Точка от которой не идёт террас.
+    /// При 0 террасы идут от всех точек.
+    /// При 1 террасы идут только между b и с.
+    /// При 2 террасы идут только между a и с.
+    /// При 3 террас не будет.
     void print_stair(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c,
       Eigen::Vector3d a_goal,
       Eigen::Vector3d b_goal,
       Eigen::Vector3d c_goal,
-      std::vector<PrintingPoint>& Vertices,
-      std::vector<uint16_t>& TriList) const;
+      std::vector<uint16_t>& TriList,
+      uint8_t cliff = 0) const;
 
     Hexoworld& world; ///< Мир к которому принадлежит треугольник.
   };
@@ -281,10 +282,8 @@ private:
     bool operator< (const BorderRectangle& rhs) const;
 
     /// \brief Вывести вершины и треугольники, на который треангулируется прямоугольник.
-    /// \param Vertices Куда выводить вершины.
     /// \param TriList Куда выводить треугольники.
     void print_in_vertices_and_triList(
-      std::vector<PrintingPoint>& Vertices,
       std::vector<uint16_t>& TriList) const;
 
     uint32_t AId; ///< Id точки a
@@ -305,21 +304,17 @@ private:
   /// \param a Первая пара точек.
   /// \param b Вторая пара точек.
   /// a.first-b.first должно быть параллельно a.second-b.second
-  /// \param Vertices Куда выводить вершины.
   /// \param TriList Куда выводить треугольники.
   static void printRect(std::pair<Eigen::Vector3d, Eigen::Vector3d> a,
     std::pair<Eigen::Vector3d, Eigen::Vector3d> b,
-    std::vector<PrintingPoint>& Vertices,
     std::vector<uint16_t>& TriList);
 
   /// \brief Вывод треугольника.
   /// \param a Точка a
   /// \param b Точка b
   /// \param c Точка c
-  /// \param Vertices Куда выводить вершины.
   /// \param TriList Куда выводить треугольники.
   static void printTri(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c,
-    std::vector<PrintingPoint>& Vertices,
     std::vector<uint16_t>& TriList);
 
   std::map<Coord, std::shared_ptr<Hexagon>> grid_; ///< Сетка.
