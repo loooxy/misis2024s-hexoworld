@@ -1,4 +1,5 @@
 #include <hexoworld/hexoworld.hpp>
+#include <hexoworld/hexagon_grid.hpp>
 #include <map>
 #include <stdexcept>
 #include <algorithm>
@@ -102,11 +103,6 @@ void Hexoworld::HexagonGrid::printTri(Eigen::Vector3d a, Eigen::Vector3d b, Eige
   TriList.push_back(id2);
   TriList.push_back(id1);
 }
-
-//struct PrintingPoint-------------------------------------
-
-PrintingPoint::PrintingPoint(Eigen::Vector3d position)
-  : x(position.x()), y(position.y()), z(position.z()) {}
 
 //class Points---------------------------------------------
 uint32_t Hexoworld::HexagonGrid::Points::connect_point_with_object(Eigen::Vector3d p,
@@ -307,17 +303,17 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
   Eigen::Vector3d c = Points::get_instance().get_point(CId);
 
   int32_t heightA =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      a - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      a - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
   int32_t heightB =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      b - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      b - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
   int32_t heightC =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      c - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      c - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
 
   std::vector<std::pair<int32_t, Eigen::Vector3d>> points;
   points.push_back({ heightA, a });
@@ -354,19 +350,19 @@ void Hexoworld::HexagonGrid::Triangle::print_in_vertices_and_triList(
     {
       uint32_t nTerraces =
         (points[2].first - points[0].first) *
-        (world.hexagonGrid_.nTerracesOnHeightStep_ + 1) - 1;
+        (world.hexagonGrid_->nTerracesOnHeightStep_ + 1) - 1;
       Eigen::Vector3d step =
         (points[2].second -
           points[0].second) / (nTerraces + 1);
       Eigen::Vector3d platformVector =
-        world.hexagonGrid_.heightDirection_
+        world.hexagonGrid_->heightDirection_
         .cross(step)
-        .cross(world.hexagonGrid_.heightDirection_)
+        .cross(world.hexagonGrid_->heightDirection_)
         .normalized();
       platformVector *= step.dot(platformVector) / 3;
 
       Eigen::Vector3d goal = points[0].second +
-        step * (world.hexagonGrid_.nTerracesOnHeightStep_ + 1)
+        step * (world.hexagonGrid_->nTerracesOnHeightStep_ + 1)
         * (points[1].first - points[0].first);
 
       double len = (points[0].second
@@ -421,13 +417,13 @@ void Hexoworld::HexagonGrid::Triangle::print_stair(Eigen::Vector3d a, Eigen::Vec
   Eigen::Vector3d d = c;
   Eigen::Vector3d d_goal = c_goal;
   int32_t heightstart =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      a_goal - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      a_goal - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
   int32_t heightend =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      c_goal - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      c_goal - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
 
   if (heightstart > heightend)
   {
@@ -444,22 +440,22 @@ void Hexoworld::HexagonGrid::Triangle::print_stair(Eigen::Vector3d a, Eigen::Vec
   {
     uint32_t nTerraces =
       (heightend - heightstart) *
-      (world.hexagonGrid_.nTerracesOnHeightStep_ + 1) - 1;
+      (world.hexagonGrid_->nTerracesOnHeightStep_ + 1) - 1;
     Eigen::Vector3d step1 =
       (c_goal - a_goal) / (nTerraces + 1);
     Eigen::Vector3d platformVector1 =
-      world.hexagonGrid_.heightDirection_
+      world.hexagonGrid_->heightDirection_
       .cross(step1)
-      .cross(world.hexagonGrid_.heightDirection_)
+      .cross(world.hexagonGrid_->heightDirection_)
       .normalized();
     platformVector1 *= step1.dot(platformVector1) / 3;
 
     Eigen::Vector3d step2 =
       (d_goal - b_goal) / (nTerraces + 1);
     Eigen::Vector3d platformVector2 =
-      world.hexagonGrid_.heightDirection_
+      world.hexagonGrid_->heightDirection_
       .cross(step2)
-      .cross(world.hexagonGrid_.heightDirection_)
+      .cross(world.hexagonGrid_->heightDirection_)
       .normalized();
     platformVector2 *= step2.dot(platformVector2) / 3;
     for (int i = 1; i <= nTerraces; ++i)
@@ -534,13 +530,13 @@ void Hexoworld::HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
   Eigen::Vector3d d = Points::get_instance().get_point(DId);
 
   int32_t heightstart =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      a - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      a - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
   int32_t heightend =
-    round(world.hexagonGrid_.heightDirection_.dot(
-      c - world.hexagonGrid_.origin_) /
-      world.hexagonGrid_.heightStep_);
+    round(world.hexagonGrid_->heightDirection_.dot(
+      c - world.hexagonGrid_->origin_) /
+      world.hexagonGrid_->heightStep_);
 
   if (heightstart > heightend)
   {
@@ -555,20 +551,20 @@ void Hexoworld::HexagonGrid::BorderRectangle::print_in_vertices_and_triList(
   {
     uint32_t nTerraces =
       (heightend - heightstart) *
-      (world.hexagonGrid_.nTerracesOnHeightStep_ + 1) - 1;
+      (world.hexagonGrid_->nTerracesOnHeightStep_ + 1) - 1;
     Eigen::Vector3d step1 =
       (c - a) / (nTerraces + 1);
     Eigen::Vector3d platformVector1 =
-      world.hexagonGrid_.heightDirection_
+      world.hexagonGrid_->heightDirection_
       .cross(step1)
-      .cross(world.hexagonGrid_.heightDirection_)
+      .cross(world.hexagonGrid_->heightDirection_)
       .normalized();
     platformVector1 *= step1.dot(platformVector1) / 3;
     Eigen::Vector3d step2 = (d - b) / (nTerraces + 1);
     Eigen::Vector3d platformVector2 =
-      world.hexagonGrid_.heightDirection_
+      world.hexagonGrid_->heightDirection_
       .cross(step2)
-      .cross(world.hexagonGrid_.heightDirection_)
+      .cross(world.hexagonGrid_->heightDirection_)
       .normalized();
     platformVector2 *= step2.dot(platformVector2) / 3;
     for (int i = 1; i <= nTerraces; ++i)

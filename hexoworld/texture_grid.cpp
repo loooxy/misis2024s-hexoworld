@@ -1,4 +1,5 @@
 #include <hexoworld/hexoworld.hpp>
+#include <hexoworld/texture_grid.hpp>
 #include <map>
 #include <stdexcept>
 #include <climits>
@@ -7,7 +8,6 @@
 #include <algorithm>
 #include <iostream>
 
-const double Hexoworld::PRECISION_DBL_CALC = 0.0001;
 
 Hexoworld::TextureGrid::Color::Color() : Color(0, 0, 0) {}
 Hexoworld::TextureGrid::Color::Color(uint8_t red, uint8_t blue,

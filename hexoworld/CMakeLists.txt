@@ -1,5 +1,7 @@
 add_library(hexoworld 
 hexoworld.hpp 
+texture_grid.hpp
+hexagon_grid.hpp
 hexoworld.cpp
 texture_grid.cpp
 hexagon_grid.cpp)
