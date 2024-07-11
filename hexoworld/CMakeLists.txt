@@ -1,8 +1,10 @@
-find_package(bgfx REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(Eigen3 REQUIRED)
-
-add_library(hexoworld hexoworld.hpp hexoworld.cpp)
+add_library(hexoworld 
+hexoworld.hpp 
+texture_grid.hpp
+hexagon_grid.hpp
+hexoworld.cpp
+texture_grid.cpp
+hexagon_grid.cpp)
 target_link_libraries(hexoworld Eigen3::Eigen)
 set_property(TARGET hexoworld PROPERTY CXX_STANDARD 20)
 target_include_directories(hexoworld PUBLIC
