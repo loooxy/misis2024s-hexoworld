@@ -47,6 +47,10 @@ public:
   /// \param color Цвет шестиугольника.
   void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color);
 
+  /// \brief Добавить реку
+  /// \param hexs Координаты {row, col} шестиугольников, по которым течёт река.
+  void add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs);
+
   /// \brief Установить высоту шестиугольнику.
   /// \param row Номер строки.
   /// \param col Номер столбца.

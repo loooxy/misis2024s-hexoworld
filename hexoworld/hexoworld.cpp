@@ -41,6 +41,10 @@ void Hexoworld::add_hexagon(uint32_t row, uint32_t col,
     textureGrid_->set_point(point, color);
 }
 
+void Hexoworld::add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs) {
+  std::vector<Eigen::Vector3d> points = hexagonGrid_->add_river(hexs);
+}
+
 void Hexoworld::set_hex_height(uint32_t row, uint32_t col, int32_t height)
 {
   hexagonGrid_->set_height(row, col, height);

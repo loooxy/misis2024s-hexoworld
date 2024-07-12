@@ -46,6 +46,11 @@ Hexoworld generateField() {
 
       tmp.set_hex_height(i, j, heights(i, j));
     }
+
+  tmp.add_river({
+    {0, 4}, {0, 3}, {0, 2}, {1, 2}, {2, 2}, {3, 2}
+    });
+
   return tmp;
 }
 

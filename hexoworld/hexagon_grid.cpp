@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <random>
+#include <cmath>
 
 uint32_t Hexoworld::HexagonGrid::connect(Eigen::Vector3d point, std::shared_ptr<HexagonGrid::Object> object)
 {
@@ -127,13 +128,304 @@ void Hexoworld::HexagonGrid::Points::update_point(uint32_t id, Eigen::Vector3d n
   Points::get_instance().id_to_point[id] = new_point;
 }
 
+//struct UsualType-----------------------------------------
+
+Hexoworld::HexagonGrid::UsualType::UsualType(Hexagon& hexagon)
+: HexagonType(hexagon){}
+void Hexoworld::HexagonGrid::UsualType::print_in_triList(std::vector<uint16_t>& TriList) const
+{
+  for (int i = 0; i < 6; ++i)
+    base.innerPoints[i] = Points::get_instance().get_point(base.innerPointsId[i]);
+  for (int i = 0; i < 6; ++i)
+    for (int j = 0; j < base.extraPoints[i].size(); ++j)
+      base.extraPoints[i][j] = Points::get_instance().get_point(base.extraPointsId[i][j]);
+
+  std::vector<Eigen::Vector3d> points;
+  for (int i = 0; i < 6; ++i)
+  {
+    points.push_back(base.innerPoints[i]);
+    for (int j = 0; j < base.extraPoints[i].size(); ++j)
+      points.push_back(base.extraPoints[i][j]);
+  }
+
+  for (int i = 0; i < points.size(); ++i)
+    printTri(base.center, points[i], points[(i + 1) % points.size()],
+      TriList);
+}
+
+//struct RiversType----------------------------------------
+
+Hexoworld::HexagonGrid::RiversType::RiversType(Hexagon& hexagon, int32_t in, int32_t out)
+: HexagonType(hexagon), in_(in), out_(out), deep_(0.2)
+{
+  radial_points.resize(6, std::vector<Eigen::Vector3d>(3));
+  for (int i = 0; i < 6; ++i)
+  {
+    Eigen::Vector3d v = (base.innerPoints[i] - base.center) / 4;
+    radial_points[i][0] = base.center + 1 * v;
+    radial_points[i][1] = base.center + 2 * v;
+    radial_points[i][2] = base.center + 3 * v;
+  }
+
+  middle_points.resize(6, std::vector<Eigen::Vector3d>(2));
+  for (int i = 0; i < 6; ++i)
+  {
+    Eigen::Vector3d v = (base.extraPoints[i][1] - base.center) / 4;
+    middle_points[i][0] = base.center + 1 * v;
+    middle_points[i][1] = base.center + 2 * v;
+  }
+
+  if (in_ == -1 || out_ == -1)
+  {
+    make_river_begin_end(in_ != -1 ? in_ : out_);
+    if (out != -1)
+      std::reverse(shore_points.begin(), shore_points.end());
+  }
+  else if ((in_ + 3) % 6 == out_)
+  {
+    make_river_directly(in_, out_);
+  }
+  else if ((in_ + 2) % 6 == out_ || (out_ + 2) % 6 == in_)
+  {
+    if ((out_ + 2) % 6 == in_)
+      std::swap(in_, out_);
+
+    make_river_angle_2(in_, out_);
+
+    if ((out_ + 2) % 6 == in_)
+      std::reverse(shore_points.begin(), shore_points.end());
+  }
+  else
+  {
+    if ((out_ + 1) % 6 == in_)
+      std::swap(in_, out_);
+
+    make_river_angle_1(in_, out_);
+
+    if ((out_ + 1) % 6 == in_)
+      std::reverse(shore_points.begin(), shore_points.end());
+  }
+}
+
+void Hexoworld::HexagonGrid::RiversType::set_height(int32_t height) {
+  for (int i = 0; i < 6; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+      base.set_new_height_to_point(radial_points[i][j], height);
+    for (int j = 0; j < 2; ++j)
+      base.set_new_height_to_point(middle_points[i][j], height);
+  }
+}
+
+std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::RiversType::get_points() const
+{
+  return shore_points;
+}
+
+void Hexoworld::HexagonGrid::RiversType::print_in_triList(std::vector<uint16_t>& TriList) const
+{
+  for (uint32_t ind1 = 0; ind1 < 6; ++ind1)
+  {
+    uint32_t ind2 = (ind1 + 1) % 6;
+
+    printTri(
+      base.innerPoints[ind1], 
+      radial_points[ind1][2],
+      base.extraPoints[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind1][1],
+      radial_points[ind1][2],
+      base.extraPoints[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind1][1],
+      base.extraPoints[ind1][1],
+      base.extraPoints[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind1][1],
+      base.extraPoints[ind1][1],
+      middle_points[ind1][1],
+      TriList);
+    printTri(
+      radial_points[ind2][1],
+      base.extraPoints[ind1][1],
+      middle_points[ind1][1],
+      TriList);
+    printTri(
+      radial_points[ind2][1],
+      base.extraPoints[ind1][1],
+      base.extraPoints[ind1][2],
+      TriList);
+    printTri(
+      radial_points[ind2][1],
+      radial_points[ind2][2],
+      base.extraPoints[ind1][2],
+      TriList);
+    printTri(
+      base.innerPoints[ind2],
+      radial_points[ind2][2],
+      base.extraPoints[ind1][2],
+      TriList);
+    printTri(
+      radial_points[ind1][1],
+      middle_points[ind1][1],
+      middle_points[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind2][1],
+      middle_points[ind1][1],
+      middle_points[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind1][0],
+      radial_points[ind1][1],
+      middle_points[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind2][0],
+      radial_points[ind2][1],
+      middle_points[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind1][0],
+      base.center,
+      middle_points[ind1][0],
+      TriList);
+    printTri(
+      radial_points[ind2][0],
+      base.center,
+      middle_points[ind1][0],
+      TriList);
+  }
+}
+
+void Hexoworld::HexagonGrid::RiversType::make_river_begin_end(uint32_t edge)
+{
+  omit_point(middle_points[edge][1]);
+  omit_point(base.extraPoints[edge][1]);
+
+  shore_points.push_back(middle_points[edge][0]);
+  shore_points.push_back(middle_points[edge][0]);
+  shore_points.push_back(radial_points[(edge + 1) % 6][1]);
+  shore_points.push_back(radial_points[edge][1]);
+  shore_points.push_back(base.extraPoints[edge][2]);
+  shore_points.push_back(base.extraPoints[edge][0]);
+}
+void Hexoworld::HexagonGrid::RiversType::make_river_directly(uint32_t in, uint32_t out)
+{
+  omit_point(base.extraPoints[in][1]);
+  omit_point(middle_points[in][1]);
+  omit_point(middle_points[in][0]);
+  omit_point(radial_points[in][0], 0.5);
+  omit_point(radial_points[(in + 1) % 6][0], 0.5);
+  omit_point(base.center);
+  omit_point(radial_points[out][0], 0.5);
+  omit_point(radial_points[(out + 1) % 6][0], 0.5);
+  omit_point(middle_points[out][0]);
+  omit_point(middle_points[out][1]);
+  omit_point(base.extraPoints[out][1]);
+
+  shore_points.push_back(base.extraPoints[in][0]);
+  shore_points.push_back(base.extraPoints[in][2]);
+  shore_points.push_back(radial_points[in][1]);
+  shore_points.push_back(radial_points[(in + 1) % 6][1]);
+  shore_points.push_back(middle_points[(in + 5) % 6][0]);
+  shore_points.push_back(middle_points[(in + 1) % 6][0]);
+  
+  shore_points.push_back(radial_points[(in + 5) % 6][0]);
+  shore_points.push_back(radial_points[(out + 5) % 6][0]);
+
+  shore_points.push_back(middle_points[(out + 1) % 6][0]);
+  shore_points.push_back(middle_points[(out + 5) % 6][0]);
+  shore_points.push_back(radial_points[(out + 1) % 6][1]);
+  shore_points.push_back(radial_points[out][1]);
+  shore_points.push_back(base.extraPoints[out][2]);
+  shore_points.push_back(base.extraPoints[out][0]);
+}
+void Hexoworld::HexagonGrid::RiversType::make_river_angle_2(uint32_t in, uint32_t out)
+{
+  omit_point(base.extraPoints[in][1]);
+  omit_point(base.extraPoints[out][1]);
+
+  omit_point(middle_points[in][0]);
+  omit_point(middle_points[in][1]);
+  omit_point(middle_points[out][0]);
+  omit_point(middle_points[out][1]);
+
+  uint32_t middle = (in + 1) % 6;
+  omit_point(radial_points[middle][0]);
+  omit_point(radial_points[out][0]);
+
+  omit_point(middle_points[middle][0]);
+
+  shore_points.push_back(base.extraPoints[in][0]);
+  shore_points.push_back(base.extraPoints[in][2]);
+  shore_points.push_back(radial_points[in][1]);
+  shore_points.push_back(radial_points[(in + 1) % 6][1]);
+  shore_points.push_back(radial_points[in][0]);
+  shore_points.push_back(radial_points[(in + 1) % 6][1]);
+  shore_points.push_back(base.center);
+  shore_points.push_back(middle_points[middle][1]);
+  shore_points.push_back(radial_points[(out + 1) % 6][0]);
+  shore_points.push_back(radial_points[out][1]);
+  shore_points.push_back(radial_points[(out + 1) % 6][1]);
+  shore_points.push_back(radial_points[out][1]);
+  shore_points.push_back(base.extraPoints[out][2]);
+  shore_points.push_back(base.extraPoints[out][0]);
+}
+void Hexoworld::HexagonGrid::RiversType::make_river_angle_1(uint32_t in, uint32_t out)
+{
+  omit_point(base.extraPoints[in][1]);
+  omit_point(base.extraPoints[out][1]);
+  
+  omit_point(middle_points[in][1], 0.75);
+  omit_point(middle_points[out][1], 0.75);
+
+  omit_point(middle_points[in][0], 0.75);
+  omit_point(middle_points[out][0], 0.75);
+  
+  omit_point(radial_points[out][1], 0.75);
+  omit_point(radial_points[out][0], 0.75);
+
+  shore_points.push_back(base.extraPoints[in][0]);
+  shore_points.push_back(base.extraPoints[in][2]);
+  shore_points.push_back(radial_points[in][1]);
+  shore_points.push_back(base.extraPoints[in][2]);
+  shore_points.push_back(radial_points[in][0]);
+  shore_points.push_back(radial_points[out][2]);
+  shore_points.push_back(base.center);
+  shore_points.push_back(radial_points[out][2]);
+  shore_points.push_back(radial_points[(out + 1) % 6][0]);
+  shore_points.push_back(radial_points[out][2]);
+  shore_points.push_back(radial_points[(out + 1) % 6][1]);
+  shore_points.push_back(base.extraPoints[out][0]);
+  shore_points.push_back(base.extraPoints[out][2]);
+  shore_points.push_back(base.extraPoints[out][0]);
+}
+
+void Hexoworld::HexagonGrid::RiversType::omit_point(Eigen::Vector3d& point, double deep)
+{
+  Eigen::Vector3d old_point = point;
+  point += deep * deep_ * (-base.world.hexagonGrid_->heightDirection_);
+  if (Points::get_instance().in_points(old_point))
+  {
+    Points::get_instance().update_point(
+      Points::get_instance().get_id_point(old_point),
+      point);
+  }
+
+  floor_points.push_back(point);
+}
 //struct Hexagon-------------------------------------------
 
 Hexoworld::HexagonGrid::Hexagon::Hexagon(Hexoworld& hexoworld,
   float big_size, float small_size,
   Eigen::Vector3d center,
-  Eigen::Vector3d pointDirection, Eigen::Vector3d floatDirection)
-  : center(center), world(hexoworld) {
+  Eigen::Vector3d pointDirection, Eigen::Vector3d floatDirection,
+  Coord coord)
+  : center(center), world(hexoworld), coord(coord) {
   if (abs(pointDirection.dot(floatDirection)) > PRECISION_DBL_CALC)
     throw std::invalid_argument("pointTop and floatTop not perpendicular");
 
@@ -184,7 +476,8 @@ Hexoworld::HexagonGrid::Hexagon::Hexagon(Hexoworld& hexoworld,
       extraPoints[i][j] = a + v * (j + 1);
   }
 
-  disturb_the_points();
+  //disturb_the_points();
+  hexagonType = std::make_shared<UsualType>(*this);
 }
 void Hexoworld::HexagonGrid::Hexagon::disturb_the_points()
 {
@@ -241,6 +534,7 @@ void Hexoworld::HexagonGrid::Hexagon::set_height(int32_t height) {
     Eigen::Vector3d p = Points::get_instance().get_point(id);
     set_new_height_to_point(p, height);
     Points::get_instance().update_point(id, p);
+    innerPoints[i] = p;
   }
 
   for (int i = 0; i < 6; ++i)
@@ -251,7 +545,17 @@ void Hexoworld::HexagonGrid::Hexagon::set_height(int32_t height) {
       Eigen::Vector3d p = Points::get_instance().get_point(id);
       set_new_height_to_point(p, height);
       Points::get_instance().update_point(id, p);
+      extraPoints[i][j] = p;
     }
+
+  hexagonType->set_height(height);
+}
+std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::Hexagon::make_river(int32_t in, int32_t out)
+{
+  hexagonType.reset();
+  hexagonType = std::make_shared<RiversType>(*this, in, out);
+  return std::static_pointer_cast<RiversType>(hexagonType)->
+    get_points();
 }
 std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::Hexagon::get_points()
 {
@@ -282,23 +586,7 @@ uint32_t Hexoworld::HexagonGrid::Hexagon::get_ind_extraPoints(uint32_t vertex1, 
 }
 void Hexoworld::HexagonGrid::Hexagon::print_in_triList(std::vector<uint16_t>& TriList) const
 {
-  for (int i = 0; i < 6; ++i)
-    innerPoints[i] = Points::get_instance().get_point(innerPointsId[i]);
-  for (int i = 0; i < 6; ++i)
-    for (int j = 0; j < extraPoints[i].size(); ++j)
-      extraPoints[i][j] = Points::get_instance().get_point(extraPointsId[i][j]);
-
-  std::vector<Eigen::Vector3d> points;
-  for (int i = 0; i < 6; ++i)
-  {
-    points.push_back(innerPoints[i]);
-    for (int j = 0; j < extraPoints[i].size(); ++j)
-      points.push_back(extraPoints[i][j]);
-  }
-
-  for (int i = 0; i < points.size(); ++i)
-    printTri(center, points[i], points[(i + 1) % points.size()],
-      TriList);
+  hexagonType->print_in_triList(TriList);
 }
 void Hexoworld::HexagonGrid::Hexagon::set_new_height_to_point(Eigen::Vector3d& point, int32_t height)
 {
@@ -611,6 +899,7 @@ void Hexoworld::HexagonGrid::BorderRectangle::print_in_triList(
   stairs.push_back({ a, b });
   if (heightstart + 1 == heightend)
   {
+    Eigen::Vector3d nell_vect(0, 0, 0);
     uint32_t nTerraces =
       (heightend - heightstart) *
       (world.hexagonGrid_->nTerracesOnHeightStep_ + 1) - 1;
@@ -632,10 +921,14 @@ void Hexoworld::HexagonGrid::BorderRectangle::print_in_triList(
     for (int i = 1; i <= nTerraces; ++i)
     {
       double len = (a - c).norm();
-      Eigen::Vector3d p1 = a + step1 * i - platformVector1;
-      Eigen::Vector3d p2 = b + step2 * i - platformVector2;
-      Eigen::Vector3d p3 = a + step1 * i + platformVector1;
-      Eigen::Vector3d p4 = b + step2 * i + platformVector2;
+      Eigen::Vector3d p1 = a + step1 * i - 
+        (terraces_side & 1 ? platformVector1 : nell_vect);
+      Eigen::Vector3d p2 = b + step2 * i - 
+        (terraces_side & 2 ? platformVector2 : nell_vect);
+      Eigen::Vector3d p3 = a + step1 * i + 
+        (terraces_side & 1 ? platformVector1 : nell_vect);
+      Eigen::Vector3d p4 = b + step2 * i + 
+        (terraces_side & 2 ? platformVector2 : nell_vect);
 
       stairs.push_back({ p1, p2 });
       stairs.push_back({ p3, p4 });
@@ -669,6 +962,16 @@ Hexoworld::HexagonGrid::HexagonGrid(
   heightDirection_ = rowDirection_.cross(colDirection_);
 }
 
+std::pair<Hexoworld::HexagonGrid::Coord, 
+  Hexoworld::HexagonGrid::Coord> 
+  Hexoworld::HexagonGrid::pair_coords
+  (Coord a, Coord b)
+  {
+    if (b < a)
+      std::swap(a, b);
+    return std::pair<Coord, Coord>(a, b);
+  };
+
 void Hexoworld::HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
 {
   if (grid_.find(Coord(row, col)) != grid_.end())
@@ -681,7 +984,8 @@ void Hexoworld::HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
       ((sqrtf(3) * col + (row % 2) * sqrt(3) / 2) * size_)
       + rowDirection_ *
       (1.5 * size_ * row),
-      rowDirection_, colDirection_);
+      rowDirection_, colDirection_,
+      Coord(row, col));
   grid_[Coord(row, col)] = ptr;
   ptr->connect_points(ptr);
 
@@ -714,63 +1018,145 @@ void Hexoworld::HexagonGrid::add_hexagon(uint32_t row, uint32_t col)
       {
         const auto& hex1 = hexs[i_hex1];
         const auto& hex2 = hexs[i_hex2];
-        std::vector<uint32_t> hex1_inds_common_vertex;
-        std::vector<uint32_t> hex2_inds_common_vertex;
-        std::vector<uint32_t> vertex1_;
-        std::vector<uint32_t> vertex2_;
-        for (int vertex1 = 0; vertex1 < 6; vertex1++)
-          for (int vertex2 = 0; vertex2 < 6; vertex2++)
-          {
-            if (hex1->outerPointsId[vertex1] ==
-              hex2->outerPointsId[vertex2])
-            {
-              hex1_inds_common_vertex.push_back(
-                hex1->innerPointsId[vertex1]);
-              hex2_inds_common_vertex.push_back(
-                hex2->innerPointsId[vertex2]);
-              vertex1_.push_back(vertex1);
-              vertex2_.push_back(vertex2);
-            }
-          }
-
-
-        uint32_t ep_ind1 = hex1->get_ind_extraPoints(
-          vertex1_[0],
-          vertex1_[1]);
-        uint32_t ep_ind2 = hex2->get_ind_extraPoints(
-          vertex2_[0],
-          vertex2_[1]);
-
-        bool flag = vertex2_[1] < vertex2_[0];
-
-        std::vector<std::pair<uint32_t, uint32_t>> lines;
-        lines.push_back({ hex1_inds_common_vertex[0] ,
-            hex2_inds_common_vertex[0] });
-        for (uint32_t i = 0; i < hex1->extraPointsId[ep_ind1].size(); ++i)
+        if (rectangles.find(
+          pair_coords(hex1->coord, hex2->coord)) 
+          == rectangles.end())
         {
-          lines.push_back({
-            hex1->extraPointsId[ep_ind1][
-              (flag? i :
-                hex1->extraPointsId[ep_ind1].size() - i - 1)],
-            hex2->extraPointsId[ep_ind2][
-              (!flag ? i : 
-              hex2->extraPointsId[ep_ind2].size() - i - 1)]
-            });
-        }
-        lines.push_back({ hex1_inds_common_vertex[1] ,
-          hex2_inds_common_vertex[1] });
+          std::vector<uint32_t> hex1_inds_common_vertex;
+          std::vector<uint32_t> hex2_inds_common_vertex;
+          std::vector<uint32_t> vertex1_;
+          std::vector<uint32_t> vertex2_;
+          for (int vertex1 = 0; vertex1 < 6; vertex1++)
+            for (int vertex2 = 0; vertex2 < 6; vertex2++)
+            {
+              if (hex1->outerPointsId[vertex1] ==
+                hex2->outerPointsId[vertex2])
+              {
+                hex1_inds_common_vertex.push_back(
+                  hex1->innerPointsId[vertex1]);
+                hex2_inds_common_vertex.push_back(
+                  hex2->innerPointsId[vertex2]);
+                vertex1_.push_back(vertex1);
+                vertex2_.push_back(vertex2);
+              }
+            }
 
-        for (int i = 0; i < lines.size() - 1; ++i)
-          rectangles.insert(BorderRectangle(world,
-            lines[i].first,
-            lines[i + 1].first,
-            lines[i].second,
-            lines[i + 1].second
-          ));
+
+          uint32_t ep_ind1 = hex1->get_ind_extraPoints(
+            vertex1_[0],
+            vertex1_[1]);
+          uint32_t ep_ind2 = hex2->get_ind_extraPoints(
+            vertex2_[0],
+            vertex2_[1]);
+
+          bool flag = vertex2_[1] < vertex2_[0];
+
+          std::vector<std::pair<uint32_t, uint32_t>> lines;
+          lines.push_back({ hex1_inds_common_vertex[0] ,
+              hex2_inds_common_vertex[0] });
+          for (uint32_t i = 0; i < hex1->extraPointsId[ep_ind1].size(); ++i)
+          {
+            lines.push_back({
+              hex1->extraPointsId[ep_ind1][
+                (flag ? i :
+                  hex1->extraPointsId[ep_ind1].size() - i - 1)],
+              hex2->extraPointsId[ep_ind2][
+                (!flag ? i :
+                hex2->extraPointsId[ep_ind2].size() - i - 1)]
+              });
+          }
+          lines.push_back({ hex1_inds_common_vertex[1] ,
+            hex2_inds_common_vertex[1] });
+
+          for (int i = 0; i < lines.size() - 1; ++i)
+            rectangles[pair_coords(hex1->coord, hex2->coord)]
+            .push_back(BorderRectangle(world,
+              lines[i].first,
+              lines[i + 1].first,
+              lines[i].second,
+              lines[i + 1].second
+            ));
+        }
       }
   }
 }
 
+void add_point_in_vector(std::vector<Eigen::Vector3d>& dst, 
+  const std::vector<Eigen::Vector3d>& src) {
+  for (const Eigen::Vector3d& p : src)
+    dst.push_back(p);
+}
+std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::add_river(
+  std::vector<std::pair<uint32_t, uint32_t>> hexs)
+{
+  std::vector<Coord> coords;
+  for (int i = 0; i < hexs.size(); ++i)
+    coords.push_back({ hexs[i].first, hexs[i].second });
+
+  if (hexs.size() == 1)
+    throw std::invalid_argument("so short river");
+  if (grid_.find(coords[0]) == grid_.end())
+    throw std::invalid_argument("Unknown hexagon");
+  if (grid_.find(coords.back()) == grid_.end())
+    throw std::invalid_argument("Unknown hexagon");
+
+  std::vector<Eigen::Vector3d> points;
+
+  add_point_in_vector(points, add_river_in_hex(
+    Coord(-1, -1), coords[0], coords[1]));
+  if (hexs.size() > 2){
+    add_point_in_vector(points, add_river_in_hex(
+    coords[coords.size() - 2], coords.back(), Coord(-1, -1)));
+  }
+  for (int i = 1; i < hexs.size() - 1; ++i)
+  {
+    if (grid_.find(Coord(hexs[i].first, hexs[i].second))
+      == grid_.end())
+      throw std::invalid_argument("Unknown hexagon");
+
+    add_point_in_vector(points, add_river_in_hex(
+    coords[i - 1], coords[i], coords[i + 1]));
+  }
+
+  return points;
+}
+std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::add_river_in_hex(Coord before, Coord pos, Coord next) {
+  if (before.row != -1 && next.row != -1)
+  {
+    rectangles.at(pair_coords(pos, before))[0]
+      .set_terraces_side(1);
+    rectangles.at(pair_coords(pos, before))[1]
+      .set_terraces_side(0);
+    rectangles.at(pair_coords(pos, before))[2]
+      .set_terraces_side(0);
+    rectangles.at(pair_coords(pos, before))[3]
+      .set_terraces_side(2);
+
+    rectangles.at(pair_coords(pos, next))[0]
+      .set_terraces_side(1);
+    rectangles.at(pair_coords(pos, next))[1]
+      .set_terraces_side(0);
+    rectangles.at(pair_coords(pos, next))[2]
+      .set_terraces_side(0);
+    rectangles.at(pair_coords(pos, next))[3]
+      .set_terraces_side(2);
+  }
+  
+  uint32_t ind_direction_before;
+  if (before.row != -1)
+    ind_direction_before = get_ind_direction(pos, before);
+  else
+    ind_direction_before = -1;
+
+  uint32_t ind_direction_next;
+  if (next.row != -1)
+    ind_direction_next = get_ind_direction(pos, next);
+  else
+    ind_direction_next = -1;
+
+  return grid_.at(pos)->
+    make_river(ind_direction_before, ind_direction_next);
+}
 void Hexoworld::HexagonGrid::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
 {
@@ -778,8 +1164,9 @@ void Hexoworld::HexagonGrid::print_in_vertices_and_triList(
     hex->print_in_triList(TriList);
   for (const auto& triangle : triangles)
     triangle.print_in_triList(TriList);
-  for (const auto& rectangle : rectangles)
-    rectangle.print_in_triList(TriList);
+  for (const auto& [pos, rects]:rectangles)
+    for (const auto& rect : rects)
+      rect.print_in_triList(TriList);
 
   Points::get_instance().print_in_vertices(Vertices);
 }
@@ -797,4 +1184,26 @@ std::vector<Eigen::Vector3d> Hexoworld::HexagonGrid::get_hex_points(int row, int
 
   std::vector<Eigen::Vector3d> ans = grid_.at(Coord(row, col))->get_points();
   return ans;
+}
+uint32_t Hexoworld::HexagonGrid::get_ind_direction(Coord a, Coord b) {
+  int32_t row_diff = b.row - a.row;
+  int32_t col_diff = b.col - a.col;
+
+  if (row_diff == 0)
+    return (col_diff == 1 ? 1 : 4);
+  
+  if (a.row % 2 == 0)
+  {
+    if (row_diff == 1)
+      return (col_diff == 0 ? 0 : 5);
+    if (row_diff == -1)
+      return (col_diff == 0 ? 2 : 3);
+  }
+  else
+  {
+    if (row_diff == 1)
+      return (col_diff == 0 ? 5 : 0);
+    if (row_diff == -1)
+      return (col_diff == 0 ? 3: 2);
+  }
 }
