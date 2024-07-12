@@ -7,6 +7,7 @@
 #include "bgfx/platform.h"
 #include "bx/math.h"
 #include "GLFW/glfw3.h"
+#include <imgui.h>
 #if BX_PLATFORM_LINUX
 #define GLFW_EXPOSE_NATIVE_X11
 #elif BX_PLATFORM_WINDOWS
@@ -217,7 +218,6 @@ int main()
   bgfx::ShaderHandle vsh = loadShader("vs_cubes.bin");
   bgfx::ShaderHandle fsh = loadShader("fs_cubes.bin");
   bgfx::ProgramHandle program = bgfx::createProgram(vsh, fsh, true);
-
   unsigned int counter = 0;
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
