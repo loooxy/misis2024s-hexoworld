@@ -17,8 +17,6 @@
 #include "GLFW/glfw3native.h"
 
 #include<hexoworld/hexoworld.hpp>
-#include <hexoworld/texture_grid.hpp>
-#include <hexoworld/hexagon_grid.hpp>
 
 #define WNDW_WIDTH 1600
 #define WNDW_HEIGHT 900
@@ -125,7 +123,7 @@ bx::Vec3 conwert_vector(Eigen::Vector3d v) {
 
 Hexoworld generateField() {
   Hexoworld tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
-    Eigen::Vector3d(0, 0, -1), Eigen::Vector3d(-1, 0, 0), 6, 6);
+    Eigen::Vector3d(0, 0, -1), Eigen::Vector3d(-1, 0, 0), 1, 2, 6, 6);
   Eigen::Vector4i grass(53, 200, 45, 255);
   Eigen::Vector4i sand(252, 221, 50, 255);
   Eigen::Vector4i sea(0, 100, 255, 255);
@@ -160,6 +158,11 @@ Hexoworld generateField() {
 
       tmp.set_hex_height(i, j, heights(i, j));
     }
+
+  tmp.add_river({
+    {0, 3}, {0, 2}, {1, 2}, {2, 2}, {3, 2}
+    });
+
   return tmp;
 }
 
