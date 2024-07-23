@@ -15,6 +15,9 @@
 #define GLFW_EXPOSE_NATIVE_COCOA
 #endif
 #include "GLFW/glfw3native.h"
+#include "imgui_impl_glfw.cpp"
+#include <imgui.h>
+#include <imgui_impl_bgfx.cpp>
 
 #include<hexoworld/hexoworld.hpp>
 
@@ -172,7 +175,14 @@ int main()
   GLFWwindow* window = glfwCreateWindow(WNDW_WIDTH, WNDW_HEIGHT, "HexoWorld", NULL, NULL);
   glfwSetKeyCallback(window, key_callback);
 
+  ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  ImGui_Implbgfx_Init(255);
+  ImGui_ImplGlfw_InitForOther(window, true);
+
+
   bgfx::renderFrame();
+
 
   bgfx::Init bgfxInit;
 
@@ -225,6 +235,18 @@ int main()
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
+    ImGui_Implbgfx_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::ShowDemoWindow();
+    ImGui::Begin("Hello");
+    static float rotation = 0;
+    ImGui::SliderFloat("rotation", &rotation, 0, 2);
+    ImGui::End();
+    ImGui::Render();
+    ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+
     float view[16];
     bx::mtxLookAt(view, conwert_vector(eye), conwert_vector(at));
 
@@ -242,6 +264,8 @@ int main()
     bgfx::frame();
     counter++;
   }
+  ImGui_Implbgfx_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
   bgfx::destroy(ibh);
   bgfx::destroy(vbh);
   bgfx::shutdown();
