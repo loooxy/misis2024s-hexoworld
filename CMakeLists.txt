@@ -10,6 +10,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake")
 
 find_package(Eigen3 REQUIRED)
+find_package(bgfx REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(imgui REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/bin.dbg)
@@ -23,11 +26,17 @@ add_subdirectory( deps )
 add_subdirectory( bigg )
 add_subdirectory( hexoworld )
 
+
 add_executable(map_render map_render.cpp)
 target_link_libraries(map_render
-bgfx
-glfw
+        bgfx::bx
+        bgfx::bgfx
+        bgfx::bimg
+        bgfx::bimg_decode
+        glfw
+        imgui::imgui
 Eigen3::Eigen
 hexoworld
 bigg
+        glm
 )

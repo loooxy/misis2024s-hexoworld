@@ -10,7 +10,6 @@ static const unsigned char* name()                                   \
 	switch ( bgfx::getRendererType() )                               \
 	{                                                                \
 		case bgfx::RendererType::Noop:                               \
-		case bgfx::RendererType::Direct3D9:  return name##_dx9;      \
 		case bgfx::RendererType::Direct3D11:                         \
 		case bgfx::RendererType::Direct3D12: return name##_dx11;     \
 		case bgfx::RendererType::OpenGL:     return name##_glsl;     \
@@ -27,7 +26,6 @@ static const int name##_len()                                        \
 	switch ( bgfx::getRendererType() )                               \
 	{                                                                \
 		case bgfx::RendererType::Noop:                               \
-		case bgfx::RendererType::Direct3D9:  return name##_dx9_len;  \
 		case bgfx::RendererType::Direct3D11:                         \
 		case bgfx::RendererType::Direct3D12: return name##_dx11_len; \
 		case bgfx::RendererType::OpenGL:     return name##_glsl_len; \
