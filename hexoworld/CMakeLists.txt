@@ -19,6 +19,11 @@ rectangle/rectangle.cpp
 rectangle/drawers.cpp
 rectangle/frames.cpp
 
+wall/wall.hpp
+wall/wall.cpp
+wall/drawers.cpp
+wall/frames.cpp
+
 static_functions.cpp
 points.cpp
 hexoworld.cpp

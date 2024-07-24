@@ -1,3 +1,4 @@
+#include "manager.hpp"
 #include <hexoworld/hexoworld.hpp>
 
 std::shared_ptr<Hexoworld::Hexagon> Hexoworld::Manager::add_hexagon(Coord coord) {
@@ -6,9 +7,9 @@ std::shared_ptr<Hexoworld::Hexagon> Hexoworld::Manager::add_hexagon(Coord coord)
     
     world.origin_ +
     world.colDirection_ *
-    ((sqrtf(3) * coord.col + (coord.row % 2) * sqrt(3) / 2) * world.size_)
+    ((sqrtf(3) * coord.col + (coord.row % 2) * sqrt(3) / 2) * 1.5*world.size_)
     + world.rowDirection_ *
-    (1.5 * world.size_ * coord.row),
+    (1.5 * 1.5*world.size_ * coord.row),
     
     coord
   );
@@ -18,8 +19,8 @@ std::shared_ptr<Hexoworld::Rectangle> Hexoworld::Manager::add_rectangle(Coord fi
 {
   const auto pair = pair_coords(first, second);
   
-  auto mainData_hex1 = std::static_pointer_cast<Hexagon::HexagonFrame>(grid_.at(first)->frame)->mainData;
-  auto mainData_hex2 = std::static_pointer_cast<Hexagon::HexagonFrame>(grid_.at(second)->frame)->mainData;
+  auto mainData_hex1 = grid_.at(first)->mainData;
+  auto mainData_hex2 = grid_.at(second)->mainData;
     
   uint32_t first_ind_side = get_ind_direction(first, second);
   uint32_t second_ind_side = get_ind_direction(second, first);
@@ -30,10 +31,10 @@ std::shared_ptr<Hexoworld::Rectangle> Hexoworld::Manager::add_rectangle(Coord fi
   return rectangles[pair] = std::make_shared<Rectangle>(
     world,
     
-    mainData_hex1->innerPoints[first_ind_side], 
-    mainData_hex1->innerPoints[(first_ind_side + 1) % 6],
-    mainData_hex2->innerPoints[(second_ind_side + 1) % 6], 
-    mainData_hex2->innerPoints[second_ind_side],
+    mainData_hex1->polygonPoints[first_ind_side], 
+    mainData_hex1->polygonPoints[(first_ind_side + 1) % 6],
+    mainData_hex2->polygonPoints[(second_ind_side + 1) % 6], 
+    mainData_hex2->polygonPoints[second_ind_side],
     
     mainData_hex1->extraPoints[first_ind_side], 
     epi2, 
@@ -57,12 +58,9 @@ std::shared_ptr<Hexoworld::Triangle> Hexoworld::Manager::add_triangle(Coord firs
     return intersection.front();
     };
 
-  const auto& ipi1 = std::static_pointer_cast<Hexagon::HexagonFrame>(grid_.at(first)->frame)
-    ->mainData->innerPoints;
-  const auto& ipi2 = std::static_pointer_cast<Hexagon::HexagonFrame>(grid_.at(second)->frame)
-    ->mainData->innerPoints;
-  const auto& ipi3 = std::static_pointer_cast<Hexagon::HexagonFrame>(grid_.at(third)->frame)
-    ->mainData->innerPoints;
+  const auto& ipi1 = grid_.at(first)->mainData->polygonPoints;
+  const auto& ipi2 = grid_.at(second)->mainData->polygonPoints;
+  const auto& ipi3 = grid_.at(third)->mainData->polygonPoints;
 
   return triangles[tri] = std::make_shared<Triangle>(
     world, 
@@ -113,4 +111,14 @@ std::shared_ptr<Hexoworld::Triangle> Hexoworld::Manager::get_triangle(Coord firs
     return add_triangle(first, second, third);
 
   return triangles[tri];
+}
+
+void Hexoworld::Manager::add_river(std::vector<std::shared_ptr<Object>> river)
+{
+  rivers.push_back(river);
+}
+
+std::vector<std::vector<std::shared_ptr<Hexoworld::Object>>> Hexoworld::Manager::get_all_rivers() const
+{
+  return rivers;
 }

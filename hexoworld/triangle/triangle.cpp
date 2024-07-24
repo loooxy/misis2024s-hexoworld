@@ -12,11 +12,14 @@ Hexoworld::Triangle::Triangle(Hexoworld& hexoworld,
     Points::get_instance().get_id_point(b, this) ,
     Points::get_instance().get_id_point(c, this) };
 
-  frame = std::make_shared<TriangleFrame>(this, ids[0], ids[1], ids[2]);
-  drawer = std::make_shared<TriangleDrawer>(this, Eigen::Vector4i(255, 0, 0, 255));
+  frames [Usual] = std::make_shared<UsualFrame >(this, ids[0], ids[1], ids[2]);
+  drawers[Usual] = std::make_shared<UsualDrawer>(this, Eigen::Vector4i(255, 0, 0, 255));
 }
 
 void Hexoworld::Triangle::print_in_triList(std::vector<uint16_t>& TriList) {
-  frame->print_in_triList(TriList);
-  drawer->colorize_points();
+  for (auto& [type, frame] : frames)
+    frame->print_in_triList(TriList);
+
+  for (auto& [type, drawer] : drawers)
+    drawer->colorize_points();
 }

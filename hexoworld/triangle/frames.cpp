@@ -1,137 +1,147 @@
+#include "triangle.hpp"
 #include <hexoworld/hexoworld.hpp>
 
-Hexoworld::Triangle::TriangleFrame::TriangleFrame(Object* base,
-  uint32_t AId, uint32_t BId, uint32_t CId)
+Hexoworld::Triangle::TriangleFrame::TriangleFrame(Object* base)
   : Frame(base)
+{}
+
+Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t BId, uint32_t CId)
+  : TriangleFrame(base)
 {
-  mainData = std::make_shared<MainData>();
+  if (static_cast<Triangle*>(base)->mainData == nullptr)
+  {
+    std::shared_ptr<MainData> mainData = 
+      (static_cast<Triangle*>(base)->mainData = std::make_shared<MainData>());
 
-  mainData->AId = AId;
-  mainData->BId = BId;
-  mainData->CId = CId;
+    mainData->AId = AId;
+    mainData->BId = BId;
+    mainData->CId = CId;
 
-  Eigen::Vector3d a = Points::get_instance().get_point(AId);
-  Eigen::Vector3d b = Points::get_instance().get_point(BId);
-  Eigen::Vector3d c = Points::get_instance().get_point(CId);
+    Eigen::Vector3d a = Points::get_instance().get_point(AId);
+    Eigen::Vector3d b = Points::get_instance().get_point(BId);
+    Eigen::Vector3d c = Points::get_instance().get_point(CId);
 
-  int32_t heightA =
-    round(base->world.heightDirection_.dot(
-      a - base->world.origin_) /
-      base->world.heightStep_);
-  int32_t heightB =
-    round(base->world.heightDirection_.dot(
-      b - base->world.origin_) /
-      base->world.heightStep_);
-  int32_t heightC =
-    round(base->world.heightDirection_.dot(
-      c - base->world.origin_) /
-      base->world.heightStep_);
+    int32_t heightA =
+      round(base->world.heightDirection_.dot(
+        a - base->world.origin_) /
+        base->world.heightStep_);
+    int32_t heightB =
+      round(base->world.heightDirection_.dot(
+        b - base->world.origin_) /
+        base->world.heightStep_);
+    int32_t heightC =
+      round(base->world.heightDirection_.dot(
+        c - base->world.origin_) /
+        base->world.heightStep_);
 
-  std::vector<std::pair<int32_t, Eigen::Vector3d>> points;
-  points.push_back({ heightA, a });
-  points.push_back({ heightB, b });
-  points.push_back({ heightC, c });
-  std::sort(points.begin(), points.end(),
-    [](const std::pair<int32_t, Eigen::Vector3d>& a,
-      const std::pair<int32_t, Eigen::Vector3d>& b)
-    {
-      if (a.first != b.first)
-        return a.first < b.first;
-      else
+    std::vector<std::pair<int32_t, Eigen::Vector3d>> points;
+    points.push_back({ heightA, a });
+    points.push_back({ heightB, b });
+    points.push_back({ heightC, c });
+    std::sort(points.begin(), points.end(),
+      [](const std::pair<int32_t, Eigen::Vector3d>& a,
+        const std::pair<int32_t, Eigen::Vector3d>& b)
       {
-        EigenVector3dComp cmp;
-        return cmp(a.second, b.second);
+        if (a.first != b.first)
+          return a.first < b.first;
+        else
+        {
+          EigenVector3dComp cmp;
+          return cmp(a.second, b.second);
+        }
       }
-    }
-  );
+    );
 
-  if (points[0].first == points[2].first)
-  {
-    mainData->middle_triangle.push_back(
-      Points::get_instance().get_id_point(points[0].second, base)
-    );
-    mainData->middle_triangle.push_back(
-      Points::get_instance().get_id_point(points[1].second, base)
-    );
-    mainData->middle_triangle.push_back(
-      Points::get_instance().get_id_point(points[2].second, base)
-    );
-  }
-  else
-  {
-    if (points[0].first != points[1].first &&
-      points[1].first != points[2].first)
+    if (points[0].first == points[2].first)
     {
-      uint32_t nTerraces =
-        (points[2].first - points[0].first) *
-        (base->world.nTerracesOnHeightStep_ + 1) - 1;
-      Eigen::Vector3d step =
-        (points[2].second -
-          points[0].second) / (nTerraces + 1);
-      Eigen::Vector3d platformVector =
-        base->world.heightDirection_
-        .cross(step)
-        .cross(base->world.heightDirection_)
-        .normalized();
-      platformVector *= step.dot(platformVector) / 3;
-
-      Eigen::Vector3d goal = points[0].second +
-        step * (base->world.nTerracesOnHeightStep_ + 1)
-        * (points[1].first - points[0].first);
-
-      double len = (points[0].second
-        - points[2].second).norm();
-
-      Eigen::Vector3d p1;
-      p1 = goal - platformVector;
-
-      Eigen::Vector3d p2;
-      p2 = goal + platformVector;
-
-
-      init_stair(points[1].second, p1, points[0].second,
-        points[1].second, goal, points[0].second, mainData->stairs_down,
-        (points[0].first + 1 == points[1].first ? 2 : 3));
-      init_stair(points[1].second, p2, points[2].second,
-        points[1].second, goal, points[2].second, mainData->stairs_up,
-        (points[1].first + 1 == points[2].first ? 2 : 3));
-
+      mainData->middle_triangle.push_back(
+        Points::get_instance().get_id_point(points[0].second, base)
+      );
       mainData->middle_triangle.push_back(
         Points::get_instance().get_id_point(points[1].second, base)
       );
       mainData->middle_triangle.push_back(
-        Points::get_instance().get_id_point(p1, base)
-      );
-      mainData->middle_triangle.push_back(
-        Points::get_instance().get_id_point(p2, base)
+        Points::get_instance().get_id_point(points[2].second, base)
       );
     }
     else
     {
-      if (points[0].first == points[1].first)
-        init_stair(points[0].second,
-          points[1].second,
-          points[2].second,
-          points[0].second,
-          points[1].second,
-          points[2].second,
-          mainData->stairs_up,
-          (points[0].first + 1 == points[2].first ? 0 : 3));
+      if (points[0].first != points[1].first &&
+        points[1].first != points[2].first)
+      {
+        uint32_t nTerraces =
+          (points[2].first - points[0].first) *
+          (base->world.nTerracesOnHeightStep_ + 1) - 1;
+        Eigen::Vector3d step =
+          (points[2].second -
+            points[0].second) / (nTerraces + 1);
+        Eigen::Vector3d platformVector =
+          base->world.heightDirection_
+          .cross(step)
+          .cross(base->world.heightDirection_)
+          .normalized();
+        platformVector *= step.dot(platformVector) / 3;
+
+        Eigen::Vector3d goal = points[0].second +
+          step * (base->world.nTerracesOnHeightStep_ + 1)
+          * (points[1].first - points[0].first);
+
+        double len = (points[0].second
+          - points[2].second).norm();
+
+        Eigen::Vector3d p1;
+        p1 = goal - platformVector;
+
+        Eigen::Vector3d p2;
+        p2 = goal + platformVector;
+
+
+        init_stair(points[1].second, p1, points[0].second,
+          points[1].second, goal, points[0].second, mainData->stairs_down,
+          (points[0].first + 1 == points[1].first ? 2 : 3));
+        init_stair(points[1].second, p2, points[2].second,
+          points[1].second, goal, points[2].second, mainData->stairs_up,
+          (points[1].first + 1 == points[2].first ? 2 : 3));
+
+        mainData->middle_triangle.push_back(
+          Points::get_instance().get_id_point(points[1].second, base)
+        );
+        mainData->middle_triangle.push_back(
+          Points::get_instance().get_id_point(p1, base)
+        );
+        mainData->middle_triangle.push_back(
+          Points::get_instance().get_id_point(p2, base)
+        );
+      }
       else
-        init_stair(points[1].second,
-          points[2].second,
-          points[0].second,
-          points[1].second,
-          points[2].second,
-          points[0].second,
-          mainData->stairs_down,
-          (points[0].first + 1 == points[2].first ? 0 : 3));
+      {
+        if (points[0].first == points[1].first)
+          init_stair(points[0].second,
+            points[1].second,
+            points[2].second,
+            points[0].second,
+            points[1].second,
+            points[2].second,
+            mainData->stairs_up,
+            (points[0].first + 1 == points[2].first ? 0 : 3));
+        else
+          init_stair(points[1].second,
+            points[2].second,
+            points[0].second,
+            points[1].second,
+            points[2].second,
+            points[0].second,
+            mainData->stairs_down,
+            (points[0].first + 1 == points[2].first ? 0 : 3));
+      }
     }
   }
 }
 
-std::vector<Eigen::Vector3d> Hexoworld::Triangle::TriangleFrame::get_points() const
+std::vector<Eigen::Vector3d> Hexoworld::Triangle::UsualFrame::get_points() const
 {
+  std::shared_ptr<MainData> mainData = static_cast<Triangle*>(base)->mainData;
+
   std::set<uint32_t> ids = {
     mainData->AId,
     mainData->BId,
@@ -159,8 +169,10 @@ std::vector<Eigen::Vector3d> Hexoworld::Triangle::TriangleFrame::get_points() co
   return points;
 }
 
-void Hexoworld::Triangle::TriangleFrame::print_in_triList(std::vector<uint16_t>& TriList) const
+void Hexoworld::Triangle::UsualFrame::print_in_triList(std::vector<uint16_t>& TriList) const
 {
+  std::shared_ptr<MainData> mainData = static_cast<Triangle*>(base)->mainData;
+
   if (mainData->middle_triangle.size() == 3)
     printTri(
       mainData->middle_triangle[0],
@@ -177,7 +189,7 @@ void Hexoworld::Triangle::TriangleFrame::print_in_triList(std::vector<uint16_t>&
       printRect(mainData->stairs_down[i], mainData->stairs_down[i + 1], TriList);
 }
 
-void Hexoworld::Triangle::TriangleFrame::init_stair(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d a_goal, Eigen::Vector3d b_goal, Eigen::Vector3d c_goal, std::vector<std::pair<uint32_t, uint32_t>>& stairs, uint32_t cliff)
+void Hexoworld::Triangle::UsualFrame::init_stair(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d a_goal, Eigen::Vector3d b_goal, Eigen::Vector3d c_goal, std::vector<std::pair<uint32_t, uint32_t>>& stairs, uint32_t cliff)
 {
   if ((cliff & 1) > 0)
     a = a_goal;

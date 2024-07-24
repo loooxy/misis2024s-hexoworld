@@ -160,12 +160,20 @@ Hexoworld generateField() {
     }
 
   tmp.add_river({
-    {0, 3}, {0, 2}, {1, 2}, {2, 2}, {3, 2}
+    {3, 2}, {2, 2}, { 1, 2 }, {0, 2}, {0, 3}
     });
+  tmp.add_river({
+    { 3, 3 }, { 2, 3 }, { 1, 3 }, {0, 4}
+    });
+
+  tmp.add_road_in_hex(0, 0);
+  tmp.add_road_in_hex(1, 0);
+  tmp.add_road_in_hex(2, 0);
+  tmp.add_road_in_hex(3, 0);
+  tmp.add_road_in_hex(2, 1);
 
   return tmp;
 }
-
 int main()
 {
   glfwInit();
@@ -196,7 +204,6 @@ int main()
   bgfx::setViewRect(0, 0, 0, WNDW_WIDTH, WNDW_HEIGHT);
 
 
-
   Hexoworld tmp = generateField();
   std::vector<PrintingPoint> Vertices;
   std::vector<uint16_t> TriList;
@@ -207,11 +214,8 @@ int main()
     .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
     .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
     .end();
-  bgfx::VertexBufferHandle vbh =
-    bgfx::createVertexBuffer(
-      bgfx::makeRef(Vertices.data(),
-        Vertices.size() * sizeof(PrintingPoint)),
-      pcvDecl);
+
+
   bgfx::IndexBufferHandle ibh =
     bgfx::createIndexBuffer(
       bgfx::makeRef(TriList.data(),
@@ -234,6 +238,15 @@ int main()
       0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
     bgfx::setViewTransform(0, view, proj);
 
+    tmp.update_river();
+
+    tmp.recolor(Vertices);
+
+    bgfx::VertexBufferHandle vbh =
+      bgfx::createVertexBuffer(
+        bgfx::makeRef(Vertices.data(),
+          Vertices.size() * sizeof(PrintingPoint)),
+        pcvDecl);
 
     bgfx::setVertexBuffer(0, vbh);
     bgfx::setIndexBuffer(ibh);
@@ -241,9 +254,12 @@ int main()
     bgfx::submit(0, program);
     bgfx::frame();
     counter++;
+
+    bgfx::destroy(vbh);
+
+    Sleep(100);
   }
   bgfx::destroy(ibh);
-  bgfx::destroy(vbh);
   bgfx::shutdown();
   glfwDestroyWindow(window);
   glfwTerminate();

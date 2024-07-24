@@ -43,6 +43,14 @@ public:
   /// \param pos Позиция шестиугольника.
   /// \return Множество координат соседних шестиугольников.
   std::set<Coord> get_neighbors(Coord pos);
+
+  /// \brief Добавить реку.
+  /// \param river Объекты, по которым проходит река. 
+  void add_river(std::vector<std::shared_ptr<Object>> river);
+  
+  /// \brief Получить все реки.
+  /// \return Массив массивов объектов, по которым протекает очередная река.
+  std::vector<std::vector<std::shared_ptr<Object>>> get_all_rivers() const;
 private:
   /// \brief Создать шестиугольник.
   /// \param coord Координата.
@@ -66,4 +74,5 @@ private:
   std::map<std::pair<Coord, Coord>, std::shared_ptr<Rectangle>> rectangles; ///< Все межшестиугольные прямоугольники.
   std::map<std::vector<Coord>, std::shared_ptr<Triangle>> triangles; ///< Все межшестиугольные треугольники.
   Hexoworld& world; ///< Мир, к которому принадлежит шестиугольная сетка.
+  std::vector<std::vector<std::shared_ptr<Object>>> rivers; //< Реки.
 };

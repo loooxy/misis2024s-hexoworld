@@ -1,7 +1,7 @@
 #include <hexoworld/hexoworld.hpp>
 
 
-void Hexoworld::Rectangle::RectangleFrame::init_stairs(uint32_t AId, uint32_t BId,
+void Hexoworld::Rectangle::UsualFrame::init_stairs(uint32_t AId, uint32_t BId,
   uint32_t CId, uint32_t DId, uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs)
 {
   Eigen::Vector3d a = Points::get_instance().get_point(AId);
@@ -77,21 +77,24 @@ void Hexoworld::Rectangle::RectangleFrame::init_stairs(uint32_t AId, uint32_t BI
   stairs.push_back({ c_id, d_id });
 }
 
-Hexoworld::Rectangle::RectangleFrame::RectangleFrame(Object* base,
+Hexoworld::Rectangle::RectangleFrame::RectangleFrame(Object* base)
+  : Frame(base)
+{}
+
+Hexoworld::Rectangle::UsualFrame::UsualFrame(Object* base,
   uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-  std::vector<uint32_t> ABids, std::vector<uint32_t> CDids,
-  std::shared_ptr<MainData> _mainData)
-  : Frame(base), mainData(_mainData)
+  std::vector<uint32_t> ABids, std::vector<uint32_t> CDids)
+  : RectangleFrame(base)
 {
-  if (mainData == nullptr)
+  if (static_cast<Rectangle*>(base)->mainData == nullptr)
   {
-    mainData = std::make_shared<MainData>();
-    mainData->AId = Aid;
-    mainData->BId = Bid;
-    mainData->CId = Cid;
-    mainData->DId = Did;
-    mainData->ABIds = ABids;
-    mainData->CDIds = CDids;
+    static_cast<Rectangle*>(base)->mainData = std::make_shared<MainData>();
+    static_cast<Rectangle*>(base)->mainData->AId = Aid;
+    static_cast<Rectangle*>(base)->mainData->BId = Bid;
+    static_cast<Rectangle*>(base)->mainData->CId = Cid;
+    static_cast<Rectangle*>(base)->mainData->DId = Did;
+    static_cast<Rectangle*>(base)->mainData->ABIds = ABids;
+    static_cast<Rectangle*>(base)->mainData->CDIds = CDids;
 
     std::vector<uint32_t> first_border = { Aid };
     for (uint32_t id : ABids)
@@ -104,29 +107,30 @@ Hexoworld::Rectangle::RectangleFrame::RectangleFrame(Object* base,
       second_border.push_back(id);
     second_border.push_back(Did);
 
-    mainData->stairs.resize(first_border.size() - 1);
+    static_cast<Rectangle*>(base)->mainData->stairs.resize(first_border.size() - 1);
     for (int i = 0; i < first_border.size() - 1; ++i)
       init_stairs(
-        first_border[i], first_border[i + 1], second_border[i], second_border[i + 1], 3, mainData->stairs[i]
+        first_border[i], first_border[i + 1], second_border[i], second_border[i + 1], 3,
+        static_cast<Rectangle*>(base)->mainData->stairs[i]
       );
   }
 }
 
-std::vector<Eigen::Vector3d> Hexoworld::Rectangle::RectangleFrame::get_points() const
+std::vector<Eigen::Vector3d> Hexoworld::Rectangle::UsualFrame::get_points() const
 {
   std::set<uint32_t> ids = {
-    mainData->AId,
-    mainData->BId,
-    mainData->CId,
-    mainData->DId,
+    static_cast<Rectangle*>(base)->mainData->AId,
+    static_cast<Rectangle*>(base)->mainData->BId,
+    static_cast<Rectangle*>(base)->mainData->CId,
+    static_cast<Rectangle*>(base)->mainData->DId,
   };
 
-  for (const auto& id : mainData->ABIds)
+  for (const auto& id : static_cast<Rectangle*>(base)->mainData->ABIds)
     ids.insert(id);
-  for (const auto& id : mainData->CDIds)
+  for (const auto& id : static_cast<Rectangle*>(base)->mainData->CDIds)
     ids.insert(id);
-  for (int i = 0; i < mainData->stairs.size(); ++i)
-    for (const auto& stair : mainData->stairs[i])
+  for (int i = 0; i < static_cast<Rectangle*>(base)->mainData->stairs.size(); ++i)
+    for (const auto& stair : static_cast<Rectangle*>(base)->mainData->stairs[i])
     {
       ids.insert(stair.first);
       ids.insert(stair.second);
@@ -139,52 +143,142 @@ std::vector<Eigen::Vector3d> Hexoworld::Rectangle::RectangleFrame::get_points() 
   return points;
 }
 
-void Hexoworld::Rectangle::RectangleFrame::print_in_triList(std::vector<uint16_t>& TriList) const {
-  for (int j = 0; j < mainData->stairs.size(); ++j)
-    for (int i = 0; i < mainData->stairs[j].size() - 1; ++i)
-      printRect(mainData->stairs[j][i], mainData->stairs[j][i + 1], TriList);
+void Hexoworld::Rectangle::UsualFrame::print_in_triList(std::vector<uint16_t>& TriList) const {
+  for (int j = 0; j < static_cast<Rectangle*>(base)->mainData->stairs.size(); ++j)
+    for (int i = 0; i < static_cast<Rectangle*>(base)->mainData->stairs[j].size() - 1; ++i)
+      printRect(
+        static_cast<Rectangle*>(base)->mainData->stairs[j][i], 
+        static_cast<Rectangle*>(base)->mainData->stairs[j][i + 1], 
+        TriList
+      );
 }
 
-Hexoworld::Rectangle::UsualFrame::UsualFrame(Object* base,
-  uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-  std::vector<uint32_t> ABids, std::vector<uint32_t> CDids,
-  std::shared_ptr<MainData> mainData)
-  : RectangleFrame(base, Aid, Bid, Cid, Did, ABids, CDids, mainData)
-{}
 
-Hexoworld::Rectangle::RiverFrame::RiverFrame(Object* base,
-  uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-  std::vector<uint32_t> ABids, std::vector<uint32_t> CDids,
-  std::shared_ptr<MainData> mainData)
-  : RectangleFrame(base, Aid, Bid, Cid, Did, ABids, CDids, mainData)
+
+Hexoworld::Rectangle::RiverFrame::RiverFrame(Object* base)
+  : RectangleFrame(base)
 {
-  Eigen::Vector3d a = Points::get_instance().get_point(ABids[0]);
-  Eigen::Vector3d b = Points::get_instance().get_point(ABids[2]);
-  Eigen::Vector3d c = Points::get_instance().get_point(CDids[0]);
-  Eigen::Vector3d d = Points::get_instance().get_point(CDids[2]);
+  Eigen::Vector3d a = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[0]) + 
+    base->world.dop_height(River);
+  Eigen::Vector3d b = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[2]) + 
+    base->world.dop_height(River);
+  Eigen::Vector3d c = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[0]) + 
+    base->world.dop_height(River);
+  Eigen::Vector3d d = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[2]) + 
+    base->world.dop_height(River);
 
-  waterPoints.push_back(a + (b - a) / 2);
-  waterPoints.push_back(c + (d - c) / 2);
+  waterPoints.push_back(Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[1]) +
+    base->world.dop_height(River));
+  waterPoints.push_back(Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[1]) +
+    base->world.dop_height(River));
+
+  shorePoints = {
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[0]) +
+      base->world.dop_height(River),
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[0]) +
+      base->world.dop_height(River),
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[2]) +
+      base->world.dop_height(River),
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[2]) +
+      base->world.dop_height(River)
+  };
+}
+
+std::vector<Eigen::Vector3d> Hexoworld::Rectangle::RiverFrame::get_points() const
+{
+  std::vector<Eigen::Vector3d> answer = waterPoints;
+  for (const auto& p : shorePoints)
+    answer.push_back(p);
+  return answer;
 }
 
 void Hexoworld::Rectangle::RiverFrame::print_in_triList(std::vector<uint16_t>& TriList) const
 {
-  RectangleFrame::print_in_triList(TriList);
-
   std::vector<uint32_t> waterPointsId;
   for (int i = 0; i < waterPoints.size(); ++i)
     waterPointsId.push_back(
       Points::get_instance().get_id_point(waterPoints[i], base)
     );
 
+  std::vector<uint32_t> shorePointsId;
+  for (int i = 0; i < shorePoints.size(); ++i)
+    shorePointsId.push_back(
+      Points::get_instance().get_id_point(shorePoints[i], base)
+    );
+
+
   printRect(
-    { mainData->ABIds[0],  waterPointsId[0] },
-    { mainData->CDIds[0], waterPointsId[1] },
+    { shorePointsId[0],  waterPointsId[0]},
+    { shorePointsId[1], waterPointsId[1]},
     TriList
   );
   printRect(
-    { mainData->ABIds[2],  waterPointsId[0] },
-    { mainData->CDIds[2], waterPointsId[1] },
+    { shorePointsId[2],  waterPointsId[0]},
+    { shorePointsId[3], waterPointsId[1]},
+    TriList
+  );
+}
+
+
+
+Hexoworld::Rectangle::RoadFrame::RoadFrame(Object* base)
+  : RectangleFrame(base)
+{
+  Eigen::Vector3d a = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[0]) +
+    base->world.dop_height(River);
+  Eigen::Vector3d b = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[2]) +
+    base->world.dop_height(River);
+  Eigen::Vector3d c = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[0]) +
+    base->world.dop_height(River);
+  Eigen::Vector3d d = Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[2]) +
+    base->world.dop_height(River);
+
+  middlePoints.push_back(a + (b - a) / 2);
+  middlePoints.push_back(c + (d - c) / 2);
+
+  fencePoints = {
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[0]) +
+      base->world.dop_height(River),
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[0]) +
+      base->world.dop_height(River),
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->ABIds[2]) +
+      base->world.dop_height(River),
+      Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CDIds[2]) +
+      base->world.dop_height(River)
+  };
+}
+
+std::vector<Eigen::Vector3d> Hexoworld::Rectangle::RoadFrame::get_points() const
+{
+  std::vector<Eigen::Vector3d> answer = middlePoints;
+  for (const auto& p : fencePoints)
+    answer.push_back(p);
+  return answer;
+}
+
+void Hexoworld::Rectangle::RoadFrame::print_in_triList(std::vector<uint16_t>& TriList) const
+{
+  std::vector<uint32_t> middlePointsId;
+  for (int i = 0; i < middlePoints.size(); ++i)
+    middlePointsId.push_back(
+      Points::get_instance().get_id_point(middlePoints[i], base)
+    );
+
+  std::vector<uint32_t> fencePointsId;
+  for (int i = 0; i < fencePoints.size(); ++i)
+    fencePointsId.push_back(
+      Points::get_instance().get_id_point(fencePoints[i], base)
+    );
+
+
+  printRect(
+    { fencePointsId[0],  middlePointsId[0] },
+    { fencePointsId[1], middlePointsId[1] },
+    TriList
+  );
+  printRect(
+    { fencePointsId[2],  middlePointsId[0] },
+    { fencePointsId[3], middlePointsId[1] },
     TriList
   );
 }

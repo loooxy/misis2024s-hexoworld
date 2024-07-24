@@ -35,7 +35,7 @@ public:
   Hexoworld() = delete;
 
   /// \brief Создает шестиугольный мир.
-  /// \param size Радиус шестиугольников покрытия.
+  /// \param size Радиус шестиугольников.
   /// \param origin Начало координат.
   /// \param row_direction Направление увеличения номера строки.
   /// \param сol_direction Направление увеличения номера столбца.
@@ -60,6 +60,19 @@ public:
   /// \param hexs Координаты {row, col} шестиугольников, по которым течёт река.
   void add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs);
 
+  /// \brief Затопить шестиугольник.
+  /// \param row Строка позиции шестиугольника.
+  /// \param col Столбец позиции шестиугольника.
+  void flood_hex(uint32_t row, uint32_t col);
+
+  /// \brief Добавить дорогу в шестиугольнике.
+  /// \param row Строка позиции шестиугольника.
+  /// \param col Столбец позиции шестиугольника.
+  void add_road_in_hex(uint32_t row, uint32_t col);
+
+  /// \brief Обновить реку.
+  void update_river();
+
   /// \brief Установить высоту шестиугольнику.
   /// \param row Номер строки.
   /// \param col Номер столбца.
@@ -78,6 +91,10 @@ public:
   void print_in_vertices_and_triList(
     std::vector<PrintingPoint>& Vertices,
     std::vector<uint16_t>& TriList) const;
+
+  /// \brief Присвоить вершинам новый цвет.
+  /// \param Vertices Вершины.
+  void recolor(std::vector<PrintingPoint>& Vertices) const;
 private:
   /// \brief Класс-компаратор для Eigen::Vector3d
   class EigenVector3dComp {
@@ -170,51 +187,43 @@ private:
 
     /// \brief Записать все точки в массив точек.
     /// \param Vertices Массив точек.
-    void print_in_vertices(std::vector<PrintingPoint>& Vertices) {
-      for (int i = 0; i < id_to_point.size(); ++i)
-      {
-        for (int j = 0; j < colors_on_point; ++j)
-          Vertices.push_back(
-            PrintingPoint(id_to_point[i], id_to_color[i][j]));
-      }
-    }
+    void print_in_vertices(std::vector<PrintingPoint>& Vertices);
+
+    /// \brief Присвоить вершинам новый цвет.
+    /// \param Vertices Вершины.
+    void recolor(std::vector<PrintingPoint>& Vertices);
+
   private:
     std::map<Eigen::Vector3d, uint32_t, EigenVector3dComp> point_to_id; //< Id точек.
-    std::vector<Eigen::Vector3d> id_to_point; //< массив точек. На i-той позиции стоит точка, Id которой i.
+    std::vector<Eigen::Vector3d> id_to_point; 
+    //< массив точек. На i-той позиции стоит точка, 
+    //Id которой с colors_on_point * i по colors_on_point * (i + 1) - 1.
     std::vector<std::vector<Eigen::Vector4i>> id_to_color;//< Цвета точек.
     std::vector<std::map<const Object*, uint32_t>> id_to_objects; //< Объекты точек.
     const uint32_t colors_on_point = 4; //< Максимальное число цветов на точку
   };
 
   /// \brief Класс отрисовщиков.
+  template<class BaseType> //< Тип базового объекта.
   class Drawer {
   public:
     /// \brief Конструктор.
     /// \param object Объект, к которому относится отрисовщик.
-    /// \param color Основной цвет объекта. 
-    Drawer(Object* object, Eigen::Vector4i color) : base(object), color_(color) {}
-
-    /// \brief Установить основной цвет объекта.
-    /// \param color Цвет.
-    virtual void set_color(Eigen::Vector4i color) { color_ = color; }
-
-    /// \brief Получить основной цвет объекта.
-    /// \return Цвет.
-    virtual Eigen::Vector4i get_color() const { return color_; }
+    Drawer(BaseType* object) : base(object) {}
 
     /// \brief Раскрасить точки.
-    virtual void colorize_points();
+    virtual void colorize_points() = 0;
   protected:
-    Object* base; //< Объект, к которому относится отрисовщик.
-    Eigen::Vector4i color_; //< Основной цвет объекта. 
+    BaseType* base; //< Объект, к которому относится отрисовщик.
   };
 
   /// \brief Класс каркасов.
+  template<class BaseType> //< Тип базового объекта.
   class Frame {
   public:
     /// \brief Конструктор.
     /// \param base Объект, к которому принадлежит каркас.
-    Frame(Object* base) : base(base) {}
+    Frame(BaseType* base) : base(base) {}
 
     /// \brief Получить все точки объекта.
     /// \return Масси точек.
@@ -224,7 +233,27 @@ private:
     /// \param TriList Куда выводить треугольники.
     virtual void print_in_triList(std::vector<uint16_t>& TriList) const = 0;
   protected:
-    Object* base; //< Объект, к которому принадлежит каркас.
+    BaseType* base; //< Объект, к которому принадлежит каркас.
+  };
+
+  /// \brief Базовый класс неподвижного инвентаря.
+  class FixedInventory {
+  public:
+    /// \brief Конструктор.
+    /// \param base Объект, к которому относится инвентарь.
+    FixedInventory(Object* base) : base(base){}
+
+    /// \brief Получить все точки инвентаря.
+    /// \return Масси точек.
+    virtual std::vector<Eigen::Vector3d> get_points() const = 0;
+
+    /// \brief Вывести треугольники, на который треангулируется инвентарь.
+    /// \param TriList Куда выводить треугольники.
+    virtual void print_in_triList(std::vector<uint16_t>& TriList) const = 0;
+
+    std::map<uint32_t, std::shared_ptr<Drawer<FixedInventory>>> drawers; //< Отрисовщики.
+    std::map<uint32_t, std::shared_ptr<Frame<FixedInventory>>> frames;   //< Каркасы.
+    Object* base; //< Объект, к которому отнисится инвентарь.
   };
 
   /// \brief Базовая структура всех объектов
@@ -232,15 +261,24 @@ private:
     /// \brief Конструктор по умолчанию.
     /// \param world Мир, к которому принадлежит объект.
     Object(Hexoworld& world) :
-      world(world), drawer(nullptr), frame(nullptr) {}
+      world(world) {}
 
     /// \brief Вывести треугольники, на который треангулируется объект.
     /// \param TriList Куда выводить треугольники.
     virtual void print_in_triList(std::vector<uint16_t>& TriList) = 0;
     
-    std::shared_ptr<Drawer> drawer; //< Отрисовщик.
-    std::shared_ptr<Frame> frame;   //< Каркас.
-    Hexoworld& world; ///< мир к которому принадлежит шестиугольник.
+    std::map<uint32_t, std::shared_ptr<Drawer<Object>>> drawers; //< Отрисовщики.
+    std::map<uint32_t, std::shared_ptr<Frame<Object>>> frames;   //< Каркасы.
+    std::vector<std::shared_ptr<FixedInventory>> inventory; //< Неподвижный инвентарь на объекте.
+    Hexoworld& world; ///< Мир к которому принадлежит шестиугольник.
+  };
+
+  enum FrameAndDrawersTypes
+  {
+    Usual, //< Обычные, обязательные, каркасы и отрисовщики.
+    River, //< Каркасы и отрисовщики рек.
+    Road,  //< Каркасы и отрисовщики дорог.
+    Flood  //< Каркасы и отрисовщики стоящей воды.
   };
 
   /// \brief Структура шестиугольник.
@@ -249,11 +287,26 @@ private:
   /// \brief Класс треугольник.
   class Triangle;
 
-  /// \brief Класс прямоугольник между двух шестиугольников 
+  /// \brief Класс прямоугольник между двух шестиугольников.
   class Rectangle;
+
+  /// \brief Стена.
+  class Wall;
 
   /// \brief Класс менеджера.
   class Manager;
+
+  /// \brief Установить высоту точке.
+  /// \param point Точка.
+  /// \param height Новая высота.
+  /// \param type К какому каркасу/отрисовщику относится.
+  void set_new_height_to_point(Eigen::Vector3d& point, int32_t height, FrameAndDrawersTypes type);
+
+  /// \brief Получить номер грани между двумя вершинами.
+  /// \param vertex1 Первая вершина.
+  /// \param vertex2 Вторая вершина.
+  /// \return Номер грани.
+  static uint32_t get_ind_extraPoints(uint32_t vertex1, uint32_t vertex2);
 
   /// \brief Вывод прямоугольника.
   /// \param a Первая пара точек.
@@ -308,21 +361,29 @@ private:
   /// \param a Координата a.
   /// \param b Координата b.
   /// \param c Координата c.
-  /// \return Отсортированную тройку координат.
+  /// \return Отсортированная тройка координат.
   static std::vector<Coord> tri_coords(Coord a, Coord b, Coord c);
+
+  /// \brief Получить дополнительные вектор вверх по типу каркаса/отрисовщика.
+  /// \param type Тип каркаса/отрисовщика.
+  /// \return Дополнительные вектор вверх.
+  Eigen::Vector3d dop_height(FrameAndDrawersTypes type) {
+    return type * 10000 * PRECISION_DBL_CALC * heightDirection_;
+  }
 
   Eigen::Vector3d rowDirection_; ///< Направление увеличения номера строки.
   Eigen::Vector3d colDirection_; ///< Направление увеличения номера столбца.
   Eigen::Vector3d heightDirection_;///< Направление вверх.
   Eigen::Vector3d origin_; ///< Начало координат.
-  float size_; ///< Радиус шестиугольника покрытия.
-  float innerSize_; ///< Радиус внутреннего шестиугольника.
+  float size_; ///< Радиус внутреннего шестиугольника.
   float heightStep_; ///< Расстояние между соседними уровнями. 
   uint32_t nTerracesOnHeightStep_;///< Число террас между соседними уровнями.
 
-  Eigen::Vector4i riverColor = Eigen::Vector4i(0, 100, 255, 255); //< цвет воды в реке.
+  Eigen::Vector4i riverColor = Eigen::Vector4i(0, 100, 255, 255); //< Цвет воды в реке.
+  Eigen::Vector4i floodColor = Eigen::Vector4i(72, 209, 204, 1); //< Цвет затопления.
+  Eigen::Vector4i roadColor = Eigen::Vector4i(96, 96, 96, 255); //< Цвет дороги.
 
-  std::unique_ptr<Manager> manager; ///< Шестиугольная сетка.
+  std::unique_ptr<Manager> manager; ///< Менеджер.
   static const double PRECISION_DBL_CALC; ///< Точность вещественных вычислений.
 };
 
@@ -330,3 +391,4 @@ private:
 #include <hexoworld/rectangle/rectangle.hpp>
 #include <hexoworld/triangle/triangle.hpp>
 #include <hexoworld/manager/manager.hpp>
+#include <hexoworld/wall/wall.hpp>

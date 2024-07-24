@@ -4,7 +4,6 @@
 /// \brief Класс прямоугольник между двух шестиугольников 
 class Hexoworld::Rectangle : public Object {
 public:
-
   /// \brief Конструктор по умолчанию удалён
   Rectangle() = delete;
 
@@ -25,24 +24,47 @@ public:
     std::vector<Eigen::Vector3d> cd_points,
     const std::shared_ptr<Hexagon> ab_hex, const std::shared_ptr<Hexagon> cd_hex);
 
+  /// \brief Обновление прямоугольника.
+  void update();
+
   /// \brief Создать реку в этом прямоугольнике.
   void make_river();
+
+  /// \brief Создать дорогу в этом прямоугольнике
+  void make_road();
 
   /// \brief Вывести треугольники, на который треангулируется прямоугольник.
   /// \param TriList Куда выводить треугольники.
   void print_in_triList(std::vector<uint16_t>& TriList);
 
   /// \brief Отрисовщик прямоугольника.
-  class RectangleDrawer : public Drawer {
+  class RectangleDrawer : public Drawer<Object> {
+  public:
+    /// \brief Конструктор.
+    /// \param object Объект, к которому относится отрисовщик.
+    RectangleDrawer(Object* object);
+  };
+
+  /// \brief Обычный обязательный отрисовщик.
+  class UsualDrawer : public RectangleDrawer {
   public:
     /// \brief Конструктор.
     /// \param object Объект, к которому относится отрисовщик.
     /// \param color Основной цвет.
-    RectangleDrawer(Object* object,
-      Eigen::Vector4i color);
+    UsualDrawer(Object* object, Eigen::Vector4i color);
+
+    /// \brief Установить основной цвет.
+    /// \param color Основной цвет.
+    void set_color(Eigen::Vector4i color) { color_ = color; }
+
+    /// \brief Получить основной цвет.
+    /// \return Цвет.
+    Eigen::Vector4i get_color() { return color_; }
 
     /// \brief Раскрасить точки.
-    virtual void colorize_points();
+    void colorize_points();
+  private:
+    Eigen::Vector4i color_; //< Основной цвет.
   };
 
   /// \brief Отрисовщик рек.
@@ -50,9 +72,24 @@ public:
   public:
     /// \brief Конструктор.
     /// \param object Объект, к которому принадлежит отрисовщик.
-    /// \param color Основной цвет.
-    RiverDrawer(Object* object,
-      Eigen::Vector4i color) : RectangleDrawer(object, color) {}
+    RiverDrawer(Object* object);
+
+    /// \brief Раскрасить точки.
+    void colorize_points();
+
+    /// \brief Установить специальный цвет реки.
+    /// \param new_color Цвет. 
+    void set_new_special_color_river(Eigen::Vector4i new_color);
+
+    Eigen::Vector4i special_color_river; //< Специальный цвет реки.
+  };
+
+  /// \brief Отрисовщик дорог.
+  class RoadDrawer : public RectangleDrawer {
+  public:
+    /// \brief Конструктор.
+    /// \param object Объект, к которому принадлежит отрисовщик.
+    RoadDrawer(Object* object);
 
     /// \brief Раскрасить точки.
     void colorize_points();
@@ -69,41 +106,11 @@ public:
   };
 
   /// \brief Каркас прямоугольника.
-  class RectangleFrame : public Frame {
+  class RectangleFrame : public Frame<Object> {
   public:
     /// \brief Конструктор.
     /// \param base Объект, к которому принадлежит каркас.
-    /// \param Aid Точка a.
-    /// \param Bid Точка b.
-    /// \param Cid Точка c.
-    /// \param Did Точка d.
-    /// \param ABids Точки, между точками a и b.
-    /// \param CDids Точки, между точками c и d.
-    /// \param _mainData Основные данные.
-    RectangleFrame(Object* base,
-      uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-      std::vector<uint32_t> ABids, std::vector<uint32_t> CDids,
-      std::shared_ptr<MainData> _mainData = nullptr);
-
-    /// \brief Получить все точки.
-    /// \return Массив точек.
-    virtual std::vector<Eigen::Vector3d> get_points() const;
-
-    /// \brief Вывести треугольники.
-    /// \param TriList Куда выводить треугольники.
-    virtual void print_in_triList(std::vector<uint16_t>& TriList) const;
-
-    std::shared_ptr<MainData> mainData; //< Основные данные.
-  protected:
-    /// \brief Инициализация террас.
-    /// \param AId Точка a.
-    /// \param BId Точка b.
-    /// \param CId Точка c.
-    /// \param DId Точка d.
-    /// \param terraces_side Количество террас между соседними уровнями.
-    /// \param stairs Куда выводить террасы.
-    void init_stairs(uint32_t AId, uint32_t BId, uint32_t CId, uint32_t DId,
-      uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs);
+    RectangleFrame(Object* base);
   };
 
   /// \brief Обычный каркас
@@ -117,10 +124,26 @@ public:
     /// \param Did Точка d.
     /// \param ABids Точки, между точками a и b.
     /// \param CDids Точки, между точками c и d.
-    /// \param mainData Основные данные.
     UsualFrame(Object* base, uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-      std::vector<uint32_t> ABids, std::vector<uint32_t> CDids,
-      std::shared_ptr<MainData> mainData = nullptr);
+      std::vector<uint32_t> ABids, std::vector<uint32_t> CDids);
+
+    /// \brief Получить все точки.
+    /// \return Массив точек.
+    std::vector<Eigen::Vector3d> get_points() const;
+
+    /// \brief Вывести треугольники.
+    /// \param TriList Куда выводить треугольники.
+    void print_in_triList(std::vector<uint16_t>& TriList) const;
+  private:
+    /// \brief Инициализация террас.
+    /// \param AId Точка a.
+    /// \param BId Точка b.
+    /// \param CId Точка c.
+    /// \param DId Точка d.
+    /// \param terraces_side Сторона, на которой выводить террасы.
+    /// \param stairs Куда выводить террасы.
+    void init_stairs(uint32_t AId, uint32_t BId, uint32_t CId, uint32_t DId,
+      uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs);
   };
 
   /// \brief Речной каркас.
@@ -128,26 +151,40 @@ public:
   public:
     /// \brief Конструктор.
     /// \param base Объект, к которому принадлежит каркас.
-    /// \param Aid Точка a.
-    /// \param Bid Точка b.
-    /// \param Cid Точка c.
-    /// \param Did Точка d.
-    /// \param ABids Точки, между точками a и b.
-    /// \param CDids Точки, между точками c и d.
-    /// \param mainData Основные данные.
-    RiverFrame(Object* base, uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-      std::vector<uint32_t> ABids, std::vector<uint32_t> CDids,
-      std::shared_ptr<MainData> mainData = nullptr);
+    RiverFrame(Object* base);
+
+    /// \brief Получить все точки.
+    /// \return Массив точек.
+    std::vector<Eigen::Vector3d> get_points() const;
 
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint16_t>& TriList) const;
 
     std::vector<Eigen::Vector3d> waterPoints; //< Точки, принадлежащие воде.
+    std::vector<Eigen::Vector3d> shorePoints; //< Точки берега.
   };
 
-private:
+  /// \brief Каркас дороги.
+  class RoadFrame : public RectangleFrame {
+  public:
+    /// \brief Конструктор.
+    /// \param base Объект, к которому принадлежит каркас.
+    RoadFrame(Object* base);
 
-  const std::shared_ptr<Hexagon> ab_hex_; //< Шестиугольник, к которому принадлежят точки a и b.
-  const std::shared_ptr<Hexagon> cd_hex_; //< Шестиугольник, к которому принадлежят точки c и d.
+    /// \brief Получить все точки.
+    /// \return Массив точек.
+    std::vector<Eigen::Vector3d> get_points() const;
+
+    /// \brief Вывести треугольники.
+    /// \param TriList Куда выводить треугольники.
+    void print_in_triList(std::vector<uint16_t>& TriList) const;
+
+    std::vector<Eigen::Vector3d> middlePoints; //< Точки посередине дороги.
+    std::vector<Eigen::Vector3d> fencePoints;  //< Точки забора.
+  };
+private:
+  std::shared_ptr<MainData> mainData; //< Основные данные.
+  const std::shared_ptr<Hexagon> ab_hex_; //< Шестиугольник, к которому принадлежат точки a и b.
+  const std::shared_ptr<Hexagon> cd_hex_; //< Шестиугольник, к которому принадлежат точки c и d.
 };

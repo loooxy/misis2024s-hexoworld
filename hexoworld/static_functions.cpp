@@ -1,5 +1,30 @@
 #include <hexoworld/hexoworld.hpp>
 
+uint32_t Hexoworld::get_ind_extraPoints(uint32_t vertex1, uint32_t vertex2)
+{
+  if (vertex1 > vertex2)
+    std::swap(vertex1, vertex2);
+
+  if (vertex1 == 0 && vertex2 == 5)
+    return 5;
+  else
+    return vertex1;
+}
+
+void Hexoworld::set_new_height_to_point(Eigen::Vector3d& point, int32_t height,
+  FrameAndDrawersTypes type)
+{
+  int32_t last_height =
+    round(heightDirection_
+      .dot(point - dop_height(type) - origin_) /
+      heightStep_);
+
+  point += (height - last_height) *
+    heightStep_ *
+    heightDirection_ + dop_height(type);
+}
+
+
 void Hexoworld::printRect(std::pair<Eigen::Vector3d, Eigen::Vector3d> a,
   std::pair<Eigen::Vector3d, Eigen::Vector3d> b,
   std::vector<uint16_t>& TriList, const Object* base)
@@ -107,8 +132,7 @@ Hexoworld::tri_coords(Coord a, Coord b, Coord c)
   return answer;
 }
 
-std::set<Hexoworld::Coord> 
-Hexoworld::Manager::get_neighbors(Hexoworld::Coord pos)
+std::set<Hexoworld::Coord> Hexoworld::Manager::get_neighbors(Hexoworld::Coord pos)
 {
   std::set<Coord> answer;
   const auto add = [&answer, this](Coord pos) {

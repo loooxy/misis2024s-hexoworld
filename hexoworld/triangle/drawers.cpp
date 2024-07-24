@@ -1,14 +1,15 @@
 #include <hexoworld/hexoworld.hpp>
 
-Hexoworld::Triangle::TriangleDrawer::TriangleDrawer(Object* object, Eigen::Vector4i color)
-  : Drawer(object, color) {}
+Hexoworld::Triangle::TriangleDrawer::TriangleDrawer(Object* object)
+  : Drawer(object) {}
 
-void Hexoworld::Triangle::TriangleDrawer::colorize_points() {
-  Drawer::colorize_points();
+Hexoworld::Triangle::UsualDrawer::UsualDrawer(Object* object, Eigen::Vector4i color)
+  : TriangleDrawer(object), color_(color)
+{}
 
+void Hexoworld::Triangle::UsualDrawer::colorize_points() {
   Triangle* tri = static_cast<Triangle*>(base);
-  std::shared_ptr<TriangleFrame> frame = std::static_pointer_cast<TriangleFrame>(tri->frame);
-
+  
   auto col_id = [this](uint32_t id, Eigen::Vector4i color) {
     Points::get_instance().set_point_color(
       Points::get_instance().get_point(id),
@@ -16,7 +17,10 @@ void Hexoworld::Triangle::TriangleDrawer::colorize_points() {
       base);
     };
 
-  col_id(frame->mainData->AId, tri->a_hex->drawer->get_color());
-  col_id(frame->mainData->BId, tri->b_hex->drawer->get_color());
-  col_id(frame->mainData->CId, tri->c_hex->drawer->get_color());
+  col_id(tri->mainData->AId, std::static_pointer_cast<Hexagon::UsualDrawer>(tri->a_hex->drawers.at(Usual))
+    ->get_color());
+  col_id(tri->mainData->BId, std::static_pointer_cast<Hexagon::UsualDrawer>(tri->b_hex->drawers.at(Usual))
+    ->get_color());
+  col_id(tri->mainData->CId, std::static_pointer_cast<Hexagon::UsualDrawer>(tri->c_hex->drawers.at(Usual))
+    ->get_color());
 }
