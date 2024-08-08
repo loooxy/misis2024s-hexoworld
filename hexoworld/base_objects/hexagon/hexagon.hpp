@@ -36,9 +36,15 @@ struct Hexoworld::Hexagon : public Object {
   /// \param ind_road Новая грань, через которую идёт дорога.
   void make_road(uint32_t ind_road);
 
+  /// \brief Создание фермы.
+  void make_farm();
+
   /// \brief Вывести треугольники
   /// \param TriList Куда выводить треугольники.
-  void print_in_triList(std::vector<uint16_t>& TriList);
+  void print_in_triList(std::vector<uint32_t>& TriList);
+
+  /// \brief Раскрашивание точек.
+  void colorize_points();
 
   /// \brief Шестиугольный отрисовщик.
   class HexagonDrawer : public Drawer<Object>{
@@ -112,10 +118,9 @@ struct Hexoworld::Hexagon : public Object {
   struct MainData {
     std::vector<uint32_t> polygonPointsId; ///< Id точек шестиугольника.
     std::vector<std::vector<uint32_t>> extraPointsId; ///< Id дополнительных точек
-    Eigen::Vector3d center; ///< центр шестиугольника
-    std::vector<Eigen::Vector3d> polygonPoints; ///< Точки шестиугольника.
-    std::vector<std::vector<Eigen::Vector3d>> extraPoints; ///< Дополнительные точки
+    uint32_t centerId; //< Id центра.
     uint32_t gen_init; //< Число, которым инициализируется генератор случайных чисел.
+    int32_t dirFarm = -1; //< Есть ли здесь ферма.
   };
 
   /// \brief Каркас шестиугольника.
@@ -140,13 +145,47 @@ struct Hexoworld::Hexagon : public Object {
     /// \param height Новая высота.
     void set_height(int32_t height);
 
+    /// \brief Получение Id точек обычного каркаса.
+    /// \return Массив Id-шников.
+    std::vector<uint32_t> get_pointsId() const;
+
     /// \brief Получить точки обычного каркаса.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
 
+    /// \brief Выравнивание грани.
+    /// \param ind_edge Номер грани. 
+    void normalize_edge(uint32_t ind_edge);
+
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
+  private:
+    /// \brief Инициализация точек.
+    /// \param center Центр шестиугольника.
+    /// \param center_ Центр шестиугольника.
+    /// \param polygonPoints_ Внешние точки шестиугольника.
+    /// \param extraPoints_ Точки на гранях.
+    void init_points(Eigen::Vector3d center, 
+      Eigen::Vector3d& center_, 
+      std::vector<Eigen::Vector3d>& polygonPoints_,
+      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_);
+
+    /// \brief Добавление случайной компоненты к вершинам.
+    /// \param center_ Центр шестиугольника.
+    /// \param polygonPoints_ Внешние точки шестиугольника.
+    /// \param extraPoints_ Точки на гранях.
+    void random_move_points(Eigen::Vector3d& center_,
+      std::vector<Eigen::Vector3d>& polygonPoints_,
+      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_);
+
+    /// \brief Инициализация Id точек.
+    /// \param center_ Центр шестиугольника.
+    /// \param polygonPoints_ Внешние точки шестиугольника.
+    /// \param extraPoints_ Точки на гранях.
+    void init_ids(Eigen::Vector3d& center_,
+      std::vector<Eigen::Vector3d>& polygonPoints_,
+      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_);
   };
 
   /// \brief Речной каркас.
@@ -167,22 +206,25 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Получить все точки, принадлежащие каркасу реки.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
+    /// \brief Получить Id-шники точек.
+    /// \return Массив Id-шников.
+    std::vector<uint32_t> get_pointsId() const;
 
     /// \brief Получить точки дна, принадлежащие каркасу реки.
     /// \return Массив точек.
-    std::vector<Eigen::Vector3d> get_floor_points() const;
+    std::vector<uint32_t> get_floor_pointsId() const;
 
     /// \brief Получить точки берега, принадлежащие каркасу реки.
     /// \return Массив точек.
-    std::vector<Eigen::Vector3d> get_shore_points() const;
+    std::vector<uint32_t> get_shore_pointsId() const;
 
     /// \brief Получить точки воды, принадлежащие каркасу реки.
     /// \return Массив точек.
-    std::vector<Eigen::Vector3d> get_water_points() const;
+    std::vector<uint32_t> get_water_pointsId() const;
 
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
 
   private:
 
@@ -205,16 +247,11 @@ struct Hexoworld::Hexagon : public Object {
     /// \param out Грань, через которую вытекает река.
     void make_river_angle_1(uint32_t in, uint32_t out);
 
-    /// \brief Опустить точку.
-    /// \param point Точка.
-    /// \param deep Величина от 0 до 1, относительная глубина.
-    void omit_point(Eigen::Vector3d& point, double deep = 1);
-
-    std::vector<std::vector<Eigen::Vector3d>> radial_points; ///< Радиальные точки
-    std::vector<std::vector<Eigen::Vector3d>> middle_points; ///< Точки посередине грани
-    std::vector<Eigen::Vector3d> floor_points; ///< Точки дна.
-    std::vector<Eigen::Vector3d> shore_points; ///< Точки берега.
-    std::vector<Eigen::Vector3d> water_points; //< Точки воды.
+    std::vector<std::vector<uint32_t>> radial_points; ///< Радиальные точки
+    std::vector<std::vector<uint32_t>> middle_points; ///< Точки посередине грани
+    std::vector<uint32_t> floor_points; ///< Точки дна.
+    std::vector<uint32_t> shore_points; ///< Точки берега.
+    std::vector<uint32_t> water_points; //< Точки воды.
     int32_t in_;  ///< Грань, через которую втекает река.
     int32_t out_; ///< Грань, через которую вытекает река.
     double deep_; ///< Абсолютная глубина реки.
@@ -234,13 +271,16 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Получить точки каркаса затопления.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
+    /// \brief Получить Id-шники точек.
+    /// \return Массив Id-шников.
+    std::vector<uint32_t> get_pointsId() const;
 
     /// \brief Вывести треугольники, на которые треангулируется каркас.
     /// \param TriList Куда выводить треугольники. 
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
 
     double water_level; //< Уровень воды.
-    std::vector<Eigen::Vector3d> waterPoints; //< Точки воды.
+    std::vector<uint32_t> waterPoints; //< Точки воды.
   };
 
   /// \brief Каркас дороги.
@@ -261,6 +301,10 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Получить точки каркаса.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
+    /// \brief Получить Id-шники точек.
+    /// \return Массив Id-шников.
+    std::vector<uint32_t> get_pointsId() const;
+
     /// \brief Получить внутренние заборы.
     /// \return Массив пар точек (начало и конец).
     std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> get_inner_fence();
@@ -270,25 +314,39 @@ struct Hexoworld::Hexagon : public Object {
 
     /// \brief Вывести треугольники, на которые треангулируется каркас.
     /// \param TriList Куда выводить треугольники. 
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
 
-    std::vector<Eigen::Vector3d> radial_points; //< Радиальные точки
-    std::vector<Eigen::Vector3d> middle_points; //< Точки посередине грани
-    std::vector<Eigen::Vector3d> crossroads;    //< Точки шестиугольника перекрёстка.
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> inputs; //< Въезды на шестиугольник.
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> endOfFence; //< Концы внешних заборов.
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> middleFence;//< Заборы посередине.
+    std::vector<uint32_t> radial_points; //< Радиальные точки
+    std::vector<uint32_t> middle_points; //< Точки посередине грани
+    std::vector<uint32_t> crossroads;    //< Точки шестиугольника перекрёстка.
+    uint32_t centerId; //< сентер
+    std::map<uint32_t, std::pair<uint32_t, uint32_t>> inputs; //< Въезды на шестиугольник.
+    std::map<uint32_t, std::pair<uint32_t, uint32_t>> endOfFence; //< Концы внешних заборов.
+    std::map<uint32_t, std::pair<uint32_t, uint32_t>> middleFence;//< Заборы посередине.
     std::vector<bool> isRoad; //< Есть ли дорога по направлению i.
   private:
     /// \brief Инициализация дороги.
     /// \param ind Направление дороги.
     void init_road(uint32_t ind);
+
+    /// \brief Поиск точки пересечения двух отрезков.
+    /// \param start1 Начало первого отрезка.
+    /// \param end1 Конец первого отрезка.
+    /// \param start2 Начало второго отрезка.
+    /// \param end2 Конец второго отрезка.
+    /// \return Точка их пересечения.
+    Eigen::Vector3d cuts_intersection(
+      Eigen::Vector3d start1, Eigen::Vector3d end1, 
+      Eigen::Vector3d start2, Eigen::Vector3d end2);
   };
 
   std::shared_ptr<MainData> mainData; //< Основные данные о каркасе.
+  const Coord coord; ///< Координаты шестиугольника.
 private:
   /// \brief Инициализация инвенторя.
   void init_inventory();
+  /// \brief Инициализация координат на шестиугольниках.
+  void init_number();
 
-  const Coord coord; ///< Координаты шестиугольника.
+  void init_boundary_walls();
 };

@@ -1,78 +1,96 @@
-#include "manager.hpp"
-#include <hexoworld/hexoworld.hpp>
+#include <hexoworld/manager/manager.hpp>
+#include <hexoworld/base_objects/hexagon/hexagon.hpp>
+#include <hexoworld/base_objects/rectangle/rectangle.hpp>
+#include <hexoworld/base_objects/triangle/triangle.hpp>
 
-std::shared_ptr<Hexoworld::Hexagon> Hexoworld::Manager::add_hexagon(Coord coord) {
-  return grid_[coord] = std::make_shared<Hexoworld::Hexagon>(
-    world, 
-    
-    world.origin_ +
-    world.colDirection_ *
-    ((sqrtf(3) * coord.col + (coord.row % 2) * sqrt(3) / 2) * 1.5*world.size_)
-    + world.rowDirection_ *
-    (1.5 * 1.5*world.size_ * coord.row),
-    
-    coord
-  );
+void Hexoworld::Manager::add_hexagon(Coord coord) {
+  if (grid_.find(coord) == grid_.end())
+  {
+    grid_[coord] = std::make_shared<Hexoworld::Hexagon>(
+      world,
+
+      world.origin_ +
+      world.colDirection_ *
+      ((sqrtf(3) * coord.col + (coord.row % 2) * sqrt(3) / 2) * 1.5 * world.size_)
+      + world.rowDirection_ *
+      (1.5 * 1.5 * world.size_ * coord.row),
+
+      coord
+    );
+  }
 }
 
-std::shared_ptr<Hexoworld::Rectangle> Hexoworld::Manager::add_rectangle(Coord first, Coord second)
+void Hexoworld::Manager::add_rectangle(Coord first, Coord second)
 {
   const auto pair = pair_coords(first, second);
-  
-  auto mainData_hex1 = grid_.at(first)->mainData;
-  auto mainData_hex2 = grid_.at(second)->mainData;
-    
-  uint32_t first_ind_side = get_ind_direction(first, second);
-  uint32_t second_ind_side = get_ind_direction(second, first);
+  if (rectangles.find(pair) == rectangles.end())
+  {
+    auto mainData_hex1 = grid_.at(first)->mainData;
+    auto mainData_hex2 = grid_.at(second)->mainData;
 
-  std::vector<Eigen::Vector3d> epi2 = mainData_hex2->extraPoints[second_ind_side];
-  std::reverse(epi2.begin(), epi2.end());
+    uint32_t first_ind_side = get_ind_direction(first, second);
+    uint32_t second_ind_side = get_ind_direction(second, first);
 
-  return rectangles[pair] = std::make_shared<Rectangle>(
-    world,
+    std::vector<uint32_t> epi1Id = mainData_hex1->extraPointsId[first_ind_side];
+    std::vector<uint32_t> epi2Id = mainData_hex2->extraPointsId[second_ind_side];
+    std::reverse(epi2Id.begin(), epi2Id.end());
     
-    mainData_hex1->polygonPoints[first_ind_side], 
-    mainData_hex1->polygonPoints[(first_ind_side + 1) % 6],
-    mainData_hex2->polygonPoints[(second_ind_side + 1) % 6], 
-    mainData_hex2->polygonPoints[second_ind_side],
-    
-    mainData_hex1->extraPoints[first_ind_side], 
-    epi2, 
-    
-    grid_.at(first), 
-    grid_.at(second)
-  );
+    std::vector<Eigen::Vector3d> epi1;
+    for (uint32_t i : epi1Id)
+      epi1.push_back(Points::get_instance().get_point(i));
+    std::vector<Eigen::Vector3d> epi2;
+    for (uint32_t i : epi2Id)
+      epi2.push_back(Points::get_instance().get_point(i));
+
+    rectangles[pair] = std::make_shared<Rectangle>(
+      world,
+
+      Points::get_instance().get_point(mainData_hex1->polygonPointsId[first_ind_side]),
+      Points::get_instance().get_point(mainData_hex1->polygonPointsId[(first_ind_side + 1) % 6]),
+      Points::get_instance().get_point(mainData_hex2->polygonPointsId[(second_ind_side + 1) % 6]),
+      Points::get_instance().get_point(mainData_hex2->polygonPointsId[second_ind_side]),
+
+      epi1,
+      epi2,
+
+      grid_.at(first),
+      grid_.at(second)
+    );
+  }
 }
 
-std::shared_ptr<Hexoworld::Triangle> Hexoworld::Manager::add_triangle(Coord first, Coord second, Coord third)
+void Hexoworld::Manager::add_triangle(Coord first, Coord second, Coord third)
 {
   const auto tri = tri_coords(first, second, third);
-  
-  auto get_ind = [this](Coord first, Coord second, Coord third) {
-    uint32_t a = get_ind_direction(first, second);
-    uint32_t b = get_ind_direction(first, third);
-    std::set<uint32_t> st1 = { a, (a + 1) % 6 };
-    std::set<uint32_t> st2 = { b, (b + 1) % 6 };
-    std::vector<uint32_t> intersection;
-    std::set_intersection(st1.begin(), st1.end(), st2.begin(), st2.end(), std::back_inserter(intersection));
-    return intersection.front();
-    };
+  if (triangles.find(tri) == triangles.end())
+  { 
 
-  const auto& ipi1 = grid_.at(first)->mainData->polygonPoints;
-  const auto& ipi2 = grid_.at(second)->mainData->polygonPoints;
-  const auto& ipi3 = grid_.at(third)->mainData->polygonPoints;
+    auto get_ind = [this](Coord first, Coord second, Coord third) {
+      uint32_t a = get_ind_direction(first, second);
+      uint32_t b = get_ind_direction(first, third);
+      std::set<uint32_t> st1 = { a, (a + 1) % 6 };
+      std::set<uint32_t> st2 = { b, (b + 1) % 6 };
+      std::vector<uint32_t> intersection;
+      std::set_intersection(st1.begin(), st1.end(), st2.begin(), st2.end(), std::back_inserter(intersection));
+      return intersection.front();
+      };
 
-  return triangles[tri] = std::make_shared<Triangle>(
-    world, 
-    
-    ipi1[get_ind(first, second, third)],
-    ipi2[get_ind(second, third, first)],
-    ipi3[get_ind(third, first, second)],
-    
-    grid_.at(first),
-    grid_.at(second),
-    grid_.at(third)
-  );
+    const auto& pp1 = grid_.at(first)->mainData->polygonPointsId;
+    const auto& pp2 = grid_.at(second)->mainData->polygonPointsId;
+    const auto& pp3 = grid_.at(third)->mainData->polygonPointsId;
+
+    triangles[tri] = std::make_shared<Triangle>(
+      world,
+
+      Points::get_instance().get_point(pp1[get_ind(first, second, third)]),
+      Points::get_instance().get_point(pp2[get_ind(second, third, first)]),
+      Points::get_instance().get_point(pp3[get_ind(third, first, second)]),
+
+      grid_.at(first),
+      grid_.at(second),
+      grid_.at(third)
+    );
+  }
 }
 
 std::vector<std::shared_ptr<Hexoworld::Object>> Hexoworld::Manager::get_all_object()
@@ -90,8 +108,9 @@ std::vector<std::shared_ptr<Hexoworld::Object>> Hexoworld::Manager::get_all_obje
 std::shared_ptr<Hexoworld::Hexagon> Hexoworld::Manager::get_hexagon(Coord coord)
 {
   if (grid_.find(coord) == grid_.end())
-    return add_hexagon(coord);
-  return grid_[coord];
+    add_hexagon(coord);
+
+  return grid_.at(coord);
 }
 
 std::shared_ptr<Hexoworld::Rectangle> Hexoworld::Manager::get_rectangle(Coord first, Coord second)
@@ -99,18 +118,18 @@ std::shared_ptr<Hexoworld::Rectangle> Hexoworld::Manager::get_rectangle(Coord fi
   const auto pair = pair_coords(first, second);
 
   if (rectangles.find(pair) == rectangles.end())
-    return add_rectangle(first, second);
+    add_rectangle(first, second);
 
-  return rectangles[pair];
+  return rectangles.at(pair);
 }
 
 std::shared_ptr<Hexoworld::Triangle> Hexoworld::Manager::get_triangle(Coord first, Coord second, Coord third)
 {
   const auto tri = tri_coords(first, second, third);
   if (triangles.find(tri) == triangles.end())
-    return add_triangle(first, second, third);
+    add_triangle(first, second, third);
 
-  return triangles[tri];
+  return triangles.at(tri);
 }
 
 void Hexoworld::Manager::add_river(std::vector<std::shared_ptr<Object>> river)
@@ -121,4 +140,33 @@ void Hexoworld::Manager::add_river(std::vector<std::shared_ptr<Object>> river)
 std::vector<std::vector<std::shared_ptr<Hexoworld::Object>>> Hexoworld::Manager::get_all_rivers() const
 {
   return rivers;
+}
+
+std::set<Hexoworld::Coord> Hexoworld::Manager::get_neighbors(Hexoworld::Coord pos)
+{
+  std::set<Coord> answer;
+  const auto add = [&answer, this](Coord pos) {
+    if (grid_.find(pos) != grid_.end())
+      answer.insert(pos);
+    };
+  if (pos.row % 2 == 0)
+  {
+    add(Coord(pos.row + 1, pos.col));
+    add(Coord(pos.row, pos.col + 1));
+    add(Coord(pos.row - 1, pos.col));
+    add(Coord(pos.row - 1, pos.col - 1));
+    add(Coord(pos.row, pos.col - 1));
+    add(Coord(pos.row + 1, pos.col - 1));
+  }
+  else
+  {
+    add(Coord(pos.row + 1, pos.col + 1));
+    add(Coord(pos.row, pos.col + 1));
+    add(Coord(pos.row - 1, pos.col + 1));
+    add(Coord(pos.row - 1, pos.col));
+    add(Coord(pos.row, pos.col - 1));
+    add(Coord(pos.row + 1, pos.col));
+  }
+
+  return answer;
 }

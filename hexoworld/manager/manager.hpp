@@ -51,25 +51,23 @@ public:
   /// \brief Получить все реки.
   /// \return Массив массивов объектов, по которым протекает очередная река.
   std::vector<std::vector<std::shared_ptr<Object>>> get_all_rivers() const;
-private:
+
   /// \brief Создать шестиугольник.
   /// \param coord Координата.
-  /// return Шестиугольник.
-  std::shared_ptr<Hexagon> add_hexagon(Coord coord);
+  void add_hexagon(Coord coord);
 
   /// \brief Создать прямоугольник, который между двух шестиугольников.
   /// \param first Координата первого шестиугольника.
   /// \param second Координата второго шестиугольника.
-  /// \return Прямоугольник.
-  std::shared_ptr<Rectangle> add_rectangle(Coord first, Coord second);
+  void add_rectangle(Coord first, Coord second);
 
   /// \brief Создать треугольник, который между трёх шестиугольников.
   /// \param first Координата первого шестиугольника.
   /// \param second Координата второго шестиугольника.
   /// \param third Координата третьего шестиугольника.
-  /// \return Треугольник.
-  std::shared_ptr<Triangle> add_triangle(Coord first, Coord second, Coord third);
+  void add_triangle(Coord first, Coord second, Coord third);
 
+private:
   std::map<Coord, std::shared_ptr<Hexagon>> grid_; ///< Все шестиугольники.
   std::map<std::pair<Coord, Coord>, std::shared_ptr<Rectangle>> rectangles; ///< Все межшестиугольные прямоугольники.
   std::map<std::vector<Coord>, std::shared_ptr<Triangle>> triangles; ///< Все межшестиугольные треугольники.

@@ -1,4 +1,4 @@
-#include <hexoworld/hexoworld.hpp>
+#include <hexoworld/wall/wall.hpp>
 #include <random>
 #include <cmath>
 
@@ -13,6 +13,6 @@ Hexoworld::Wall::UsualDrawer::UsualDrawer(FixedInventory* base, Eigen::Vector4i 
 
 void Hexoworld::Wall::UsualDrawer::colorize_points()
 {
-  for (auto& p : base->frames[Usual]->get_points())
-    Points::get_instance().set_point_color(p, color_, base->base);
+  for (auto& p : std::static_pointer_cast<UsualFrame>(base->frames[Usual])->get_pointsId())
+    Points::get_instance().set_point_color(p, color_);
 }

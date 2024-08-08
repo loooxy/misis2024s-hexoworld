@@ -24,65 +24,27 @@ void Hexoworld::set_new_height_to_point(Eigen::Vector3d& point, int32_t height,
     heightDirection_ + dop_height(type);
 }
 
-
-void Hexoworld::printRect(std::pair<Eigen::Vector3d, Eigen::Vector3d> a,
-  std::pair<Eigen::Vector3d, Eigen::Vector3d> b,
-  std::vector<uint16_t>& TriList, const Object* base)
+Eigen::Vector3d Hexoworld::set_new_height_to_point(uint32_t id_point, int32_t height, FrameAndDrawersTypes type)
 {
-  uint32_t id1;
-  id1 = Points::get_instance().get_id_point(a.first, base);
-
-  uint32_t id2;
-  id2 = Points::get_instance().get_id_point(a.second, base);
-
-  uint32_t id3;
-  id3 = Points::get_instance().get_id_point(b.first, base);
-
-  uint32_t id4;
-  id4 = Points::get_instance().get_id_point(b.second, base);
-
-  printRect({ id1, id2 }, { id3, id4 }, TriList);
+  auto point = Points::get_instance().get_point(id_point);
+  set_new_height_to_point(point, height, type);
+  Points::get_instance().update_point(id_point, point);
+  return point;
 }
+
+
 void Hexoworld::printRect(
   std::pair<uint32_t, uint32_t> aIds,
   std::pair<uint32_t, uint32_t> bIds,
-  std::vector<uint16_t>& TriList)
+  std::vector<uint32_t>& TriList)
 {
-  TriList.push_back(aIds.first);
-  TriList.push_back(aIds.second);
-  TriList.push_back(bIds.first);
-
-  TriList.push_back(bIds.first);
-  TriList.push_back(aIds.second);
-  TriList.push_back(aIds.first);
-
-  TriList.push_back(aIds.second);
-  TriList.push_back(bIds.first);
-  TriList.push_back(bIds.second);
-
-  TriList.push_back(bIds.second);
-  TriList.push_back(bIds.first);
-  TriList.push_back(aIds.second);
+  printTri(aIds.first, aIds.second, bIds.second, TriList);
+  printTri(aIds.first, bIds.first, bIds.second, TriList);
 }
 
-
-void Hexoworld::printTri(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c,
-  std::vector<uint16_t>& TriList, const Object* base)
-{
-  uint32_t id1;
-  id1 = Points::get_instance().get_id_point(a, base);
-
-  uint32_t id2;
-  id2 = Points::get_instance().get_id_point(b, base);
-
-  uint32_t id3;
-  id3 = Points::get_instance().get_id_point(c, base);
-
-  printTri(id1, id2, id3, TriList);
-}
 void Hexoworld::printTri(
   uint32_t aId, uint32_t bId, uint32_t cId, 
-  std::vector<uint16_t>& TriList)
+  std::vector<uint32_t>& TriList)
 {
   TriList.push_back(aId);
   TriList.push_back(bId);
@@ -132,31 +94,3 @@ Hexoworld::tri_coords(Coord a, Coord b, Coord c)
   return answer;
 }
 
-std::set<Hexoworld::Coord> Hexoworld::Manager::get_neighbors(Hexoworld::Coord pos)
-{
-  std::set<Coord> answer;
-  const auto add = [&answer, this](Coord pos) {
-    if (grid_.find(pos) != grid_.end())
-      answer.insert(pos);
-    };
-  if (pos.row % 2 == 0)
-  {
-    add(Coord(pos.row + 1, pos.col));
-    add(Coord(pos.row    , pos.col + 1));
-    add(Coord(pos.row - 1, pos.col));
-    add(Coord(pos.row - 1, pos.col - 1));
-    add(Coord(pos.row    , pos.col - 1));
-    add(Coord(pos.row + 1, pos.col - 1));
-  }
-  else
-  {
-    add(Coord(pos.row + 1, pos.col + 1));
-    add(Coord(pos.row    , pos.col + 1));
-    add(Coord(pos.row - 1, pos.col + 1));
-    add(Coord(pos.row - 1, pos.col));
-    add(Coord(pos.row    , pos.col - 1));
-    add(Coord(pos.row + 1, pos.col));
-  }
-
-  return answer;
-}

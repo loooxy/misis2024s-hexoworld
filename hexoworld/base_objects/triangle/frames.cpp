@@ -1,5 +1,4 @@
-#include "triangle.hpp"
-#include <hexoworld/hexoworld.hpp>
+#include <hexoworld/base_objects/triangle/triangle.hpp>
 
 Hexoworld::Triangle::TriangleFrame::TriangleFrame(Object* base)
   : Frame(base)
@@ -54,6 +53,7 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t
 
     if (points[0].first == points[2].first)
     {
+      mainData->type = Smooth;
       mainData->middle_triangle.push_back(
         Points::get_instance().get_id_point(points[0].second, base)
       );
@@ -69,6 +69,7 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t
       if (points[0].first != points[1].first &&
         points[1].first != points[2].first)
       {
+        mainData->type = DiffHeight;
         uint32_t nTerraces =
           (points[2].first - points[0].first) *
           (base->world.nTerracesOnHeightStep_ + 1) - 1;
@@ -116,6 +117,8 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t
       else
       {
         if (points[0].first == points[1].first)
+        {
+          mainData->type = TwoDown;
           init_stair(points[0].second,
             points[1].second,
             points[2].second,
@@ -124,7 +127,10 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t
             points[2].second,
             mainData->stairs_up,
             (points[0].first + 1 == points[2].first ? 0 : 3));
+        }
         else
+        {
+          mainData->type = TwoUp;
           init_stair(points[1].second,
             points[2].second,
             points[0].second,
@@ -133,12 +139,13 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t
             points[0].second,
             mainData->stairs_down,
             (points[0].first + 1 == points[2].first ? 0 : 3));
+        }
       }
     }
   }
 }
 
-std::vector<Eigen::Vector3d> Hexoworld::Triangle::UsualFrame::get_points() const
+std::vector<uint32_t> Hexoworld::Triangle::UsualFrame::get_pointsId() const
 {
   std::shared_ptr<MainData> mainData = static_cast<Triangle*>(base)->mainData;
 
@@ -162,14 +169,22 @@ std::vector<Eigen::Vector3d> Hexoworld::Triangle::UsualFrame::get_points() const
     ids.insert(id);
   }
 
-  std::vector<Eigen::Vector3d> points;
+  std::vector<uint32_t> answer;
+  answer.reserve(ids.size());
   for (uint32_t id : ids)
+    answer.push_back(id);
+  return answer;
+}
+std::vector<Eigen::Vector3d> Hexoworld::Triangle::UsualFrame::get_points() const
+{
+  std::vector<Eigen::Vector3d> points;
+  for (uint32_t id : get_pointsId())
     points.push_back(Points::get_instance().get_point(id));
 
   return points;
 }
 
-void Hexoworld::Triangle::UsualFrame::print_in_triList(std::vector<uint16_t>& TriList) const
+void Hexoworld::Triangle::UsualFrame::print_in_triList(std::vector<uint32_t>& TriList) const
 {
   std::shared_ptr<MainData> mainData = static_cast<Triangle*>(base)->mainData;
 

@@ -1,13 +1,25 @@
 #include "hexoworld.hpp"
 #include "hexoworld.hpp"
-#include "hexoworld.hpp"
-#include "hexoworld.hpp"
 #include <hexoworld/hexoworld.hpp>
+#include <hexoworld/manager/manager.hpp>
+#include <hexoworld/base_objects/hexagon/hexagon.hpp>
+#include <hexoworld/base_objects/rectangle/rectangle.hpp>
+#include <hexoworld/base_objects/triangle/triangle.hpp>
 #include <stdexcept>
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
 #include <random>
+
+#ifdef PARALLEL
+#include <thread>
+#endif // PARALLEL
+
+#ifdef SPEED_TEST
+#include <iostream>
+#include <chrono>
+#endif // SPEED_TEST
+
 
 const double Hexoworld::PRECISION_DBL_CALC = 0.0000001;
 
@@ -24,9 +36,11 @@ Hexoworld::Hexoworld(
   heightDirection_(row_direction.cross(сol_direction).normalized()),
   size_(size), 
   heightStep_(height_step), 
-  nTerracesOnHeightStep_(n_terraces_on_height_step)
+  nTerracesOnHeightStep_(n_terraces_on_height_step),
+  n_rows(n_rows),
+  n_cols(n_cols)
 {
-  if (abs(row_direction.dot(сol_direction)) > PRECISION_DBL_CALC)
+  if (abs(rowDirection_.dot(colDirection_)) > PRECISION_DBL_CALC)
     throw std::invalid_argument(
       "row_direction and сol_direction not perpendicular");
 
@@ -46,23 +60,25 @@ void Hexoworld::add_hexagon(uint32_t row, uint32_t col,
   Eigen::Vector4i color)
 {
   Coord pos(row, col);
+  
   std::shared_ptr<Hexagon> hex = manager->get_hexagon(pos);
   std::static_pointer_cast<Hexagon::UsualDrawer>(hex->drawers.at(Usual))->set_color(color);
 
   std::set<Coord> neighbors = manager->get_neighbors(pos);
   for (Coord pos_neighbor : neighbors)
   {
-    std::static_pointer_cast<Rectangle::UsualDrawer>(
-      manager->get_rectangle(pos, pos_neighbor)->drawers.at(Usual))->set_color(color);
+    manager->add_rectangle(pos, pos_neighbor);
 
+    std::vector<Coord> triangles_pos;
     std::set<Coord> neighbors_second = manager->get_neighbors(pos_neighbor);
-    std::vector<Coord> intersection;
-    std::set_intersection(neighbors.begin(), neighbors.end(),
+
+    std::set_intersection(
+      neighbors.begin(), neighbors.end(),
       neighbors_second.begin(), neighbors_second.end(),
-      std::back_inserter(intersection));
-    for (Coord pos_third : intersection)
-      std::static_pointer_cast<Triangle::UsualDrawer>(
-        manager->get_triangle(pos, pos_neighbor, pos_third)->drawers.at(Usual))->set_color(color);
+      std::back_inserter(triangles_pos));
+
+    for (Coord pos_third : triangles_pos)
+      manager->add_triangle(pos, pos_neighbor, pos_third);
   }
 }
 
@@ -76,7 +92,7 @@ void Hexoworld::add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs) {
 
   for (int i = 0; i < positions.size() - 1; ++i)
   {
-    std::set<Coord> neighbors = manager->get_neighbors(positions[i]);
+    const std::set<Coord>& neighbors = manager->get_neighbors(positions[i]);
     if (neighbors.find(positions[i + 1]) == neighbors.end())
       throw std::invalid_argument("Cell " + std::to_string(i) + " and cell " + std::to_string(i + 1) + 
       " are not neighbors.");
@@ -85,20 +101,15 @@ void Hexoworld::add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs) {
   std::vector<std::shared_ptr<Object>> river;
   for (int i = 0; i < positions.size(); ++i)
   {
-    uint32_t before_ind, next_ind;
     if (i > 0)
     {
-      before_ind = get_ind_direction(positions[i], positions[i - 1]);
       river.push_back(manager->get_rectangle(positions[i], positions[i - 1]));
       manager->get_rectangle(positions[i], positions[i - 1])->make_river();
     }
-    else
-      before_ind = -1;
-    
-    if (i < positions.size() - 1)
-      next_ind = get_ind_direction(positions[i], positions[i + 1]);
-    else
-      next_ind = -1;
+
+    uint32_t before_ind, next_ind;
+    before_ind = (i > 0                    ? get_ind_direction(positions[i], positions[i - 1]) : -1);
+    next_ind   = (i < positions.size() - 1 ? get_ind_direction(positions[i], positions[i + 1]) : -1);
 
     river.push_back(manager->get_hexagon(positions[i]));
     manager->get_hexagon(positions[i])->make_river(before_ind, next_ind);
@@ -116,6 +127,7 @@ void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)
 {
   Coord pos(row, col);
   std::set<Coord> neighbors = manager->get_neighbors(pos);
+
   std::vector<uint32_t> directions;
   for (auto neighbor : neighbors) 
   {
@@ -123,12 +135,40 @@ void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)
     if (hex->frames.find(Road) != hex->frames.end())
     {
       directions.push_back(get_ind_direction(pos, neighbor));
+
       hex->make_road(get_ind_direction(neighbor, pos));
-      manager->get_rectangle(pos, neighbor)->make_road();
     }
   }
 
   manager->get_hexagon(pos)->make_road(directions);
+
+  for (auto neighbor : neighbors)
+  {
+    std::shared_ptr<Hexagon> hex = manager->get_hexagon(neighbor);
+    if (hex->frames.find(Road) != hex->frames.end())
+    {
+      manager->get_rectangle(pos, neighbor)->make_road();
+    }
+  }
+}
+
+void Hexoworld::add_farm_in_hex(uint32_t row, uint32_t col)
+{
+  Coord pos(row, col);
+  std::shared_ptr<Hexagon> hex = manager->get_hexagon(pos);
+  std::set<Coord> neighbors = manager->get_neighbors(pos);
+
+  for (auto neighbor_pos : neighbors)
+  {
+    std::shared_ptr<Hexagon> neighbor = manager->get_hexagon(neighbor_pos);
+    if (neighbor->frames.find(Road) != neighbor->frames.end())
+    {
+      neighbor->make_road(get_ind_direction(neighbor_pos, pos));
+      manager->get_rectangle(pos, neighbor_pos)->make_road();
+    }
+  }
+
+  hex->make_farm();
 }
 
 void Hexoworld::update_river()
@@ -139,18 +179,23 @@ void Hexoworld::update_river()
     {
       if (dynamic_cast<Hexagon*>(river[i].get()))
       {
-        std::shared_ptr<Hexagon> hex = std::static_pointer_cast<Hexagon>(river[i]);
-        std::shared_ptr<Rectangle> rect = std::static_pointer_cast<Rectangle>(river[i - 1]);
-        std::static_pointer_cast<Hexagon::RiverDrawer>(hex->drawers.at(River))->set_new_special_color_river(
-          std::static_pointer_cast<Rectangle::RiverDrawer>(rect->drawers.at(River))->special_color_river);
+        auto hex  = std::static_pointer_cast<Hexagon  >(river[  i  ]);
+        auto rect = std::static_pointer_cast<Rectangle>(river[i - 1]);
+
+        auto hex_drawer  = std::static_pointer_cast<Hexagon  ::RiverDrawer>(hex ->drawers.at(River));
+        auto rect_drawer = std::static_pointer_cast<Rectangle::RiverDrawer>(rect->drawers.at(River));
+
+        hex_drawer->set_new_special_color_river(rect_drawer->special_color_river);
       }
       else
       {
-        std::shared_ptr<Hexagon> hex = std::static_pointer_cast<Hexagon>(river[i - 1]);
-        std::shared_ptr<Rectangle> rect = std::static_pointer_cast<Rectangle>(river[i]);
+        auto hex  = std::static_pointer_cast<Hexagon  >(river[i - 1]);
+        auto rect = std::static_pointer_cast<Rectangle>(river[  i  ]);
 
-        std::static_pointer_cast<Rectangle::RiverDrawer>(rect->drawers.at(River))->set_new_special_color_river(
-          std::static_pointer_cast<Hexagon::RiverDrawer>(hex->drawers.at(River))->special_color_river);
+        auto hex_drawer  = std::static_pointer_cast<Hexagon  ::RiverDrawer>(hex ->drawers.at(River));
+        auto rect_drawer = std::static_pointer_cast<Rectangle::RiverDrawer>(rect->drawers.at(River));
+
+        rect_drawer->set_new_special_color_river(hex_drawer->special_color_river);
       }
     }
     
@@ -162,84 +207,225 @@ void Hexoworld::update_river()
       return std::min(255, std::max(0, component));
       };
 
-    std::static_pointer_cast<Hexagon::RiverDrawer>(river[0]->drawers.at(River))->special_color_river =
+    auto first_hex_drawer = std::static_pointer_cast<Hexagon::RiverDrawer>(river[0]->drawers.at(River));
+
+    first_hex_drawer->set_new_special_color_river(
       Eigen::Vector4i(
         make_new_component(riverColor.x()),
         make_new_component(riverColor.y()),
         make_new_component(riverColor.z()),
-        255
-      );
+        make_new_component(riverColor.w())
+      ));
   }
 }
 
 void Hexoworld::set_hex_height(uint32_t row, uint32_t col, int32_t height)
 {
   Coord pos(row, col);
-  manager->get_hexagon(pos)->set_height(height);
   std::set<Coord> neighbors = manager->get_neighbors(pos);
+
+  manager->get_hexagon(pos)->set_height(height);
+
   for (Coord posNeighbor : neighbors)
+  {
     manager->get_rectangle(pos, posNeighbor)->update();
+  }
+
+  for (Coord posNeighbor : neighbors)
+  {
+    std::vector<Coord> common_neighbors;
+
+    std::set<Coord> neighbors_neighbor = manager->get_neighbors(posNeighbor);
+    std::set_intersection(
+      neighbors.begin(), neighbors.end(),
+      neighbors_neighbor.begin(), neighbors_neighbor.end(),
+      std::back_inserter(common_neighbors));
+
+    for (Coord common_neighbor : common_neighbors)
+      manager->get_triangle(pos, posNeighbor, common_neighbor)->update();
+  }
 }
 
 void Hexoworld::set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color)
 {
-  Coord pos(row, col);
-  std::static_pointer_cast<Hexagon::UsualDrawer>(
-    manager->get_hexagon(pos)->drawers.at(Usual))->set_color(color);
+  auto drawer = std::static_pointer_cast<Hexagon::UsualDrawer>(
+    manager->get_hexagon(Coord(row, col))->drawers.at(Usual));
+  
+  drawer->set_color(color);
+}
 
-  Eigen::Vector4i a = color;
-  std::set<Coord> neighbors = manager->get_neighbors(pos);
-  for (Coord pos_neighbor : neighbors)
-  {
-    Eigen::Vector4i b = std::static_pointer_cast<Hexagon::UsualDrawer>(
-      manager->get_hexagon(pos_neighbor)->drawers.at(Usual))->get_color();
+int32_t Hexoworld::get_hex_height(uint32_t row, uint32_t col) const
+{
+  auto center = Points::get_instance().get_point(
+    manager->get_hexagon(Coord(row, col))->mainData->centerId
+  );
 
-    std::static_pointer_cast<Rectangle::UsualDrawer>(
-      manager->get_rectangle(pos, pos_neighbor)->drawers.at(Usual))->set_color(a + (b - a) / 2);
+  int32_t height = round(
+      heightDirection_.dot(center - origin_) / 
+      heightStep_
+    );
 
-    std::set<Coord> neighbors_second = manager->get_neighbors(pos_neighbor);
-    std::vector<Coord> intersection;
-    std::set_intersection(neighbors.begin(), neighbors.end(),
-      neighbors_second.begin(), neighbors_second.end(),
-      std::back_inserter(intersection));
-    for (Coord pos_third : intersection)
+  return height;
+}
+
+Eigen::Vector4i Hexoworld::get_hex_color(uint32_t row, uint32_t col) const
+{
+  return std::static_pointer_cast<Hexagon::UsualDrawer>(
+    manager->get_hexagon(Coord(row, col))->drawers[Usual]
+  )->get_color();
+}
+
+uint32_t Hexoworld::get_n_rows() {
+  return n_rows;
+}
+
+uint32_t Hexoworld::get_n_cols() {
+  return n_cols;
+}
+
+void Hexoworld::print_in_vertices_and_triList(
+  std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
+{
+#ifdef SPEED_TEST
+  auto start = std::chrono::steady_clock::now();
+  std::chrono::nanoseconds t_print_in_trilist;
+  std::chrono::nanoseconds t_colorize_points;
+  std::chrono::nanoseconds t_print_in_vertices;
+#endif // SPEED_TEST
+
+  const auto& objects = manager->get_all_object();
+  
+  std::vector<PrintingPoint> tmp_Vertices;
+  std::vector<uint32_t> tmp_TriList;
+
+  auto func_t = [
+    &objects, 
+    &tmp_TriList
+#ifdef SPEED_TEST2
+    ,&t_print_in_trilist
+#endif // SPEED_TEST
+  ]() -> void
     {
-      Eigen::Vector4i c = std::static_pointer_cast<Hexagon::UsualDrawer>(
-        manager->get_hexagon(pos_third)->drawers.at(Usual))->get_color();
-      
-      double len_a = (b - a).norm() + (c - a).norm();
-      double len_b = (b - a).norm() + (c - b).norm();
-      double len_c = (b - c).norm() + (c - a).norm();
-      double max_len = std::max(len_a, std::max(len_b, len_c));
+#ifdef SPEED_TEST2
+      auto start = std::chrono::steady_clock::now();
+#endif // SPEED_TEST
 
-      Eigen::Vector4i dop_color = (max_len == len_a ? a : (max_len == len_b ? b : c));
+      for (uint32_t i = 0; i < objects.size(); ++i)
+        objects[i]->print_in_triList(tmp_TriList);
 
-      Eigen::Matrix4i colors = (Eigen::MatrixXi(4, 4) << 
-        a.x(), a.y(), a.z(), a.w(),
-        b.x(), b.y(), b.z(), b.w(),
-        c.x(), c.y(), c.z(), c.w(),
-        dop_color.x(), dop_color.y(), dop_color.z(), dop_color.w()/10).finished();
+#ifdef SPEED_TEST2
+      auto end = std::chrono::steady_clock::now();
+      t_print_in_trilist = end - start;
+#endif // SPEED_TEST
+    };
 
-      std::static_pointer_cast<Triangle::UsualDrawer>(
-        manager->get_triangle(pos, pos_neighbor, pos_third)->drawers.at(Usual))->set_color(
-      Eigen::Vector4i(
-      colors.col(0).mean(),
-      colors.col(1).mean(),
-      colors.col(2).mean(),
-      colors.col(3).mean()
-      ));
+  auto func_v = [
+    &objects, 
+    &tmp_Vertices
+#ifdef SPEED_TEST2
+      , &t_colorize_points
+      , &t_print_in_vertices
+#endif // SPEED_TEST
+  ]() -> void
+    {
+#ifdef SPEED_TEST2
+      auto start = std::chrono::steady_clock::now();
+#endif // SPEED_TEST
+
+      uint32_t n_threads = 3;
+      auto func = [&](uint32_t phase)
+        {
+          for (uint32_t i = phase; i < objects.size(); i += n_threads)
+            objects[i]->colorize_points();
+        };
+
+      std::vector<std::unique_ptr<std::thread>> threads;
+      for (uint32_t i = 0; i < n_threads; ++i)
+        threads.push_back(std::make_unique<std::thread>(func, i));
+      for (uint32_t i = 0; i < n_threads; ++i)
+        threads[i]->join();
+      threads.clear();
+
+#ifdef SPEED_TEST2
+      auto end = std::chrono::steady_clock::now();
+      t_colorize_points = end - start;
+      start = std::chrono::steady_clock::now();
+#endif // SPEED_TEST
+      Points::get_instance().print_in_vertices(tmp_Vertices);
+
+#ifdef SPEED_TEST2
+      end = std::chrono::steady_clock::now();
+      t_print_in_vertices = end - start;
+#endif // SPEED_TEST
+    };
+
+  std::thread t(func_t);
+  std::thread v(func_v);
+  t.join();
+  v.join();
+  /*func_t();
+  func_v();*/
+
+  zip_data(tmp_Vertices, tmp_TriList, Vertices, TriList);
+
+#ifdef SPEED_TEST
+  auto end = std::chrono::steady_clock::now();
+  static uint64_t sum_all = 0;
+  static uint64_t sum_print_in_trilist = 0;
+  static uint64_t sum_colorize_points = 0;
+  static uint64_t sum_print_in_vertices = 0;
+
+  sum_all              += std::chrono::duration_cast<std::chrono::milliseconds>(
+    end - start).count();
+  sum_print_in_trilist += std::chrono::duration_cast<std::chrono::milliseconds>(
+    t_print_in_trilist).count();
+  sum_colorize_points  += std::chrono::duration_cast<std::chrono::milliseconds>(
+    t_colorize_points).count();
+  sum_print_in_vertices+= std::chrono::duration_cast<std::chrono::milliseconds>(
+    t_print_in_vertices).count();
+
+  static double cnt = 0;
+  cnt += 1;
+  if (cnt == 1)
+    std::cout << "all trilist colorize vertices" << std::endl;
+  std::cout 
+    << sum_all / cnt               << "                               "
+    << sum_print_in_trilist / cnt  << "                               "
+    << sum_colorize_points / cnt   << "                               "
+    << sum_print_in_vertices / cnt << "                               "
+    << std::endl;
+#endif
+}
+
+void Hexoworld::zip_data(
+  std::vector<PrintingPoint>& Vertices, 
+  std::vector<uint32_t>& TriList, 
+  std::vector<PrintingPoint>& new_Vertices, 
+  std::vector<uint16_t>& new_TriList) const
+{
+  new_Vertices.clear();
+  new_TriList.clear();
+  std::map<PrintingPoint, uint16_t> point_to_newId;
+  std::unordered_map<uint32_t, uint16_t> oldId_to_newId;
+
+  for (uint32_t oldId : TriList)
+  {
+    if (oldId_to_newId.find(oldId) == oldId_to_newId.end())
+    {
+      if (point_to_newId.find(Vertices[oldId]) != point_to_newId.end())
+      {
+        oldId_to_newId[oldId] = point_to_newId[Vertices[oldId]];
+      }
+      else
+      {
+        uint16_t size = new_Vertices.size();
+        new_Vertices.push_back(Vertices[oldId]);
+        point_to_newId[Vertices[oldId]] = size;
+        oldId_to_newId[oldId] = size;
+      }
     }
+
+    new_TriList.push_back(oldId_to_newId[oldId]);
   }
-}
-
-void Hexoworld::print_in_vertices_and_triList(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
-{
-  for (auto& object : manager->get_all_object())
-    object->print_in_triList(TriList);
-  Points::get_instance().print_in_vertices(Vertices);
-}
-
-void Hexoworld::recolor(std::vector<PrintingPoint>& Vertices) const
-{
-  Points::get_instance().recolor(Vertices);
+  return;
 }

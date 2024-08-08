@@ -35,7 +35,10 @@ public:
 
   /// \brief Вывести треугольники, на который треангулируется прямоугольник.
   /// \param TriList Куда выводить треугольники.
-  void print_in_triList(std::vector<uint16_t>& TriList);
+  void print_in_triList(std::vector<uint32_t>& TriList);
+
+  /// \brief Раскрасить точки.
+  void colorize_points();
 
   /// \brief Отрисовщик прямоугольника.
   class RectangleDrawer : public Drawer<Object> {
@@ -51,20 +54,10 @@ public:
     /// \brief Конструктор.
     /// \param object Объект, к которому относится отрисовщик.
     /// \param color Основной цвет.
-    UsualDrawer(Object* object, Eigen::Vector4i color);
-
-    /// \brief Установить основной цвет.
-    /// \param color Основной цвет.
-    void set_color(Eigen::Vector4i color) { color_ = color; }
-
-    /// \brief Получить основной цвет.
-    /// \return Цвет.
-    Eigen::Vector4i get_color() { return color_; }
+    UsualDrawer(Object* object);
 
     /// \brief Раскрасить точки.
     void colorize_points();
-  private:
-    Eigen::Vector4i color_; //< Основной цвет.
   };
 
   /// \brief Отрисовщик рек.
@@ -111,6 +104,19 @@ public:
     /// \brief Конструктор.
     /// \param base Объект, к которому принадлежит каркас.
     RectangleFrame(Object* base);
+  protected:
+    /// \brief Инициализация террас.
+    /// \param AId Точка a.
+    /// \param BId Точка b.
+    /// \param CId Точка c.
+    /// \param DId Точка d.
+    /// \param terraces_side Сторона, на которой выводить террасы.
+    /// \param stairs Куда выводить террасы.
+    void init_stairs(uint32_t AId, uint32_t BId, uint32_t CId, uint32_t DId,
+      uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs);
+
+    /// \brief Удаляет террасы по середине.
+    void delete_middle_terraces();
   };
 
   /// \brief Обычный каркас
@@ -133,17 +139,7 @@ public:
 
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
-  private:
-    /// \brief Инициализация террас.
-    /// \param AId Точка a.
-    /// \param BId Точка b.
-    /// \param CId Точка c.
-    /// \param DId Точка d.
-    /// \param terraces_side Сторона, на которой выводить террасы.
-    /// \param stairs Куда выводить террасы.
-    void init_stairs(uint32_t AId, uint32_t BId, uint32_t CId, uint32_t DId,
-      uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs);
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
   };
 
   /// \brief Речной каркас.
@@ -159,10 +155,10 @@ public:
 
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
 
-    std::vector<Eigen::Vector3d> waterPoints; //< Точки, принадлежащие воде.
-    std::vector<Eigen::Vector3d> shorePoints; //< Точки берега.
+    std::vector<uint32_t> waterPointsId; //< Точки, принадлежащие воде.
+    std::vector<uint32_t> shorePointsId; //< Точки берега.
   };
 
   /// \brief Каркас дороги.
@@ -178,10 +174,10 @@ public:
 
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
-    void print_in_triList(std::vector<uint16_t>& TriList) const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
 
-    std::vector<Eigen::Vector3d> middlePoints; //< Точки посередине дороги.
-    std::vector<Eigen::Vector3d> fencePoints;  //< Точки забора.
+    std::vector<uint32_t> middlePointsId; //< Точки посередине дороги.
+    std::vector<uint32_t> fencePointsId;  //< Точки забора.
   };
 private:
   std::shared_ptr<MainData> mainData; //< Основные данные.
