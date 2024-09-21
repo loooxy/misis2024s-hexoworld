@@ -5,20 +5,9 @@
 #include <imgui_impl_glfw.cpp>
 
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
-#include "bgfx/bgfx.h"
-#include "bgfx/platform.h"
-#include "bx/math.h"
 
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
-
-#if BX_PLATFORM_LINUX
-#define GLFW_EXPOSE_NATIVE_X11
-#elif BX_PLATFORM_WINDOWS
-#define GLFW_EXPOSE_NATIVE_WIN32
-#elif BX_PLATFORM_OSX
-#define GLFW_EXPOSE_NATIVE_COCOA
-#endif
 
 #include<hexoworld/includes.hpp>
 
@@ -193,7 +182,7 @@ int main() {
 
   // build and compile our shader program
   // ------------------------------------
-  Shader ourShader("shaders\\3.3.shader.vs", "shaders\\3.3.shader.fs");
+  Shader ourShader("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs");
 
   // set up vertex data (and (buffers(s)) and configure vertex attributes
   // --------------------------------------------------------------------
@@ -222,7 +211,7 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)0);
   glEnableVertexAttribArray(0);
   // color attribute
-  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
   // render loop
