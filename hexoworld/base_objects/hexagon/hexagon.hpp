@@ -36,8 +36,12 @@ struct Hexoworld::Hexagon : public Object {
   /// \param ind_road Новая грань, через которую идёт дорога.
   void make_road(uint32_t ind_road);
 
+  void del_road();
+  void del_road(uint32_t ind_road);
+
   /// \brief Создание фермы.
   void make_farm();
+  void del_farm();
 
   /// \brief Вывести треугольники
   /// \param TriList Куда выводить треугольники.
@@ -116,11 +120,11 @@ struct Hexoworld::Hexagon : public Object {
 
   /// \brief Основные данные о каркасе.
   struct MainData {
-    std::vector<uint32_t> polygonPointsId; ///< Id точек шестиугольника.
-    std::vector<std::vector<uint32_t>> extraPointsId; ///< Id дополнительных точек
-    uint32_t centerId; //< Id центра.
+    std::vector<IdType> polygonPointsId; ///< Id точек шестиугольника.
+    std::vector<std::vector<IdType>> extraPointsId; ///< Id дополнительных точек
+    IdType centerId; //< Id центра.
     uint32_t gen_init; //< Число, которым инициализируется генератор случайных чисел.
-    int32_t dirFarm = -1; //< Есть ли здесь ферма.
+    int32_t dirFarm = -1; //< Направление фермы или -1 если её нет.
   };
 
   /// \brief Каркас шестиугольника.
@@ -147,7 +151,7 @@ struct Hexoworld::Hexagon : public Object {
 
     /// \brief Получение Id точек обычного каркаса.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
 
     /// \brief Получить точки обычного каркаса.
     /// \return Массив точек.
@@ -208,19 +212,19 @@ struct Hexoworld::Hexagon : public Object {
     std::vector<Eigen::Vector3d> get_points() const;
     /// \brief Получить Id-шники точек.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
 
     /// \brief Получить точки дна, принадлежащие каркасу реки.
     /// \return Массив точек.
-    std::vector<uint32_t> get_floor_pointsId() const;
+    std::vector<IdType> get_floor_pointsId() const;
 
     /// \brief Получить точки берега, принадлежащие каркасу реки.
     /// \return Массив точек.
-    std::vector<uint32_t> get_shore_pointsId() const;
+    std::vector<IdType> get_shore_pointsId() const;
 
     /// \brief Получить точки воды, принадлежащие каркасу реки.
     /// \return Массив точек.
-    std::vector<uint32_t> get_water_pointsId() const;
+    std::vector<IdType> get_water_pointsId() const;
 
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
@@ -247,11 +251,11 @@ struct Hexoworld::Hexagon : public Object {
     /// \param out Грань, через которую вытекает река.
     void make_river_angle_1(uint32_t in, uint32_t out);
 
-    std::vector<std::vector<uint32_t>> radial_points; ///< Радиальные точки
-    std::vector<std::vector<uint32_t>> middle_points; ///< Точки посередине грани
-    std::vector<uint32_t> floor_points; ///< Точки дна.
-    std::vector<uint32_t> shore_points; ///< Точки берега.
-    std::vector<uint32_t> water_points; //< Точки воды.
+    std::vector<std::vector<IdType>> radial_points; ///< Радиальные точки
+    std::vector<std::vector<IdType>> middle_points; ///< Точки посередине грани
+    std::vector<IdType> floor_points; ///< Точки дна.
+    std::vector<IdType> shore_points; ///< Точки берега.
+    std::vector<IdType> water_points; //< Точки воды.
     int32_t in_;  ///< Грань, через которую втекает река.
     int32_t out_; ///< Грань, через которую вытекает река.
     double deep_; ///< Абсолютная глубина реки.
@@ -273,14 +277,14 @@ struct Hexoworld::Hexagon : public Object {
     std::vector<Eigen::Vector3d> get_points() const;
     /// \brief Получить Id-шники точек.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
 
     /// \brief Вывести треугольники, на которые треангулируется каркас.
     /// \param TriList Куда выводить треугольники. 
     void print_in_triList(std::vector<uint32_t>& TriList) const;
 
     double water_level; //< Уровень воды.
-    std::vector<uint32_t> waterPoints; //< Точки воды.
+    std::vector<IdType> waterPoints; //< Точки воды.
   };
 
   /// \brief Каркас дороги.
@@ -293,6 +297,7 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Добавить дорогу.
     /// \param ind Грань, через которую проходит дорога.
     void add_road(uint32_t ind);
+    void del_road(uint32_t ind);
 
     /// \brief Установить высоту.
     /// \param height Новая высота.
@@ -303,7 +308,7 @@ struct Hexoworld::Hexagon : public Object {
     std::vector<Eigen::Vector3d> get_points() const;
     /// \brief Получить Id-шники точек.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
 
     /// \brief Получить внутренние заборы.
     /// \return Массив пар точек (начало и конец).
@@ -316,13 +321,13 @@ struct Hexoworld::Hexagon : public Object {
     /// \param TriList Куда выводить треугольники. 
     void print_in_triList(std::vector<uint32_t>& TriList) const;
 
-    std::vector<uint32_t> radial_points; //< Радиальные точки
-    std::vector<uint32_t> middle_points; //< Точки посередине грани
-    std::vector<uint32_t> crossroads;    //< Точки шестиугольника перекрёстка.
-    uint32_t centerId; //< сентер
-    std::map<uint32_t, std::pair<uint32_t, uint32_t>> inputs; //< Въезды на шестиугольник.
-    std::map<uint32_t, std::pair<uint32_t, uint32_t>> endOfFence; //< Концы внешних заборов.
-    std::map<uint32_t, std::pair<uint32_t, uint32_t>> middleFence;//< Заборы посередине.
+    std::vector<IdType> radial_points; //< Радиальные точки
+    std::vector<IdType> middle_points; //< Точки посередине грани
+    std::vector<IdType> crossroads;    //< Точки шестиугольника перекрёстка.
+    IdType centerId; //< сентер
+    std::map<uint32_t, std::pair<IdType, IdType>> inputs; //< Въезды на шестиугольник.
+    std::map<uint32_t, std::pair<IdType, IdType>> endOfFence; //< Концы внешних заборов.
+    std::map<uint32_t, std::pair<IdType, IdType>> middleFence;//< Заборы посередине.
     std::vector<bool> isRoad; //< Есть ли дорога по направлению i.
   private:
     /// \brief Инициализация дороги.

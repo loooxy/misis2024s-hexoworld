@@ -93,7 +93,7 @@ private:
 
     /// \brief Получение Id точек каркаса.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
     /// \brief Получить точки каркаса.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
@@ -112,8 +112,8 @@ private:
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
   private:
-    std::vector<uint32_t> bottomRect_; //< Основание стен.
-    std::vector<uint32_t> topRect_;    //< Верхи стен.
+    std::vector<IdType> bottomRect_; //< Основание стен.
+    std::vector<IdType> topRect_;    //< Верхи стен.
   };
 
   /// \brief Каркас крыши.
@@ -128,7 +128,7 @@ private:
 
     /// \brief Получение Id точек каркаса.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
     /// \brief Получить точки каркаса.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
@@ -137,7 +137,7 @@ private:
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
   private:
-    std::vector<uint32_t> bottomRect_;//< Основание крыши.
-    std::vector<uint32_t> topLine_;   //< Конёк.
+    std::vector<IdType> bottomRect_;//< Основание крыши.
+    std::vector<IdType> topLine_;   //< Конёк.
   };
 };

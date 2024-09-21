@@ -11,7 +11,7 @@ Hexoworld::Triangle::UsualDrawer::UsualDrawer(Object* object)
 void Hexoworld::Triangle::UsualDrawer::colorize_points() {
   Triangle* tri = static_cast<Triangle*>(base);
   
-  auto col_id = [this](uint32_t id, Eigen::Vector4i color) {
+  auto col_id = [this](IdType id, Eigen::Vector4i color) {
     Points::get_instance().set_point_color(id, color);
     };
 

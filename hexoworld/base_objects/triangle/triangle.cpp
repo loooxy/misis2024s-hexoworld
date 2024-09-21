@@ -7,25 +7,27 @@ Hexoworld::Triangle::Triangle(Hexoworld& hexoworld,
   const std::shared_ptr<Hexagon> c_hex)
   : Object(hexoworld), a_hex(a_hex), b_hex(b_hex), c_hex(c_hex)
 {
-  std::vector<uint32_t> ids = {
+  std::vector<IdType> ids = {
     Points::get_instance().get_id_point(a, this) ,
     Points::get_instance().get_id_point(b, this) ,
     Points::get_instance().get_id_point(c, this) };
 
   frames [Usual] = std::make_shared<UsualFrame >(this, ids[0], ids[1], ids[2]);
   drawers[Usual] = std::make_shared<UsualDrawer>(this);
+  drawers[Usual]->colorize_points();
 }
 
 void Hexoworld::Triangle::update()
 {
-  uint32_t aid = mainData->AId;
-  uint32_t bid = mainData->BId;
-  uint32_t cid = mainData->CId;
+  IdType aid = mainData->AId;
+  IdType bid = mainData->BId;
+  IdType cid = mainData->CId;
 
   mainData.reset();
 
   frames[Usual] = std::make_shared<UsualFrame>(this, aid, bid, cid);
   drawers[Usual] = std::make_shared<UsualDrawer>(this);
+  drawers[Usual]->colorize_points();
 }
 
 void Hexoworld::Triangle::print_in_triList(std::vector<uint32_t>& TriList) {

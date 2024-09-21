@@ -1,3 +1,4 @@
+#include "wall.hpp"
 #include <hexoworld/wall/wall.hpp>
 
 Hexoworld::Wall::WallFrame::WallFrame(FixedInventory* base)
@@ -12,60 +13,60 @@ Hexoworld::Wall::UsualFrame::UsualFrame(FixedInventory* base,
 {
   if (static_cast<Wall*>(base)->mainData == nullptr)
   {
+    heightDirection.normalize();
+
+    Eigen::Vector3d widthDirection = heightDirection.cross(end - start).normalized();
+
+    IdType a_bottom = Points::get_instance().get_id_point(start - widthDirection * width / 2, this);
+    IdType b_bottom = Points::get_instance().get_id_point(start + widthDirection * width / 2, this);
+    IdType c_bottom = Points::get_instance().get_id_point(end - widthDirection * width / 2, this);
+    IdType d_bottom = Points::get_instance().get_id_point(end + widthDirection * width / 2, this);
+
+    IdType a_top = Points::get_instance().get_id_point(
+          start - widthDirection * width / 2 + heightDirection * height, this);
+    IdType b_top = Points::get_instance().get_id_point(
+          start + widthDirection * width / 2 + heightDirection * height, this);
+    IdType c_top = Points::get_instance().get_id_point(
+          end - widthDirection * width / 2 + heightDirection * height, this);
+    IdType d_top = Points::get_instance().get_id_point(
+          end + widthDirection * width / 2 + heightDirection * height, this);
+
     std::shared_ptr<MainData> mainData = (
-      static_cast<Wall*>(base)->mainData = std::make_shared<MainData>()
+      static_cast<Wall*>(base)->mainData = std::make_shared<MainData>(
+        a_bottom,
+        b_bottom,
+        c_bottom,
+        d_bottom,
+          
+        a_top,
+        b_top,
+        c_top,
+        d_top,
+          
+        heightDirection,
+        widthDirection
+      )
       );
-
-    mainData->heightDirection_ = heightDirection.normalized();
-    mainData->widthDirection_ = heightDirection.cross(end - start).normalized();
-
-    Eigen::Vector3d v = (end - start).normalized();
-    Eigen::Vector3d u = mainData->widthDirection_;
-
-    mainData->bottomRect = {
-      {
-        Points::get_instance().get_id_point(start - u * width / 2, this),
-        Points::get_instance().get_id_point(start + u * width / 2, this)
-      },
-      {
-        Points::get_instance().get_id_point(end - u * width / 2, this),
-        Points::get_instance().get_id_point(end + u * width / 2, this)
-      }
-    };
-    mainData->topRect = {
-      {
-        Points::get_instance().get_id_point(
-          start - u * width / 2 + mainData->heightDirection_ * height, this),
-        Points::get_instance().get_id_point(
-          start + u * width / 2 + mainData->heightDirection_ * height, this)
-      },
-      {
-        Points::get_instance().get_id_point(
-          end - u * width / 2 + mainData->heightDirection_ * height, this),
-        Points::get_instance().get_id_point(
-          end + u * width / 2 + mainData->heightDirection_ * height, this)
-      }
-    };
   }
 }
 
-std::vector<uint32_t> Hexoworld::Wall::UsualFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Wall::UsualFrame::get_pointsId() const
 {
   return {
-    static_cast<Wall*>(base)->mainData->bottomRect[0].first,
-    static_cast<Wall*>(base)->mainData->bottomRect[0].second,
-    static_cast<Wall*>(base)->mainData->bottomRect[1].first,
-    static_cast<Wall*>(base)->mainData->bottomRect[1].second,
-    static_cast<Wall*>(base)->mainData->topRect[0].first,
-    static_cast<Wall*>(base)->mainData->topRect[0].second,
-    static_cast<Wall*>(base)->mainData->topRect[1].first,
-    static_cast<Wall*>(base)->mainData->topRect[1].second,
+    static_cast<Wall*>(base)->mainData->bottomRect_[0].first,
+    static_cast<Wall*>(base)->mainData->bottomRect_[0].second,
+    static_cast<Wall*>(base)->mainData->bottomRect_[1].first,
+    static_cast<Wall*>(base)->mainData->bottomRect_[1].second,
+    static_cast<Wall*>(base)->mainData->topRect_[0].first,
+    static_cast<Wall*>(base)->mainData->topRect_[0].second,
+    static_cast<Wall*>(base)->mainData->topRect_[1].first,
+    static_cast<Wall*>(base)->mainData->topRect_[1].second,
   };
 }
 std::vector<Eigen::Vector3d> Hexoworld::Wall::UsualFrame::get_points() const
 {
   std::vector<Eigen::Vector3d> answer;
-  for (uint32_t i : get_pointsId())
+  for (IdType i : get_pointsId())
     answer.push_back(Points::get_instance().get_point(i));
   return answer;
 }
@@ -73,34 +74,34 @@ std::vector<Eigen::Vector3d> Hexoworld::Wall::UsualFrame::get_points() const
 void Hexoworld::Wall::UsualFrame::print_in_triList(std::vector<uint32_t>& TriList) const {
   const std::shared_ptr<MainData> mainData = static_cast<Wall*>(base)->mainData;
   printRect(
-    mainData->bottomRect[0],
-    mainData->bottomRect[1],
+    mainData->bottomRect_[0],
+    mainData->bottomRect_[1],
     TriList
   );
   printRect(
-    mainData->topRect[0],
-    mainData->topRect[1],
+    mainData->topRect_[0],
+    mainData->topRect_[1],
     TriList
   );
 
   printRect(
-    mainData->bottomRect[0],
-    mainData->topRect[0],
+    mainData->bottomRect_[0],
+    mainData->topRect_[0],
     TriList
   );
   printRect(
-    mainData->bottomRect[1],
-    mainData->topRect[1],
+    mainData->bottomRect_[1],
+    mainData->topRect_[1],
     TriList
   );
   printRect(
-    {mainData->bottomRect[0].first, mainData->bottomRect[1].first},
-    {mainData->topRect[0].first, mainData->topRect[1].first},
+    {mainData->bottomRect_[0].first, mainData->bottomRect_[1].first},
+    {mainData->topRect_[0].first, mainData->topRect_[1].first},
     TriList
   );
   printRect(
-    {mainData->bottomRect[0].second, mainData->bottomRect[1].second},
-    {mainData->topRect[0].second, mainData->topRect[1].second},
+    {mainData->bottomRect_[0].second, mainData->bottomRect_[1].second},
+    {mainData->topRect_[0].second, mainData->topRect_[1].second},
     TriList
   );
 }

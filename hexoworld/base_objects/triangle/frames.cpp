@@ -4,7 +4,7 @@ Hexoworld::Triangle::TriangleFrame::TriangleFrame(Object* base)
   : Frame(base)
 {}
 
-Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t BId, uint32_t CId)
+Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, IdType AId, IdType BId, IdType CId)
   : TriangleFrame(base)
 {
   if (static_cast<Triangle*>(base)->mainData == nullptr)
@@ -145,11 +145,11 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, uint32_t AId, uint32_t
   }
 }
 
-std::vector<uint32_t> Hexoworld::Triangle::UsualFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Triangle::UsualFrame::get_pointsId() const
 {
   std::shared_ptr<MainData> mainData = static_cast<Triangle*>(base)->mainData;
 
-  std::set<uint32_t> ids = {
+  std::set<IdType> ids = {
     mainData->AId,
     mainData->BId,
     mainData->CId
@@ -169,16 +169,16 @@ std::vector<uint32_t> Hexoworld::Triangle::UsualFrame::get_pointsId() const
     ids.insert(id);
   }
 
-  std::vector<uint32_t> answer;
+  std::vector<IdType> answer;
   answer.reserve(ids.size());
-  for (uint32_t id : ids)
+  for (IdType id : ids)
     answer.push_back(id);
   return answer;
 }
 std::vector<Eigen::Vector3d> Hexoworld::Triangle::UsualFrame::get_points() const
 {
   std::vector<Eigen::Vector3d> points;
-  for (uint32_t id : get_pointsId())
+  for (IdType id : get_pointsId())
     points.push_back(Points::get_instance().get_point(id));
 
   return points;
@@ -204,7 +204,7 @@ void Hexoworld::Triangle::UsualFrame::print_in_triList(std::vector<uint32_t>& Tr
       printRect(mainData->stairs_down[i], mainData->stairs_down[i + 1], TriList);
 }
 
-void Hexoworld::Triangle::UsualFrame::init_stair(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d a_goal, Eigen::Vector3d b_goal, Eigen::Vector3d c_goal, std::vector<std::pair<uint32_t, uint32_t>>& stairs, uint32_t cliff)
+void Hexoworld::Triangle::UsualFrame::init_stair(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d a_goal, Eigen::Vector3d b_goal, Eigen::Vector3d c_goal, std::vector<std::pair<IdType, IdType>>& stairs, uint32_t cliff)
 {
   if ((cliff & 1) > 0)
     a = a_goal;
@@ -213,10 +213,10 @@ void Hexoworld::Triangle::UsualFrame::init_stair(Eigen::Vector3d a, Eigen::Vecto
   Eigen::Vector3d d = c;
   Eigen::Vector3d d_goal = c_goal;
 
-  uint32_t a_id = Points::get_instance().get_id_point(a, base);
-  uint32_t b_id = Points::get_instance().get_id_point(b, base);
-  uint32_t c_id = Points::get_instance().get_id_point(c, base);
-  uint32_t d_id = Points::get_instance().get_id_point(d, base);
+  IdType a_id = Points::get_instance().get_id_point(a, base);
+  IdType b_id = Points::get_instance().get_id_point(b, base);
+  IdType c_id = Points::get_instance().get_id_point(c, base);
+  IdType d_id = Points::get_instance().get_id_point(d, base);
 
   int32_t heightstart =
     round(base->world.heightDirection_.dot(

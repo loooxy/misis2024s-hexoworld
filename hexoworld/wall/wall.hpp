@@ -71,10 +71,27 @@ struct Hexoworld::Wall : public FixedInventory {
 
   /// \brief Основные данные о каркасе.
   struct MainData {
-    std::vector<std::pair<uint32_t, uint32_t>> bottomRect; //< Прямоугольник основания.
-    std::vector<std::pair<uint32_t, uint32_t>> topRect;    //< Прямоугольник верха.
-    Eigen::Vector3d heightDirection_; //< Направление вверх.
-    Eigen::Vector3d widthDirection_; //< Направление вширь.
+    MainData(
+      IdType a_bottom,
+      IdType b_bottom,
+      IdType c_bottom,
+      IdType d_bottom,
+      IdType a_top,
+      IdType b_top,
+      IdType c_top,
+      IdType d_top,
+      const Eigen::Vector3d heightDirection,
+      const Eigen::Vector3d widthDirection)
+      :
+      bottomRect_({ {a_bottom, b_bottom}, {c_bottom, d_bottom} }),
+      topRect_({ {a_top, b_top}, {c_top, d_top} }),
+      heightDirection_(heightDirection), widthDirection_(widthDirection)
+    {}
+
+    const std::vector<std::pair<IdType, IdType>> bottomRect_; //< Прямоугольник основания.
+    const std::vector<std::pair<IdType, IdType>> topRect_;    //< Прямоугольник верха.
+    const Eigen::Vector3d heightDirection_; //< Направление вверх.
+    const Eigen::Vector3d widthDirection_; //< Направление вширь.
   };
 
   /// \brief Каркас шестиугольника.
@@ -93,14 +110,14 @@ struct Hexoworld::Wall : public FixedInventory {
     /// \param height Высота стены.
     /// \param width Ширина стены.
     /// \param heightDirection Направление высоты.
-    UsualFrame(FixedInventory* base, 
-      Eigen::Vector3d start, Eigen::Vector3d end, 
+    UsualFrame(FixedInventory* base,
+      Eigen::Vector3d start, Eigen::Vector3d end,
       double height, double width,
       Eigen::Vector3d heightDirection);
 
     /// \brief Получение Id точек каркаса.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
 
     /// \brief Получить точки каркаса.
     /// \return Массив точек.

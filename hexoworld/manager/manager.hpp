@@ -55,17 +55,20 @@ public:
   /// \brief Создать шестиугольник.
   /// \param coord Координата.
   void add_hexagon(Coord coord);
+  void del_hexagon(Coord coord);
 
   /// \brief Создать прямоугольник, который между двух шестиугольников.
   /// \param first Координата первого шестиугольника.
   /// \param second Координата второго шестиугольника.
   void add_rectangle(Coord first, Coord second);
+  void del_rectangle(Coord first, Coord second);
 
   /// \brief Создать треугольник, который между трёх шестиугольников.
   /// \param first Координата первого шестиугольника.
   /// \param second Координата второго шестиугольника.
   /// \param third Координата третьего шестиугольника.
   void add_triangle(Coord first, Coord second, Coord third);
+  void del_triangle(Coord first, Coord second, Coord third);
 
 private:
   std::map<Coord, std::shared_ptr<Hexagon>> grid_; ///< Все шестиугольники.

@@ -11,6 +11,7 @@ Hexoworld::Wall::Wall(Object* base,
     base->world.heightDirection_);
 
   drawers[Usual] = std::make_shared<UsualDrawer>(this, color);
+  drawers[Usual]->colorize_points();
 }
 
 Hexoworld::Wall::Wall(Object* base, 
@@ -25,6 +26,7 @@ Hexoworld::Wall::Wall(Object* base,
     heightDirection);
 
   drawers[Usual] = std::make_shared<UsualDrawer>(this, color);
+  drawers[Usual]->colorize_points();
 }
 
 std::vector<Eigen::Vector3d> Hexoworld::Wall::get_points() const

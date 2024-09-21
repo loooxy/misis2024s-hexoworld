@@ -54,12 +54,12 @@ public:
 
   /// \brief Основные данные.
   struct MainData {
-    uint32_t AId; ///< Id точки a
-    uint32_t BId; ///< Id точки b
-    uint32_t CId; ///< Id точки c
-    std::vector<std::pair<uint32_t, uint32_t>> stairs_down; //< Террасы вниз.
-    std::vector<std::pair<uint32_t, uint32_t>> stairs_up; //< Террасы вверх.
-    std::vector<uint32_t> middle_triangle; //< Треугольник по середине.
+    IdType AId; ///< Id точки a
+    IdType BId; ///< Id точки b
+    IdType CId; ///< Id точки c
+    std::vector<std::pair<IdType, IdType>> stairs_down; //< Террасы вниз.
+    std::vector<std::pair<IdType, IdType>> stairs_up; //< Террасы вверх.
+    std::vector<IdType> middle_triangle; //< Треугольник по середине.
     uint32_t type; //< Тип треугольника
   };
   enum Types
@@ -85,11 +85,11 @@ public:
     /// \param AId Id точки a.
     /// \param BId Id точки b.
     /// \param CId Id точки c.
-    UsualFrame(Object* base, uint32_t AId, uint32_t BId, uint32_t CId);
+    UsualFrame(Object* base, IdType AId, IdType BId, IdType CId);
 
     /// \brief Получение Id точек обычного каркаса.
     /// \return Массив Id-шников.
-    std::vector<uint32_t> get_pointsId() const;
+    std::vector<IdType> get_pointsId() const;
     /// \brief Получить все точки каркаса.
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
@@ -117,7 +117,7 @@ public:
       Eigen::Vector3d a_goal,
       Eigen::Vector3d b_goal,
       Eigen::Vector3d c_goal,
-      std::vector<std::pair<uint32_t, uint32_t>>& stairs,
+      std::vector<std::pair<IdType, IdType>>& stairs,
       uint32_t cliff = 0);
   };
 

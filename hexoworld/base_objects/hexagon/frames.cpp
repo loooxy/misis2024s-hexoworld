@@ -1,3 +1,5 @@
+#include "hexagon.hpp"
+#include "hexagon.hpp"
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <random>
 #include <cmath>
@@ -46,10 +48,10 @@ void Hexoworld::Hexagon::UsualFrame::set_height(int32_t height)
   base->world.set_new_height_to_point(mainData->centerId, height, Usual);
 }
 
-std::vector<uint32_t> Hexoworld::Hexagon::UsualFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::UsualFrame::get_pointsId() const
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
-  std::vector<uint32_t> answerId;
+  std::vector<IdType> answerId;
   for (int i = 0; i < 6; ++i)
   {
     answerId.push_back(mainData->polygonPointsId[i]);
@@ -97,7 +99,7 @@ void Hexoworld::Hexagon::UsualFrame::print_in_triList(std::vector<uint32_t>& Tri
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
-  std::vector<uint32_t> points = get_pointsId();
+  std::vector<IdType> points = get_pointsId();
 
   for (int i = 0; i < points.size() - 1; ++i)
     printTri(points.back(), points[i], points[(i + 1) % (points.size() - 1)], TriList);
@@ -217,20 +219,20 @@ Hexoworld::Hexagon::RiversFrame::RiversFrame(Object* base,
 
   auto center = Points::get_instance().get_point(mainData->centerId);
   std::vector<Eigen::Vector3d> polygonPoints;
-  for (uint32_t i : mainData->polygonPointsId)
+  for (IdType i : mainData->polygonPointsId)
     polygonPoints.push_back(Points::get_instance().get_point(i));
   std::vector<std::vector<Eigen::Vector3d>> extraPoints;
   for (const auto& i : mainData->extraPointsId)
   {
     std::vector<Eigen::Vector3d> tmp;
-    for (uint32_t j : i)
+    for (IdType j : i)
       tmp.push_back(Points::get_instance().get_point(j));
     extraPoints.push_back(tmp);
   }
 
   Eigen::Vector3d dop = base->world.dop_height(River);
 
-  radial_points.resize(6, std::vector<uint32_t>(3));
+  radial_points.resize(6, std::vector<IdType>(3));
   for (int i = 0; i < 6; ++i)
   {
     Eigen::Vector3d v = (polygonPoints[i] - center) / 4;
@@ -239,7 +241,7 @@ Hexoworld::Hexagon::RiversFrame::RiversFrame(Object* base,
     radial_points[i][2] = Points::get_instance().get_id_point(center + 3 * v + dop, this);
   }
 
-  middle_points.resize(6, std::vector<uint32_t>(2));
+  middle_points.resize(6, std::vector<IdType>(2));
   for (int i = 0; i < 6; ++i)
   {
     Eigen::Vector3d v = (extraPoints[i][1] - center) / 4;
@@ -302,7 +304,7 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::RiversFrame::get_points() const
 {
   std::vector<Eigen::Vector3d> answer;
   
-  for (uint32_t i : get_pointsId())
+  for (IdType i : get_pointsId())
     answer.push_back(
       Points::get_instance().get_point(i)
     );
@@ -310,28 +312,28 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::RiversFrame::get_points() const
   return answer;
 }
 
-std::vector<uint32_t> Hexoworld::Hexagon::RiversFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::RiversFrame::get_pointsId() const
 {
-  std::vector<uint32_t> ans;
+  std::vector<IdType> ans;
 
-  for (const uint32_t& point : shore_points)
+  for (const IdType& point : shore_points)
     ans.push_back(point);
-  for (const uint32_t& point : floor_points)
+  for (const IdType& point : floor_points)
     ans.push_back(point);
-  for (const uint32_t& point : water_points)
+  for (const IdType& point : water_points)
     ans.push_back(point);
 
   return ans;
 }
-std::vector<uint32_t> Hexoworld::Hexagon::RiversFrame::get_floor_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::RiversFrame::get_floor_pointsId() const
 {
   return floor_points;
 }
-std::vector<uint32_t> Hexoworld::Hexagon::RiversFrame::get_shore_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::RiversFrame::get_shore_pointsId() const
 {
   return shore_points;
 }
-std::vector<uint32_t> Hexoworld::Hexagon::RiversFrame::get_water_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::RiversFrame::get_water_pointsId() const
 {
   return water_points;
 }
@@ -708,7 +710,7 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::FloodFrame::get_points() const
 {
   std::vector<Eigen::Vector3d> answer;
 
-  for (uint32_t i : get_pointsId())
+  for (IdType i : get_pointsId())
     answer.push_back(
       Points::get_instance().get_point(i)
     );
@@ -716,9 +718,9 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::FloodFrame::get_points() const
   return answer;
 }
 
-std::vector<uint32_t> Hexoworld::Hexagon::FloodFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::FloodFrame::get_pointsId() const
 {
-  std::vector<uint32_t> answer;
+  std::vector<IdType> answer;
   for (const auto& p : waterPoints)
     answer.push_back(p);
 
@@ -733,7 +735,7 @@ void Hexoworld::Hexagon::FloodFrame::print_in_triList(std::vector<uint32_t>& Tri
       waterPoints[(i + 1) % (waterPoints.size() - 1)],
       TriList);
 
-  std::vector<uint32_t> points;
+  std::vector<IdType> points;
   for (int i = 0; i < 6; ++i)
   {
     points.push_back(static_cast<Hexagon*>(base)->mainData->polygonPointsId[i]);
@@ -760,17 +762,17 @@ Hexoworld::Hexagon::RoadFrame::RoadFrame(Object* object, std::vector<uint32_t> e
     this
   );
 
-  crossroads.resize(6, -1);
+  crossroads.resize(6, IdType());
   auto mainData = static_cast<Hexagon*>(base)->mainData;
   auto center = Points::get_instance().get_point(mainData->centerId);
   std::vector<Eigen::Vector3d> polygonPoints;
-  for (uint32_t i : mainData->polygonPointsId)
+  for (IdType i : mainData->polygonPointsId)
     polygonPoints.push_back(Points::get_instance().get_point(i));
   std::vector<std::vector<Eigen::Vector3d>> extraPoints;
   for (const auto& i : mainData->extraPointsId)
   {
     std::vector<Eigen::Vector3d> tmp;
-    for (uint32_t j : i)
+    for (IdType j : i)
       tmp.push_back(Points::get_instance().get_point(j));
     extraPoints.push_back(tmp);
   }
@@ -799,13 +801,13 @@ void Hexoworld::Hexagon::RoadFrame::add_road(uint32_t ind)
 
     auto center = Points::get_instance().get_point(mainData->centerId);
     std::vector<Eigen::Vector3d> polygonPoints;
-    for (uint32_t i : mainData->polygonPointsId)
+    for (IdType i : mainData->polygonPointsId)
       polygonPoints.push_back(Points::get_instance().get_point(i));
     std::vector<std::vector<Eigen::Vector3d>> extraPoints;
     for (const auto& i : mainData->extraPointsId)
     {
       std::vector<Eigen::Vector3d> tmp;
-      for (uint32_t j : i)
+      for (IdType j : i)
         tmp.push_back(Points::get_instance().get_point(j));
       extraPoints.push_back(tmp);
     }
@@ -853,6 +855,77 @@ void Hexoworld::Hexagon::RoadFrame::add_road(uint32_t ind)
             ),
             this
           );
+    }
+  }
+}
+
+void Hexoworld::Hexagon::RoadFrame::del_road(uint32_t ind)
+{
+  if (isRoad[ind])
+  {
+    isRoad[ind] = false;
+
+    middleFence.erase(ind);
+
+    auto mainData = static_cast<Hexagon*>(base)->mainData;
+    std::static_pointer_cast<Hexagon::UsualFrame>(base->frames[Usual])->normalize_edge(ind);
+
+    auto center = Points::get_instance().get_point(mainData->centerId);
+    std::vector<Eigen::Vector3d> polygonPoints;
+    for (IdType i : mainData->polygonPointsId)
+      polygonPoints.push_back(Points::get_instance().get_point(i));
+    std::vector<std::vector<Eigen::Vector3d>> extraPoints;
+    for (const auto& i : mainData->extraPointsId)
+    {
+      std::vector<Eigen::Vector3d> tmp;
+      for (IdType j : i)
+        tmp.push_back(Points::get_instance().get_point(j));
+      extraPoints.push_back(tmp);
+    }
+
+    radial_points.resize(6);
+    for (int i = 0; i < 6; ++i)
+    {
+      radial_points[i] = Points::get_instance().get_id_point(
+        center + (polygonPoints[i] - center) / 2 + base->world.dop_height(Road), this
+      );
+    }
+    middle_points.resize(6);
+    for (int i = 0; i < 6; ++i)
+    {
+      middle_points[i] = Points::get_instance().get_id_point(
+        center + (extraPoints[i][1] - center) / 3 + base->world.dop_height(Road), this);
+    }
+    for (uint32_t i = 0; i < 6; ++i)
+      crossroads[i] = middle_points[i];
+
+    for (int i = 0; i < 6; i++) if (isRoad[i])
+    {
+      init_road(i);
+
+      if (isRoad[(i + 1) % 6])
+        endOfFence[(i + 1) % 6].first =
+        Points::get_instance().get_id_point(
+          cuts_intersection(
+            Points::get_instance().get_point(inputs[i].second),
+            Points::get_instance().get_point(crossroads[(i + 1) % 6]),
+            Points::get_instance().get_point(inputs[(i + 1) % 6].first),
+            Points::get_instance().get_point(crossroads[i])
+          ),
+          this
+        );
+
+      if (isRoad[(i + 5) % 6])
+        endOfFence[(i + 5) % 6].second =
+        Points::get_instance().get_id_point(
+          cuts_intersection(
+            Points::get_instance().get_point(inputs[i].first),
+            Points::get_instance().get_point(crossroads[(i + 5) % 6]),
+            Points::get_instance().get_point(inputs[(i + 5) % 6].second),
+            Points::get_instance().get_point(crossroads[i])
+          ),
+          this
+        );
     }
   }
 }
@@ -954,7 +1027,7 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::RoadFrame::get_points() const
 {
   std::vector<Eigen::Vector3d> answer;
 
-  for (uint32_t i : get_pointsId())
+  for (IdType i : get_pointsId())
     answer.push_back(
       Points::get_instance().get_point(i)
     );
@@ -962,9 +1035,9 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::RoadFrame::get_points() const
   return answer;
 }
 
-std::vector<uint32_t> Hexoworld::Hexagon::RoadFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Hexagon::RoadFrame::get_pointsId() const
 {
-  std::vector<uint32_t> answer = {centerId};
+  std::vector<IdType> answer = {centerId};
 
   for (auto& p : crossroads)
     answer.push_back(p);
@@ -990,7 +1063,7 @@ std::vector<uint32_t> Hexoworld::Hexagon::RoadFrame::get_pointsId() const
 
 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> Hexoworld::Hexagon::RoadFrame::get_inner_fence()
 {
-  std::vector<std::pair<uint32_t, uint32_t>> answerId;
+  std::vector<std::pair<IdType, IdType>> answerId;
   for (const auto& [ind, pp] : middleFence)
     answerId.push_back(pp);
 
@@ -1029,7 +1102,7 @@ std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> Hexoworld::Hexagon::Roa
 
 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> Hexoworld::Hexagon::RoadFrame::get_outer_fence()
 {
-  std::vector<std::pair<uint32_t, uint32_t>> answerId;
+  std::vector<std::pair<IdType, IdType>> answerId;
 
   for (int i = 0; i < 6; ++i) if (isRoad[i])
   {

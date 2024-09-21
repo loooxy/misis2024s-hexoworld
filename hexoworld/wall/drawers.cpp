@@ -13,6 +13,7 @@ Hexoworld::Wall::UsualDrawer::UsualDrawer(FixedInventory* base, Eigen::Vector4i 
 
 void Hexoworld::Wall::UsualDrawer::colorize_points()
 {
-  for (auto& p : std::static_pointer_cast<UsualFrame>(base->frames[Usual])->get_pointsId())
+  auto tmp = std::static_pointer_cast<UsualFrame>(base->frames[Usual])->get_pointsId();
+  for (auto& p : tmp)
     Points::get_instance().set_point_color(p, color_);
 }

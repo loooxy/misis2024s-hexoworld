@@ -23,6 +23,7 @@ public:
     std::vector<Eigen::Vector3d> ab_points,
     std::vector<Eigen::Vector3d> cd_points,
     const std::shared_ptr<Hexagon> ab_hex, const std::shared_ptr<Hexagon> cd_hex);
+  ~Rectangle();
 
   /// \brief Обновление прямоугольника.
   void update();
@@ -32,6 +33,7 @@ public:
 
   /// \brief Создать дорогу в этом прямоугольнике
   void make_road();
+  void del_road();
 
   /// \brief Вывести треугольники, на который треангулируется прямоугольник.
   /// \param TriList Куда выводить треугольники.
@@ -90,12 +92,12 @@ public:
 
   /// \brief Основные данные.
   struct MainData {
-    uint32_t AId; ///< Id точки a
-    uint32_t BId; ///< Id точки b
-    uint32_t CId; ///< Id точки c
-    uint32_t DId; ///< Id точки d
-    std::vector<uint32_t> ABIds, CDIds; //< Точки между гранями.
-    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> stairs; //< террасы.
+    IdType AId; ///< Id точки a
+    IdType BId; ///< Id точки b
+    IdType CId; ///< Id точки c
+    IdType DId; ///< Id точки d
+    std::vector<IdType> ABIds, CDIds; //< Точки между гранями.
+    std::vector<std::vector<std::pair<IdType, IdType>>> stairs; //< террасы.
   };
 
   /// \brief Каркас прямоугольника.
@@ -112,11 +114,12 @@ public:
     /// \param DId Точка d.
     /// \param terraces_side Сторона, на которой выводить террасы.
     /// \param stairs Куда выводить террасы.
-    void init_stairs(uint32_t AId, uint32_t BId, uint32_t CId, uint32_t DId,
-      uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs);
+    void init_stairs(IdType AId, IdType BId, IdType CId, IdType DId,
+      uint32_t terraces_side, std::vector<std::pair<IdType, IdType>>& stairs);
 
     /// \brief Удаляет террасы по середине.
     void delete_middle_terraces();
+    void add_middle_terraces();
   };
 
   /// \brief Обычный каркас
@@ -130,8 +133,8 @@ public:
     /// \param Did Точка d.
     /// \param ABids Точки, между точками a и b.
     /// \param CDids Точки, между точками c и d.
-    UsualFrame(Object* base, uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-      std::vector<uint32_t> ABids, std::vector<uint32_t> CDids);
+    UsualFrame(Object* base, IdType Aid, IdType Bid, IdType Cid, IdType Did,
+      std::vector<IdType> ABids, std::vector<IdType> CDids);
 
     /// \brief Получить все точки.
     /// \return Массив точек.
@@ -157,8 +160,8 @@ public:
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
 
-    std::vector<uint32_t> waterPointsId; //< Точки, принадлежащие воде.
-    std::vector<uint32_t> shorePointsId; //< Точки берега.
+    std::vector<IdType> waterPointsId; //< Точки, принадлежащие воде.
+    std::vector<IdType> shorePointsId; //< Точки берега.
   };
 
   /// \brief Каркас дороги.
@@ -167,6 +170,7 @@ public:
     /// \brief Конструктор.
     /// \param base Объект, к которому принадлежит каркас.
     RoadFrame(Object* base);
+    ~RoadFrame();
 
     /// \brief Получить все точки.
     /// \return Массив точек.
@@ -176,8 +180,8 @@ public:
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
 
-    std::vector<uint32_t> middlePointsId; //< Точки посередине дороги.
-    std::vector<uint32_t> fencePointsId;  //< Точки забора.
+    std::vector<IdType> middlePointsId; //< Точки посередине дороги.
+    std::vector<IdType> fencePointsId;  //< Точки забора.
   };
 private:
   std::shared_ptr<MainData> mainData; //< Основные данные.

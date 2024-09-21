@@ -1,17 +1,21 @@
+#include "rectangle.hpp"
+#include "rectangle.hpp"
+#include "rectangle.hpp"
+#include "rectangle.hpp"
 #include <hexoworld/base_objects/rectangle/rectangle.hpp>
 
 
-void Hexoworld::Rectangle::RectangleFrame::init_stairs(uint32_t AId, uint32_t BId,
-  uint32_t CId, uint32_t DId, uint32_t terraces_side, std::vector<std::pair<uint32_t, uint32_t>>& stairs)
+void Hexoworld::Rectangle::RectangleFrame::init_stairs(IdType AId, IdType BId,
+  IdType CId, IdType DId, uint32_t terraces_side, std::vector<std::pair<IdType, IdType>>& stairs)
 {
   Eigen::Vector3d a = Points::get_instance().get_point(AId);
   Eigen::Vector3d b = Points::get_instance().get_point(BId);
   Eigen::Vector3d c = Points::get_instance().get_point(CId);
   Eigen::Vector3d d = Points::get_instance().get_point(DId);
-  uint32_t a_id = AId;
-  uint32_t b_id = BId;
-  uint32_t c_id = CId;
-  uint32_t d_id = DId;
+  IdType a_id = AId;
+  IdType b_id = BId;
+  IdType c_id = CId;
+  IdType d_id = DId;
 
   int32_t heightstart =
     round(base->world.heightDirection_.dot(
@@ -90,14 +94,14 @@ Hexoworld::Rectangle::RectangleFrame::RectangleFrame(Object* base)
 
 void Hexoworld::Rectangle::RectangleFrame::delete_middle_terraces()
 {
-  std::vector<uint32_t> first_border = { static_cast<Rectangle*>(base)->mainData->AId };
-  for (uint32_t id : static_cast<Rectangle*>(base)->mainData->ABIds)
+  std::vector<IdType> first_border = { static_cast<Rectangle*>(base)->mainData->AId };
+  for (IdType id : static_cast<Rectangle*>(base)->mainData->ABIds)
     first_border.push_back(id);
   first_border.push_back(static_cast<Rectangle*>(base)->mainData->BId);
 
 
-  std::vector<uint32_t> second_border = { static_cast<Rectangle*>(base)->mainData->CId };
-  for (uint32_t id : static_cast<Rectangle*>(base)->mainData->CDIds)
+  std::vector<IdType> second_border = { static_cast<Rectangle*>(base)->mainData->CId };
+  for (IdType id : static_cast<Rectangle*>(base)->mainData->CDIds)
     second_border.push_back(id);
   second_border.push_back(static_cast<Rectangle*>(base)->mainData->DId);
 
@@ -122,9 +126,33 @@ void Hexoworld::Rectangle::RectangleFrame::delete_middle_terraces()
   );
 }
 
+void Hexoworld::Rectangle::RectangleFrame::add_middle_terraces()
+{
+  auto& mainData = static_cast<Rectangle*>(base)->mainData;
+  
+  mainData->stairs.clear();
+  mainData->stairs.resize(4);
+
+  std::vector<IdType> first_border = { mainData->AId };
+  for (IdType id : mainData->ABIds)
+    first_border.push_back(id);
+  first_border.push_back(mainData->BId);
+  
+  std::vector<IdType> second_border = { mainData->CId };
+  for (IdType id : mainData->CDIds)
+    second_border.push_back(id);
+  second_border.push_back(mainData->DId);
+
+  for (int i = 0; i < first_border.size() - 1; ++i)
+    init_stairs(
+      first_border[i], first_border[i + 1], second_border[i], second_border[i + 1], 3,
+      static_cast<Rectangle*>(base)->mainData->stairs[i]
+    );
+}
+
 Hexoworld::Rectangle::UsualFrame::UsualFrame(Object* base,
-  uint32_t Aid, uint32_t Bid, uint32_t Cid, uint32_t Did,
-  std::vector<uint32_t> ABids, std::vector<uint32_t> CDids)
+  IdType Aid, IdType Bid, IdType Cid, IdType Did,
+  std::vector<IdType> ABids, std::vector<IdType> CDids)
   : RectangleFrame(base)
 {
   if (static_cast<Rectangle*>(base)->mainData == nullptr)
@@ -137,14 +165,14 @@ Hexoworld::Rectangle::UsualFrame::UsualFrame(Object* base,
     static_cast<Rectangle*>(base)->mainData->ABIds = ABids;
     static_cast<Rectangle*>(base)->mainData->CDIds = CDids;
 
-    std::vector<uint32_t> first_border = { Aid };
-    for (uint32_t id : ABids)
+    std::vector<IdType> first_border = { Aid };
+    for (IdType id : ABids)
       first_border.push_back(id);
     first_border.push_back(Bid);
 
 
-    std::vector<uint32_t> second_border = { Cid };
-    for (uint32_t id : CDids)
+    std::vector<IdType> second_border = { Cid };
+    for (IdType id : CDids)
       second_border.push_back(id);
     second_border.push_back(Did);
 
@@ -159,7 +187,7 @@ Hexoworld::Rectangle::UsualFrame::UsualFrame(Object* base,
 
 std::vector<Eigen::Vector3d> Hexoworld::Rectangle::UsualFrame::get_points() const
 {
-  std::set<uint32_t> ids = {
+  std::set<IdType> ids = {
     static_cast<Rectangle*>(base)->mainData->AId,
     static_cast<Rectangle*>(base)->mainData->BId,
     static_cast<Rectangle*>(base)->mainData->CId,
@@ -178,7 +206,7 @@ std::vector<Eigen::Vector3d> Hexoworld::Rectangle::UsualFrame::get_points() cons
     }
 
   std::vector<Eigen::Vector3d> points;
-  for (uint32_t id : ids)
+  for (IdType id : ids)
     points.push_back(Points::get_instance().get_point(id));
 
   return points;
@@ -314,6 +342,12 @@ Hexoworld::Rectangle::RoadFrame::RoadFrame(Object* base)
       this
     )
   };
+}
+
+Hexoworld::Rectangle::RoadFrame::~RoadFrame()
+{
+  if (static_cast<Rectangle*>(base)->mainData != nullptr)
+    add_middle_terraces();
 }
 
 std::vector<Eigen::Vector3d> Hexoworld::Rectangle::RoadFrame::get_points() const

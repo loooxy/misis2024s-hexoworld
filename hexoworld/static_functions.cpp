@@ -19,12 +19,10 @@ void Hexoworld::set_new_height_to_point(Eigen::Vector3d& point, int32_t height,
       .dot(point - dop_height(type) - origin_) /
       heightStep_);
 
-  point += (height - last_height) *
-    heightStep_ *
-    heightDirection_ + dop_height(type);
+  point += (height - last_height) * heightStep_ * heightDirection_;
 }
 
-Eigen::Vector3d Hexoworld::set_new_height_to_point(uint32_t id_point, int32_t height, FrameAndDrawersTypes type)
+Eigen::Vector3d Hexoworld::set_new_height_to_point(IdType id_point, int32_t height, FrameAndDrawersTypes type)
 {
   auto point = Points::get_instance().get_point(id_point);
   set_new_height_to_point(point, height, type);
@@ -34,8 +32,8 @@ Eigen::Vector3d Hexoworld::set_new_height_to_point(uint32_t id_point, int32_t he
 
 
 void Hexoworld::printRect(
-  std::pair<uint32_t, uint32_t> aIds,
-  std::pair<uint32_t, uint32_t> bIds,
+  const std::pair<IdType, IdType>& aIds,
+  const std::pair<IdType, IdType>& bIds,
   std::vector<uint32_t>& TriList)
 {
   printTri(aIds.first, aIds.second, bIds.second, TriList);
@@ -43,16 +41,16 @@ void Hexoworld::printRect(
 }
 
 void Hexoworld::printTri(
-  uint32_t aId, uint32_t bId, uint32_t cId, 
+  const IdType& aId, const IdType& bId, const IdType& cId,
   std::vector<uint32_t>& TriList)
 {
-  TriList.push_back(aId);
-  TriList.push_back(bId);
-  TriList.push_back(cId);
+  TriList.push_back(aId.get());
+  TriList.push_back(bId.get());
+  TriList.push_back(cId.get());
 
-  TriList.push_back(cId);
-  TriList.push_back(bId);
-  TriList.push_back(aId);
+  TriList.push_back(cId.get());
+  TriList.push_back(bId.get());
+  TriList.push_back(aId.get());
 }
 
 uint32_t Hexoworld::get_ind_direction(Coord a, Coord b) {

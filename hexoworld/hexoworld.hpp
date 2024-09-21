@@ -1,11 +1,15 @@
 #pragma once
 #include <stdint.h>
+#include <iomanip>
 #include <vector>
 #include <Eigen/Dense>
 #include <map>
 #include <set>
 #include <memory>
 #include <mutex>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <hexoworld/defines.hpp>
 
 /// \brief Структура формата вывода точки.
@@ -86,6 +90,7 @@ public:
   /// \param col Номер столбца.
   /// \param color Цвет шестиугольника.
   void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color);
+  void del_hexagon(uint32_t row, uint32_t col);
 
   /// \brief Добавить реку
   /// \param hexs Координаты {row, col} шестиугольников, по которым течёт река.
@@ -100,11 +105,13 @@ public:
   /// \param row Строка позиции шестиугольника.
   /// \param col Столбец позиции шестиугольника.
   void add_road_in_hex(uint32_t row, uint32_t col);
+  void del_road_in_hex(uint32_t row, uint32_t col);
 
   /// \brief Создать ферму в шестиугольнике.
   /// \param row Строка позиции шестиугольника.
   /// \param col Столбец позиции шестиугольника.
   void add_farm_in_hex(uint32_t row, uint32_t col);
+  void del_farm_in_hex(uint32_t row, uint32_t col);
 
   /// \brief Обновить реку.
   void update_river();
@@ -123,8 +130,8 @@ public:
 
   int32_t get_hex_height(uint32_t row, uint32_t col) const;
   Eigen::Vector4i get_hex_color(uint32_t row, uint32_t col) const;
-  uint32_t get_n_rows();
-  uint32_t get_n_cols();
+  uint32_t get_n_rows() const;
+  uint32_t get_n_cols() const;
 
   /// \brief Вывести вершины и треугольники, на который треангулируется мир.
   /// \param Vertices Куда выводить вершины.
@@ -155,6 +162,99 @@ private:
 
       return false;
     }
+  };
+
+  class OneThreadController {
+  public:
+    OneThreadController(
+      uint32_t world, 
+      std::thread::id id
+    ) : world(world), id_(id) {
+      if (who_blocked.find(world) == who_blocked.end())
+      {
+        who_blocked[world] = std::thread::id();
+        mutexs[world] = std::make_unique<std::mutex>();
+      }
+
+      if (id_ != who_blocked.at(world))
+      {        
+        mutexs[world]->lock();
+        who_blocked[world] = id;
+      }
+      else
+        cnt++;
+    }
+    ~OneThreadController() {
+      if (id_ == who_blocked.at(world))
+      {
+        if (cnt != 0)
+          cnt--;
+        else
+        {
+          who_blocked[world] = std::thread::id();
+          mutexs[world]->unlock();
+        }
+      }
+      else
+        throw std::runtime_error("Something wrong.");
+    }
+  private:
+    uint32_t cnt = 0;
+    std::thread::id id_;
+    uint32_t world;
+    static std::unordered_map<uint32_t, std::thread::id> who_blocked;
+    static std::unordered_map<uint32_t, std::unique_ptr<std::mutex>> mutexs;
+  };
+
+  class IdType {
+  public:
+    explicit IdType()                   noexcept : real(false), id(0)      { }
+    explicit IdType(const uint32_t id)  noexcept : real(true ), id(id)     { cnts[id]++; }
+             IdType(const IdType& rhs)  noexcept : real(true ), id(rhs.id) { cnts[id]++; }
+             IdType(const IdType&& rhs) noexcept : real(true ), id(rhs.id) { cnts[id]++; }
+            ~IdType() {
+               if (real)
+               {
+                 cnts[id]--;
+                 if (cnts[id] == 0)
+                 {
+                   uint32_t div = id / Points::get_instance().colors_on_point;
+                   uint32_t mod = id % Points::get_instance().colors_on_point;
+
+                   if (div < Points::get_instance().points_id.size() &&
+                     Points::get_instance().points_id[div].find(mod) != Points::get_instance().points_id[div].end())
+                   {
+                     Points::get_instance().id_to_essences[div].erase(
+                       Points::get_instance().points_id[div][mod]);
+                     Points::get_instance().points_id[div].erase(mod);
+                   }
+                 }
+               }
+             }
+
+    IdType operator= (const IdType& rhs) {
+      IdType::~IdType();
+
+      id = rhs.id;
+      real = rhs.real;
+      cnts[id]++;
+      return *this;
+    }
+    bool operator< (const IdType& rhs) const
+    {
+      return id < rhs.id;
+    }
+
+    uint32_t get() const { 
+      if (real)
+        return id;
+      else
+        throw std::runtime_error("You cant use not real id");
+    }
+  private:
+    bool real = true;
+    uint32_t id;
+    static std::map<uint32_t, uint32_t> cnts;
   };
 
   /// \brief Структура координат
@@ -199,7 +299,7 @@ private:
     /// \brief Установить цвет точке.
     /// \param point Точка.
     /// \param color Цвет.
-    void set_point_color(uint32_t point, Eigen::Vector4i color);
+    void set_point_color(const IdType& point, Eigen::Vector4i color);
 
     /// \brief Получение цвета точки.
     /// \param point Точка.
@@ -216,22 +316,24 @@ private:
     /// \param p Точка.
     /// \param base Объект, к которому принадлежит точка.
     /// \return Id.
-    uint32_t get_id_point(Eigen::Vector3d p, const Essence* base);
+    IdType get_id_point(Eigen::Vector3d p, const Essence* base);
 
     /// \brief Получение точки по Id.
     /// \param id Id.
     /// \return Точка.
-    Eigen::Vector3d get_point(uint32_t id) const;
+    Eigen::Vector3d get_point(const IdType& id) const;
 
     /// \brief Присвоить Id новую точку.
     /// \param id Id.
     /// \param new_point Новая точка.
-    void update_point(uint32_t id, Eigen::Vector3d new_point);
+    void update_point(const IdType& id, Eigen::Vector3d new_point);
 
     /// \brief Записать все точки в массив точек.
     /// \param Vertices Массив точек.
     void print_in_vertices(std::vector<PrintingPoint>& Vertices);
 
+    void lock() { is_locked = true; }
+    void unlock() { is_locked = false; }
   private:
     std::map<Eigen::Vector3d, uint32_t, EigenVector3dComp> point_to_id; //< Id точек.
     std::vector<Eigen::Vector3d> id_to_point; /*< 
@@ -239,7 +341,10 @@ private:
     Id которой с colors_on_point * i по colors_on_point * (i + 1) - 1.*/
     std::vector<std::vector<Eigen::Vector4i>> id_to_color;//< Цвета точек.
     std::vector<std::map<const Essence*, uint32_t>> id_to_essences; //< Объекты точек.
-    const uint32_t colors_on_point = 4; //< Максимальное число цветов на точку
+    std::vector<std::map<uint32_t, const Essence*>> points_id;
+    const uint32_t colors_on_point = 5; //< Максимальное число цветов на точку
+    bool is_locked = false;
+    friend IdType;
   };
 
   /// \brief Класс отрисовщиков.
@@ -301,6 +406,14 @@ private:
     Object* base; //< Объект, к которому отнисится инвентарь.
   };
 
+  enum FrameAndDrawersTypes
+    {
+      Usual, //< Обычные, обязательные, каркасы и отрисовщики.
+      River, //< Каркасы и отрисовщики рек.
+      Road,  //< Каркасы и отрисовщики дорог.
+      Flood  //< Каркасы и отрисовщики стоящей воды.
+    };
+
   /// \brief Базовая структура всех объектов
   struct Object : public Essence{
     /// \brief Конструктор по умолчанию.
@@ -315,19 +428,13 @@ private:
     /// \brief Раскрашивание точек.
     virtual void colorize_points() = 0;
     
-    std::map<uint32_t, std::shared_ptr<Drawer<Object>>> drawers; //< Отрисовщики.
-    std::map<uint32_t, std::shared_ptr<Frame<Object>>> frames;   //< Каркасы.
+    std::map<FrameAndDrawersTypes, std::shared_ptr<Drawer<Object>>> drawers; //< Отрисовщики.
+    std::map<FrameAndDrawersTypes, std::shared_ptr<Frame<Object>>> frames;   //< Каркасы.
     std::vector<std::shared_ptr<FixedInventory>> inventory; //< Неподвижный инвентарь на объекте.
     Hexoworld& world; ///< Мир к которому принадлежит шестиугольник.
   };
 
-  enum FrameAndDrawersTypes
-  {
-    Usual, //< Обычные, обязательные, каркасы и отрисовщики.
-    River, //< Каркасы и отрисовщики рек.
-    Road,  //< Каркасы и отрисовщики дорог.
-    Flood  //< Каркасы и отрисовщики стоящей воды.
-  };
+  
 
   /// \brief Структура шестиугольник.
   struct Hexagon;
@@ -357,7 +464,7 @@ private:
   /// \param id_point Id точки.
   /// \param height Новая высота.
   /// \param type К какому каркасу/отрисовщику относится.
-  Eigen::Vector3d set_new_height_to_point(uint32_t id_point, int32_t height, FrameAndDrawersTypes type);
+  Eigen::Vector3d set_new_height_to_point(IdType id_point, int32_t height, FrameAndDrawersTypes type);
 
   /// \brief Получить номер грани между двумя вершинами.
   /// \param vertex1 Первая вершина.
@@ -370,8 +477,8 @@ private:
   /// \param bIds Id второй пары точек.
   /// a.first-b.first должно быть параллельно a.second-b.second
   /// \param TriList Куда выводить треугольники.
-  static void printRect(std::pair<uint32_t, uint32_t> aIds,
-    std::pair<uint32_t, uint32_t> bIds,
+  static void printRect(const std::pair<IdType, IdType>& aIds,
+    const std::pair<IdType, IdType>& bIds,
     std::vector<uint32_t>& TriList);
 
   /// \brief Вывод треугольника.
@@ -379,7 +486,7 @@ private:
   /// \param bId Id точки b.
   /// \param cId Id точки c.
   /// \param TriList Куда выводить треугольники.
-  static void printTri(uint32_t aId, uint32_t bId, uint32_t cId,
+  static void printTri(const IdType& aId, const IdType& bId, const IdType& cId,
     std::vector<uint32_t>& TriList);
 
   /// \brief Получить номер грани, ведущей от шестиугольника с координатами a, 
@@ -406,13 +513,13 @@ private:
   /// \param type Тип каркаса/отрисовщика.
   /// \return Дополнительные вектор вверх.
   Eigen::Vector3d dop_height(FrameAndDrawersTypes type) {
-    return type * 10000 * PRECISION_DBL_CALC * heightDirection_;
+    return type * 10 * PRECISION_DBL_CALC * heightDirection_;
   }
 
-  void zip_data(std::vector<PrintingPoint>& Vertices,
+  static void zip_data(std::vector<PrintingPoint>& Vertices,
     std::vector<uint32_t>& TriList,
     std::vector<PrintingPoint>& new_Vertices,
-    std::vector<uint16_t>& new_TriList) const;
+    std::vector<uint16_t>& new_TriList);
 
   const Eigen::Vector3d rowDirection_; ///< Направление увеличения номера строки.
   const Eigen::Vector3d colDirection_; ///< Направление увеличения номера столбца.
@@ -421,8 +528,8 @@ private:
   const float size_; ///< Радиус внутреннего шестиугольника.
   const float heightStep_; ///< Расстояние между соседними уровнями. 
   const uint32_t nTerracesOnHeightStep_;///< Число террас между соседними уровнями.
-  uint32_t n_rows; ///< Кол-во рядов
-  uint32_t n_cols; ///< Кол-во столбцоы
+  const uint32_t n_rows; ///< Кол-во рядов
+  const uint32_t n_cols; ///< Кол-во столбцоы
 
   Eigen::Vector4i riverColor = Eigen::Vector4i(0, 100, 255, 255); //< Цвет воды в реке.
   Eigen::Vector4i floodColor = Eigen::Vector4i(72, 209, 204, 1); //< Цвет затопления.

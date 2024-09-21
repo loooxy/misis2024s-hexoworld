@@ -17,19 +17,19 @@ void Hexoworld::Rectangle::UsualDrawer::colorize_points() {
   Eigen::Vector4i cd_color = 
     std::static_pointer_cast<Hexagon::UsualDrawer>(rect->cd_hex_->drawers.at(Usual))->get_color();
 
-  auto col_id = [this, ab_color, cd_color](uint32_t id, Eigen::Vector4i color) {
+  auto col_id = [this, ab_color, cd_color](IdType id, Eigen::Vector4i color) {
     Points::get_instance().set_point_color(
       id,
       color + ((ab_color + cd_color) / 2 - color) / 5);
     };
 
   std::vector<Eigen::Vector3d> ab = { Points::get_instance().get_point(rect->mainData->AId) };
-  for (uint32_t id : rect->mainData->ABIds)
+  for (IdType id : rect->mainData->ABIds)
     ab.push_back(Points::get_instance().get_point(id));
   ab.push_back(Points::get_instance().get_point(rect->mainData->BId));
   
   std::vector<Eigen::Vector3d> cd = { Points::get_instance().get_point(rect->mainData->CId) };
-  for (uint32_t id : rect->mainData->CDIds)
+  for (IdType id : rect->mainData->CDIds)
     cd.push_back(Points::get_instance().get_point(id));
   cd.push_back(Points::get_instance().get_point(rect->mainData->DId));
 
@@ -82,7 +82,7 @@ void Hexoworld::Rectangle::RiverDrawer::colorize_points() {
   Rectangle* rect = static_cast<Rectangle*>(base);
   std::shared_ptr<RiverFrame> frame = std::static_pointer_cast<RiverFrame>(rect->frames[River]);
 
-  auto col_id = [this](uint32_t id, Eigen::Vector4i color) {
+  auto col_id = [this](IdType id, Eigen::Vector4i color) {
     Points::get_instance().set_point_color(id, color);
     };
 
@@ -107,7 +107,7 @@ void Hexoworld::Rectangle::RoadDrawer::colorize_points()
   Rectangle* rect = static_cast<Rectangle*>(base);
   std::shared_ptr<RoadFrame> frame = std::static_pointer_cast<RoadFrame>(rect->frames[Road]);
 
-  auto col_id = [this](uint32_t id, Eigen::Vector4i color) {
+  auto col_id = [this](IdType id, Eigen::Vector4i color) {
     Points::get_instance().set_point_color(id, color);
     };
 

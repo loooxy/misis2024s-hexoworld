@@ -9,11 +9,13 @@ Hexoworld::Cottage::Cottage(Object* base,
   const auto& wallsFrame = std::make_shared<WallsFrame>(this, center, mainDirection);
   frames[Walls] = wallsFrame;
   drawers[Walls] = std::make_shared<WallsDrawer>(this);
+  drawers[Walls]->colorize_points();
 
   frames[Roof] = std::make_shared<RoofFrame>(this,
     wallsFrame->get_points_topRect(),
     mainDirection);
   drawers[Roof] = std::make_shared<RoofDrawer>(this);
+  drawers[Roof]->colorize_points();
 }
 
 std::vector<Eigen::Vector3d> Hexoworld::Cottage::get_points() const {

@@ -1,3 +1,6 @@
+#include "hexagon.hpp"
+#include "hexagon.hpp"
+#include "hexagon.hpp"
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <hexoworld/wall/wall.hpp>
 #include <hexoworld/cottage/cottage.hpp>
@@ -11,6 +14,7 @@ Hexoworld::Hexagon::Hexagon(Hexoworld& hexoworld,
 {
   frames[Usual] = std::make_shared<UsualFrame>(this, center);
   drawers[Usual] = std::make_shared<UsualDrawer>(this, Eigen::Vector4i(0, 0, 0, 0));
+  drawers[Usual]->colorize_points();
 }
 
 void Hexoworld::Hexagon::set_height(int32_t height)
@@ -25,6 +29,7 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::make_river(int32_t in, int32_t 
 {
   frames[River] = std::make_shared<RiversFrame>(this, in, out);
   drawers[River] = std::make_shared<RiverDrawer>(this);
+  drawers[River]->colorize_points();
 
   return std::static_pointer_cast<RiversFrame>(frames[River])->get_points();
 }
@@ -33,6 +38,7 @@ void Hexoworld::Hexagon::make_flooding()
 {
   frames [Flood] = std::make_shared<FloodFrame >(this, world.heightStep_ / 10);
   drawers[Flood] = std::make_shared<FloodDrawer>(this);
+  drawers[Flood]->colorize_points();
 }
 
 void Hexoworld::Hexagon::init_inventory()
@@ -67,13 +73,13 @@ void Hexoworld::Hexagon::init_inventory()
   {
     auto center = Points::get_instance().get_point(mainData->centerId);
     std::vector<Eigen::Vector3d> polygonPoints;
-    for (uint32_t i : mainData->polygonPointsId)
+    for (IdType i : mainData->polygonPointsId)
       polygonPoints.push_back(Points::get_instance().get_point(i));
     std::vector<std::vector<Eigen::Vector3d>> extraPoints;
     for (const auto& i : mainData->extraPointsId)
     {
       std::vector<Eigen::Vector3d> tmp;
-      for (uint32_t j : i)
+      for (IdType j : i)
         tmp.push_back(Points::get_instance().get_point(j));
       extraPoints.push_back(tmp);
     }
@@ -91,15 +97,16 @@ void Hexoworld::Hexagon::init_inventory()
 
 void Hexoworld::Hexagon::init_number()
 {
+  //OneThreadController __otc__(&world, std::this_thread::get_id());
   auto center = Points::get_instance().get_point(mainData->centerId);
   std::vector<Eigen::Vector3d> polygonPoints;
-  for (uint32_t i : mainData->polygonPointsId)
+  for (IdType i : mainData->polygonPointsId)
     polygonPoints.push_back(Points::get_instance().get_point(i));
   std::vector<std::vector<Eigen::Vector3d>> extraPoints;
   for (const auto& i : mainData->extraPointsId)
   {
     std::vector<Eigen::Vector3d> tmp;
-    for (uint32_t j : i)
+    for (IdType j : i)
       tmp.push_back(Points::get_instance().get_point(j));
     extraPoints.push_back(tmp);
   }
@@ -211,12 +218,16 @@ void Hexoworld::Hexagon::make_road(std::vector<uint32_t> ind_roads)
 {
   frames [Road] = std::make_shared<RoadFrame >(this, ind_roads);
   drawers[Road] = std::make_shared<RoadDrawer>(this);
+  drawers[Road]->colorize_points();
 
   init_inventory();
 }
 
 void Hexoworld::Hexagon::make_road(uint32_t ind_road)
 {
+  if (frames.find(Road) == frames.end())
+    make_road(std::vector<uint32_t>{ind_road});
+
   auto frame = std::static_pointer_cast<RoadFrame>(frames.at(Road));
   if (!frame->isRoad[ind_road])
   {
@@ -226,11 +237,38 @@ void Hexoworld::Hexagon::make_road(uint32_t ind_road)
   }
 }
 
+void Hexoworld::Hexagon::del_road()
+{
+  if (frames.find(Road) != frames.end())
+  {
+    frames.erase(Road);
+    drawers.erase(Road);
+    init_inventory();
+  }
+}
+
+void Hexoworld::Hexagon::del_road(uint32_t ind_road)
+{
+  auto frame = std::static_pointer_cast<RoadFrame>(frames.at(Road));
+  if (frame->isRoad[ind_road])
+  {
+    frame->del_road(ind_road);
+
+    init_inventory();
+  }
+}
+
 void Hexoworld::Hexagon::make_farm()
 {
   std::random_device rd;
   mainData->dirFarm = rd() % 6;
-  std::static_pointer_cast<UsualDrawer>(drawers[Usual])->set_color(Eigen::Vector4i(241, 215, 129, 255));
+  //std::static_pointer_cast<UsualDrawer>(drawers[Usual])->set_color(Eigen::Vector4i(241, 215, 129, 255));
+  init_inventory();
+}
+
+void Hexoworld::Hexagon::del_farm()
+{
+  mainData->dirFarm = -1;
   init_inventory();
 }
 

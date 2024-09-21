@@ -1,3 +1,5 @@
+#include "cottage.hpp"
+#include "cottage.hpp"
 #include <hexoworld/cottage/cottage.hpp>
 
 Hexoworld::Cottage::WallsFrame::WallsFrame(FixedInventory* base,
@@ -26,9 +28,9 @@ Hexoworld::Cottage::WallsFrame::WallsFrame(FixedInventory* base,
   };
 }
 
-std::vector<uint32_t> Hexoworld::Cottage::WallsFrame::get_pointsId() const
+std::vector<Hexoworld::IdType> Hexoworld::Cottage::WallsFrame::get_pointsId() const
 {
-  std::vector<uint32_t> answer;
+  std::vector<IdType> answer;
   for (const auto& point : bottomRect_)
     answer.push_back(point);
   for (const auto& point : topRect_)
@@ -97,8 +99,8 @@ Hexoworld::Cottage::RoofFrame::RoofFrame(FixedInventory* base,
   };
 }
 
-std::vector<uint32_t> Hexoworld::Cottage::RoofFrame::get_pointsId() const {
-  std::vector<uint32_t> answer;
+std::vector<Hexoworld::IdType> Hexoworld::Cottage::RoofFrame::get_pointsId() const {
+  std::vector<IdType> answer;
   for (const auto& point : bottomRect_)
     answer.push_back(point);
   for (const auto& point : topLine_)

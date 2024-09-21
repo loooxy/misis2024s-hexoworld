@@ -1,3 +1,6 @@
+#include "manager.hpp"
+#include "manager.hpp"
+#include "manager.hpp"
 #include <hexoworld/manager/manager.hpp>
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <hexoworld/base_objects/rectangle/rectangle.hpp>
@@ -20,6 +23,12 @@ void Hexoworld::Manager::add_hexagon(Coord coord) {
   }
 }
 
+void Hexoworld::Manager::del_hexagon(Coord coord)
+{
+  if (grid_.find(coord) != grid_.end())
+    grid_.erase(coord);
+}
+
 void Hexoworld::Manager::add_rectangle(Coord first, Coord second)
 {
   const auto pair = pair_coords(first, second);
@@ -31,15 +40,15 @@ void Hexoworld::Manager::add_rectangle(Coord first, Coord second)
     uint32_t first_ind_side = get_ind_direction(first, second);
     uint32_t second_ind_side = get_ind_direction(second, first);
 
-    std::vector<uint32_t> epi1Id = mainData_hex1->extraPointsId[first_ind_side];
-    std::vector<uint32_t> epi2Id = mainData_hex2->extraPointsId[second_ind_side];
+    std::vector<IdType> epi1Id = mainData_hex1->extraPointsId[first_ind_side];
+    std::vector<IdType> epi2Id = mainData_hex2->extraPointsId[second_ind_side];
     std::reverse(epi2Id.begin(), epi2Id.end());
     
     std::vector<Eigen::Vector3d> epi1;
-    for (uint32_t i : epi1Id)
+    for (IdType i : epi1Id)
       epi1.push_back(Points::get_instance().get_point(i));
     std::vector<Eigen::Vector3d> epi2;
-    for (uint32_t i : epi2Id)
+    for (IdType i : epi2Id)
       epi2.push_back(Points::get_instance().get_point(i));
 
     rectangles[pair] = std::make_shared<Rectangle>(
@@ -57,6 +66,13 @@ void Hexoworld::Manager::add_rectangle(Coord first, Coord second)
       grid_.at(second)
     );
   }
+}
+
+void Hexoworld::Manager::del_rectangle(Coord first, Coord second)
+{
+  auto pair = pair_coords(first, second);
+  if (rectangles.find(pair) != rectangles.end())
+    rectangles.erase(pair);
 }
 
 void Hexoworld::Manager::add_triangle(Coord first, Coord second, Coord third)
@@ -91,6 +107,13 @@ void Hexoworld::Manager::add_triangle(Coord first, Coord second, Coord third)
       grid_.at(third)
     );
   }
+}
+
+void Hexoworld::Manager::del_triangle(Coord first, Coord second, Coord third)
+{
+  auto tri = tri_coords(first, second, third);
+  if (triangles.find(tri) != triangles.end())
+    triangles.erase(tri);
 }
 
 std::vector<std::shared_ptr<Hexoworld::Object>> Hexoworld::Manager::get_all_object()
