@@ -1,18 +1,17 @@
-#include <stdio.h>
-#include <string>
-#include <iostream>
+#include <glad/glad.h>
+
 #include <imgui.h>
 #include <imgui_impl_bgfx.cpp>
 #include <imgui_impl_glfw.cpp>
-#include <thread>
-#include <vector>
-#include <chrono>
+
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
 #include "bx/math.h"
+
 #include "GLFW/glfw3.h"
-#include <vector>
+#include "GLFW/glfw3native.h"
+
 #if BX_PLATFORM_LINUX
 #define GLFW_EXPOSE_NATIVE_X11
 #elif BX_PLATFORM_WINDOWS
@@ -20,10 +19,23 @@
 #elif BX_PLATFORM_OSX
 #define GLFW_EXPOSE_NATIVE_COCOA
 #endif
-#include "GLFW/glfw3native.h"
-
 
 #include<hexoworld/includes.hpp>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <opengl/camera.h>
+#include <opengl/shader_s.h>
+
+#include <stdio.h>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <vector>
 
 #define WNDW_WIDTH 2880
 #define WNDW_HEIGHT 1880
