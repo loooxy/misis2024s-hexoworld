@@ -1,8 +1,8 @@
 #include <glad/glad.h>
 
 #include <imgui.h>
-#include <imgui_impl_bgfx.cpp>
-#include <imgui_impl_glfw.cpp>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
 
@@ -208,10 +208,10 @@ int main() {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
 
   // positon attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)0);
   glEnableVertexAttribArray(0);
   // color attribute
-  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
   // render loop
@@ -310,4 +310,3 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
   camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
-
