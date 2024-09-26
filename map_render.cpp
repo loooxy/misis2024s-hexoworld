@@ -45,6 +45,19 @@ float lastY = SCR_HEIGHT / 2.0;
 float deltaTime = 0.0f; // time between current frame and last frame
 float lastFrame = 0.0f;
 
+// imgui helpmarker
+static void HelpMarker(const char* desc)
+{
+  ImGui::TextDisabled("(?)");
+  if (ImGui::BeginItemTooltip())
+  {
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+    ImGui::TextUnformatted(desc);
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
+}
+
 
 Eigen::Vector4i grass(53, 200, 45, 255);
 Eigen::Vector4i sand(252, 221, 50, 255);
@@ -270,7 +283,71 @@ int main() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow();
+    ImGui::ShowMetricsWindow();
+    char buffer[50];
+    ImGui::Begin("debug");
+    bool is_changed_height = false;
+    bool is_changed_biom = false;
+    bool is_changed_road = false;
+    bool is_changed_farm = false;
+    HelpMarker("Right Click to open hex settings");
+    for(int row = 0; row < tmp.get_n_rows(); row++) {
+      for(int col = 0; col < tmp.get_n_cols(); col++) {
+
+        if (col > 0)
+          ImGui::SameLine();
+        ImGui::PushID(row * (tmp.get_n_cols() + 1) + col);
+        sprintf (buffer, "Hex %d %d", row, col);
+        ImGui::Button(buffer);
+        if(ImGui::BeginPopupContextItem()) {
+          ImGui::Text(buffer);
+          int temp = heights(row,col);
+          ImGui::SliderInt("Height", &heights(row,col), -3, 4);
+          if(temp != heights(row, col)) {
+            is_changed_height = true;
+            tmp.set_hex_height(row,col,heights(row,col));
+          }
+          int elem = colors(row,col);
+          const char* elems_names[Colors_COUNT] =  {"Sea", "Sand", "Grass", "Mountain", "Snow", "Test"};
+          const char* elem_name = (colors(row,col) >= 0 && colors(row,col) < Colors_COUNT) ? elems_names[colors(row,col)] : "Unknown";
+          ImGui::SliderInt("Biom", &colors(row,col), 0, Colors_COUNT - 1, elem_name);
+          if(elem != colors(row, col)) {
+            is_changed_biom = true;
+            switch (colors(row, col))
+            {
+              case gr: tmp.set_hex_color(row, col, grass); break;
+              case sa: tmp.set_hex_color(row, col,  sand); break;
+              case se: tmp.set_hex_color(row, col,   sea); break;
+              case sn: tmp.set_hex_color(row, col,  snow); break;
+              case mo: tmp.set_hex_color(row, col, mount); break;
+              case te: tmp.set_hex_color(row, col,  test); break;
+            }
+
+          }
+
+          bool road_state = roads(row,col);
+          ImGui::Checkbox("Road", &roads(row,col));
+          if(road_state != roads(row, col)) {
+            is_changed_road = true;
+            tmp.add_road_in_hex(row,col);
+          }
+          ImGui::SameLine();
+          bool farm_state = farms(row,col);
+          ImGui::Checkbox("Farm", &farms(row,col));
+          if(farm_state != farms(row, col)) {
+            is_changed_farm = true;
+            tmp.add_farm_in_hex(row,col);
+          }
+
+          if (ImGui::Button("Close"))
+            ImGui::CloseCurrentPopup();
+          ImGui::EndPopup();
+        }
+        ImGui::PopID();
+      }
+
+    }
+    ImGui::End();
 
     // per-frame time logic
     // --------------------
@@ -298,6 +375,11 @@ int main() {
     // camera/view transformation
     glm::mat4 view = camera.GetViewMatrix();
     ourShader.setMat4("view", view);
+
+    // map updating
+    if(is_changed_height || is_changed_biom || is_changed_road || is_changed_farm) {
+      tmp.print_in_vertices_and_triList(Vertices, TriList);
+    }
 
     // draw map
     glBindVertexArray(VAO);
