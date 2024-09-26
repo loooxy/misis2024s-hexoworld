@@ -167,7 +167,7 @@ private:
   class OneThreadController {
   public:
     OneThreadController(
-      uint32_t world, 
+      std::uintptr_t world,
       std::thread::id id
     ) : world(world), id_(id) {
       if (who_blocked.find(world) == who_blocked.end())
@@ -201,9 +201,9 @@ private:
   private:
     uint32_t cnt = 0;
     std::thread::id id_;
-    uint32_t world;
-    static std::unordered_map<uint32_t, std::thread::id> who_blocked;
-    static std::unordered_map<uint32_t, std::unique_ptr<std::mutex>> mutexs;
+    std::uintptr_t world;
+    static std::unordered_map<std::uintptr_t, std::thread::id> who_blocked;
+    static std::unordered_map<std::uintptr_t, std::unique_ptr<std::mutex>> mutexs;
   };
 
   class IdType {

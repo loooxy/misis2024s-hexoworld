@@ -113,7 +113,7 @@ Eigen::Matrix<bool, 10, 10> farms = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::
 
 Hexoworld generateField() {
   Hexoworld tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
-    Eigen::Vector3d(0, 0, -1), Eigen::Vector3d(-1, 0, 0), 1, 2, 10, 10);
+    Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, -1, 0), 1, 2, 10, 10);
 
   tmp.add_river({
     {0, 3}, {1, 2}, {2, 3}, {3, 2}, {3, 3}, {4, 4}, {5, 4}
