@@ -333,14 +333,24 @@ int main() {
           ImGui::Checkbox("Road", &roads(row,col));
           if(road_state != roads(row, col)) {
             is_changed_road = true;
-            tmp.add_road_in_hex(row,col);
+            if (roads(row, col) == true) {
+              tmp.add_road_in_hex(row, col);
+            }
+            else {
+              tmp.del_road_in_hex(row, col);
+            }
           }
           ImGui::SameLine();
           bool farm_state = farms(row,col);
           ImGui::Checkbox("Farm", &farms(row,col));
           if(farm_state != farms(row, col)) {
             is_changed_farm = true;
-            tmp.add_farm_in_hex(row,col);
+            if (farms(row, col) == true) {
+              tmp.add_farm_in_hex(row, col);
+            }
+            else {
+              tmp.del_farm_in_hex(row, col);
+            }
           }
 
           if (ImGui::Button("Close"))
