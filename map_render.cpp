@@ -36,7 +36,7 @@ const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
 // camera
-Camera camera(glm::vec3(0.0f, 20.0f, 0.0f));
+Camera camera(glm::vec3(-60.0f, 15.0f, 50.0f));
 bool firstMouse = true;
 float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
@@ -126,7 +126,7 @@ Eigen::Matrix<bool, 10, 10> farms = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::
 
 Hexoworld generateField() {
   Hexoworld tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
-                Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, -1, 0), 1, 2, 10, 10);
+                Eigen::Vector3d(0, 0, -2), Eigen::Vector3d(-1, 0, 0), 1, 2, 10, 10);
 
   tmp.add_river({
                     {0, 3}, {1, 2}, {2, 3}, {3, 2}, {3, 3}, {4, 4}, {5, 4}
