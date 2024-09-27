@@ -379,6 +379,8 @@ int main() {
     // map updating
     if(is_changed_height || is_changed_biom || is_changed_road || is_changed_farm) {
       tmp.print_in_vertices_and_triList(Vertices, TriList);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
     }
 
     // draw map
