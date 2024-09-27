@@ -243,10 +243,10 @@ int main() {
   // build and compile our shader program
   // ------------------------------------
   //Bilikto's common shaders
-  Shader commonShader("../shaders/1_shader.vs", "../shaders/1_shader.fs");
+  Shader filledShader("../shaders/1_shader.vs", "../shaders/1_shader.fs");
 
   //Edited with geometry shaders
-  Shader ourShader("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs", "../shaders/3.3.shader.geom");
+  Shader meshShader("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs", "../shaders/3.3.shader.geom");
 
   // set up vertex data (and (buffers(s)) and configure vertex attributes
   // --------------------------------------------------------------------
@@ -349,8 +349,9 @@ int main() {
         }
         ImGui::PopID();
       }
-
     }
+    static bool is_changed_shader = false;
+    ImGui::Checkbox("Mesh Render", &is_changed_shader);
     ImGui::End();
 
     // per-frame time logic
@@ -363,25 +364,28 @@ int main() {
     // -----
     processInput(window);
 
-
     // render
     // -----
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // activate shader
-    commonShader.use();
-    ourShader.use();
+    // shader handling
+    // -----
+    if(is_changed_shader) {
+      meshShader.use();
+    }else {
+      filledShader.use();
+    }
 
     // pass projection shader to the shader (in that case it should change every frame)
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    commonShader.setMat4("projection", projection);
-    ourShader.setMat4("projection", projection);
+    filledShader.setMat4("projection", projection);
+    meshShader.setMat4("projection", projection);
 
     // camera/view transformation
     glm::mat4 view = camera.GetViewMatrix();
-    commonShader.setMat4("view", view);
-    ourShader.setMat4("view", view);
+    filledShader.setMat4("view", view);
+    meshShader.setMat4("view", view);
 
     // map updating
     if(is_changed_height || is_changed_biom || is_changed_road || is_changed_farm) {
@@ -453,7 +457,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
   float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
   lastX = xpos;
   lastY = ypos;
-  int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+  int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
   if (state == GLFW_PRESS) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     camera.ProcessMouseMovement(xoffset, yoffset);
