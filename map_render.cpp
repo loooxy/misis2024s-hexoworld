@@ -295,10 +295,10 @@ int main() {
     bool is_changed_road = false;
     bool is_changed_farm = false;
     HelpMarker("Right Click to open hex settings");
-    for(int row = 0; row < tmp.get_n_rows(); row++) {
-      for(int col = 0; col < tmp.get_n_cols(); col++) {
+    for(int col = 0; col < tmp.get_n_cols(); col++) {
+      for(int row = 0; row < tmp.get_n_rows(); row++) {
 
-        if (col > 0)
+        if (row > 0)
           ImGui::SameLine();
         ImGui::PushID(row * (tmp.get_n_cols() + 1) + col);
         sprintf (buffer, "Hex %d %d", row, col);
