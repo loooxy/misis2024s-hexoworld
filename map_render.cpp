@@ -1,8 +1,8 @@
 #include <glad/glad.h>
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+#include <imgui_impl_bgfx.cpp>
+#include <imgui_impl_glfw.cpp>
 
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
 
@@ -44,19 +44,6 @@ float lastY = SCR_HEIGHT / 2.0;
 // timing
 float deltaTime = 0.0f; // time between current frame and last frame
 float lastFrame = 0.0f;
-
-// imgui helpmarker
-static void HelpMarker(const char* desc)
-{
-  ImGui::TextDisabled("(?)");
-  if (ImGui::BeginItemTooltip())
-  {
-    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-    ImGui::TextUnformatted(desc);
-    ImGui::PopTextWrapPos();
-    ImGui::EndTooltip();
-  }
-}
 
 
 Eigen::Vector4i grass(53, 200, 45, 255);
@@ -126,7 +113,7 @@ Eigen::Matrix<bool, 10, 10> farms = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::
 
 Hexoworld generateField() {
   Hexoworld tmp(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
-    Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, -1, 0), 1, 2, 10, 10);
+    Eigen::Vector3d(0, 0, -1), Eigen::Vector3d(-1, 0, 0), 1, 2, 10, 10);
 
   tmp.add_river({
     {0, 3}, {1, 2}, {2, 3}, {3, 2}, {3, 3}, {4, 4}, {5, 4}
@@ -156,45 +143,16 @@ Hexoworld generateField() {
   return tmp;
 }
 
-static void glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
-
 int main() {
   // glfw initialize and configure
   // -----------------------------
-   glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit()){
-        return 1;
-    }
-  /*glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwInit();
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-   */
 
-
-   // Decide GL+GLSL versions
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-    // GL ES 2.0 + GLSL 100
-    const char* glsl_version = "#version 100";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#elif defined(__APPLE__)
-    // GL 3.2 + GLSL 150
-    const char* glsl_version = "#version 150";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
-#else
-    // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
 
@@ -209,25 +167,8 @@ int main() {
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
+  //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetScrollCallback(window, scroll_callback);
-
-  // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-#ifdef __EMSCRIPTEN__
-    ImGui_ImplGlfw_InstallEmscriptenCallbacks(window, "#canvas");
-#endif
-    ImGui_ImplOpenGL3_Init(glsl_version);
 
   //glad: load all OpenGl functions pointers
   // ---------------------------------------
@@ -239,10 +180,16 @@ int main() {
   // configure global opengl state
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
 
   // build and compile our shader program
   // ------------------------------------
-  Shader ourShader("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs");
+
+  //Bilikto's common shaders
+  Shader commonShader("../shaders/1_shader.vs", "../shaders/1_shader.fs");
+
+  //Edited with geometry shaders
+  Shader ourShader("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs", "../shaders/3.3.shader.geom");
 
   // set up vertex data (and (buffers(s)) and configure vertex attributes
   // --------------------------------------------------------------------
@@ -268,87 +215,15 @@ int main() {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
 
   // positon attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)0);
   glEnableVertexAttribArray(0);
   // color attribute
-  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(byte), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
   // render loop
  // -----------
   while (!glfwWindowShouldClose(window)) {
-
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    ImGui::ShowMetricsWindow();
-    char buffer[50];
-    ImGui::Begin("debug");
-    bool is_changed_height = false;
-    bool is_changed_biom = false;
-    bool is_changed_road = false;
-    bool is_changed_farm = false;
-    HelpMarker("Right Click to open hex settings");
-    for(int row = 0; row < tmp.get_n_rows(); row++) {
-      for(int col = 0; col < tmp.get_n_cols(); col++) {
-
-        if (col > 0)
-          ImGui::SameLine();
-        ImGui::PushID(row * (tmp.get_n_cols() + 1) + col);
-        sprintf (buffer, "Hex %d %d", row, col);
-        ImGui::Button(buffer);
-        if(ImGui::BeginPopupContextItem()) {
-          ImGui::Text(buffer);
-          int temp = heights(row,col);
-          ImGui::SliderInt("Height", &heights(row,col), -3, 4);
-          if(temp != heights(row, col)) {
-            is_changed_height = true;
-            tmp.set_hex_height(row,col,heights(row,col));
-          }
-          int elem = colors(row,col);
-          const char* elems_names[Colors_COUNT] =  {"Sea", "Sand", "Grass", "Mountain", "Snow", "Test"};
-          const char* elem_name = (colors(row,col) >= 0 && colors(row,col) < Colors_COUNT) ? elems_names[colors(row,col)] : "Unknown";
-          ImGui::SliderInt("Biom", &colors(row,col), 0, Colors_COUNT - 1, elem_name);
-          if(elem != colors(row, col)) {
-            is_changed_biom = true;
-            switch (colors(row, col))
-            {
-              case gr: tmp.set_hex_color(row, col, grass); break;
-              case sa: tmp.set_hex_color(row, col,  sand); break;
-              case se: tmp.set_hex_color(row, col,   sea); break;
-              case sn: tmp.set_hex_color(row, col,  snow); break;
-              case mo: tmp.set_hex_color(row, col, mount); break;
-              case te: tmp.set_hex_color(row, col,  test); break;
-            }
-
-          }
-
-          bool road_state = roads(row,col);
-          ImGui::Checkbox("Road", &roads(row,col));
-          if(road_state != roads(row, col)) {
-            is_changed_road = true;
-            tmp.add_road_in_hex(row,col);
-          }
-          ImGui::SameLine();
-          bool farm_state = farms(row,col);
-          ImGui::Checkbox("Farm", &farms(row,col));
-          if(farm_state != farms(row, col)) {
-            is_changed_farm = true;
-            tmp.add_farm_in_hex(row,col);
-          }
-
-          if (ImGui::Button("Close"))
-            ImGui::CloseCurrentPopup();
-          ImGui::EndPopup();
-        }
-        ImGui::PopID();
-      }
-
-    }
-    ImGui::End();
-
     // per-frame time logic
     // --------------------
     float currentFrame = static_cast<float>(glfwGetTime());
@@ -359,38 +234,28 @@ int main() {
     // -----
     processInput(window);
 
-
     // render
     // -----
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // activate shader
+    commonShader.use();
     ourShader.use();
 
     // pass projection shader to the shader (in that case it should change every frame)
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    commonShader.setMat4("projection", projection);
     ourShader.setMat4("projection", projection);
 
     // camera/view transformation
     glm::mat4 view = camera.GetViewMatrix();
+    commonShader.setMat4("view", view);
     ourShader.setMat4("view", view);
-
-    // map updating
-    if(is_changed_height || is_changed_biom || is_changed_road || is_changed_farm) {
-      tmp.print_in_vertices_and_triList(Vertices, TriList);
-      glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
-    }
 
     // draw map
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, TriList.size(), GL_UNSIGNED_SHORT, 0);
-
-    ImGui::Render();
-
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 
     // glfw: check and call events and swap buffers
     // --------------------------------------------
@@ -433,6 +298,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+  int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
   float xpos = static_cast<float>(xposIn);
   float ypos = static_cast<float>(yposIn);
 
@@ -446,14 +312,19 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
   float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
   lastX = xpos;
   lastY = ypos;
-  int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-  if (state == GLFW_PRESS){
+  if (state == GLFW_PRESS) {
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     camera.ProcessMouseMovement(xoffset, yoffset);
+  }
+  else{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
   camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
+
