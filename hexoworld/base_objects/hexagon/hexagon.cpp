@@ -1,6 +1,3 @@
-#include "hexagon.hpp"
-#include "hexagon.hpp"
-#include "hexagon.hpp"
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <hexoworld/wall/wall.hpp>
 #include <hexoworld/cottage/cottage.hpp>
@@ -61,9 +58,8 @@ void Hexoworld::Hexagon::init_inventory()
         Eigen::Vector4i(255, 255, 255, 255)));
   }
 
-#ifdef PRINT_NUMBERS
-  init_number();
-#endif // PRINT_NUMBERS
+  if (is_numbers_show)
+    init_number();
   
 #ifdef BOUNDARY_WALLS
   init_boundary_walls();
@@ -271,6 +267,19 @@ void Hexoworld::Hexagon::del_farm()
   mainData->dirFarm = -1;
   init_inventory();
 }
+
+void Hexoworld::Hexagon::show_numbers()
+{
+  is_numbers_show = true;
+  init_inventory();
+}
+
+void Hexoworld::Hexagon::hide_numbers()
+{
+  is_numbers_show = false;
+  init_inventory();
+}
+
 
 void Hexoworld::Hexagon::print_in_triList(std::vector<uint32_t>& TriList)
 {

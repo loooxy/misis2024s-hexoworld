@@ -133,6 +133,9 @@ public:
   uint32_t get_n_rows() const;
   uint32_t get_n_cols() const;
 
+  void show_numbers();
+  void hide_numbers();
+
   /// \brief Вывести вершины и треугольники, на который треангулируется мир.
   /// \param Vertices Куда выводить вершины.
   /// \param TriList Куда выводить треугольники.

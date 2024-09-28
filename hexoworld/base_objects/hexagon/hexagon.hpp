@@ -43,6 +43,9 @@ struct Hexoworld::Hexagon : public Object {
   void make_farm();
   void del_farm();
 
+  void show_numbers();
+  void hide_numbers();
+
   /// \brief Вывести треугольники
   /// \param TriList Куда выводить треугольники.
   void print_in_triList(std::vector<uint32_t>& TriList);
@@ -350,8 +353,11 @@ struct Hexoworld::Hexagon : public Object {
 private:
   /// \brief Инициализация инвенторя.
   void init_inventory();
+
   /// \brief Инициализация координат на шестиугольниках.
   void init_number();
 
   void init_boundary_walls();
+
+  bool is_numbers_show = false;
 };

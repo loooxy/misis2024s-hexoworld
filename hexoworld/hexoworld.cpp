@@ -413,6 +413,26 @@ uint32_t Hexoworld::get_n_cols() const {
   return n_cols;
 }
 
+void Hexoworld::show_numbers()
+{
+  for (auto i : manager->get_all_object())
+  {
+    std::shared_ptr<Hexagon> hex;
+    if (hex = std::dynamic_pointer_cast<Hexagon>(i))
+      hex->show_numbers();
+  }
+}
+
+void Hexoworld::hide_numbers()
+{
+  for (auto i : manager->get_all_object())
+  {
+    std::shared_ptr<Hexagon> hex;
+    if (hex = std::dynamic_pointer_cast<Hexagon>(i))
+      hex->hide_numbers();
+  }
+}
+
 void Hexoworld::print_in_vertices_and_triList(
   std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) const
 {
