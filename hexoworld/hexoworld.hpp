@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <thread>
 #include <iomanip>
 #include <vector>
 #include <Eigen/Dense>
