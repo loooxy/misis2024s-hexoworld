@@ -73,9 +73,11 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, IdType AId, IdType BId
         uint32_t nTerraces =
           (points[2].first - points[0].first) *
           (base->world.nTerracesOnHeightStep_ + 1) - 1;
+
         Eigen::Vector3d step =
           (points[2].second -
             points[0].second) / (nTerraces + 1);
+        
         Eigen::Vector3d platformVector =
           base->world.heightDirection_
           .cross(step)
@@ -90,17 +92,11 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, IdType AId, IdType BId
         double len = (points[0].second
           - points[2].second).norm();
 
-        Eigen::Vector3d p1;
-        p1 = goal - platformVector;
 
-        Eigen::Vector3d p2;
-        p2 = goal + platformVector;
-
-
-        init_stair(points[1].second, p1, points[0].second,
+        init_stair(points[1].second, goal, points[0].second,
           points[1].second, goal, points[0].second, mainData->stairs_down,
           (points[0].first + 1 == points[1].first ? 2 : 3));
-        init_stair(points[1].second, p2, points[2].second,
+        init_stair(points[1].second, goal, points[2].second,
           points[1].second, goal, points[2].second, mainData->stairs_up,
           (points[1].first + 1 == points[2].first ? 2 : 3));
 
@@ -108,10 +104,10 @@ Hexoworld::Triangle::UsualFrame::UsualFrame(Object* base, IdType AId, IdType BId
           Points::get_instance().get_id_point(points[1].second, base)
         );
         mainData->middle_triangle.push_back(
-          Points::get_instance().get_id_point(p1, base)
+          Points::get_instance().get_id_point(goal, base)
         );
         mainData->middle_triangle.push_back(
-          Points::get_instance().get_id_point(p2, base)
+          Points::get_instance().get_id_point(goal, base)
         );
       }
       else
