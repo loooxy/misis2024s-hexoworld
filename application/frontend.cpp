@@ -141,145 +141,6 @@ Application::Frontend::~Frontend()
 
 void Application::Frontend::work()
 {
-  //while (!glfwWindowShouldClose(window)) {
-  //  // Start the Dear ImGui frame
-  //  ImGui_ImplOpenGL3_NewFrame();
-  //  ImGui_ImplGlfw_NewFrame();
-  //  ImGui::NewFrame();
-  //  ImGui::ShowMetricsWindow();
-  //  char buffer[50];
-  //  ImGui::Begin("debug");
-  //  HelpMarker("Right Click to open hex settings");
-  //  for (int col = 0; col < app->work_with_map->get_n_cols(); col++) {
-  //    for (int row = 0; row < app->work_with_map->get_n_rows(); row++) {
-  //      if (row > 0)
-  //        ImGui::SameLine();
-  //
-  //      ImGui::PushID(row * (app->work_with_map->get_n_cols() + 1) + col);
-  //      
-  //      sprintf(buffer, "Hex %d %d", row, col);
-  //      
-  //      ImGui::Button(buffer);
-  //      if (ImGui::BeginPopupContextItem()) {
-  //        ImGui::Text(buffer);
-  //
-  //        //height
-  //        {
-  //          int start_height = app->work_with_map->heights(row, col);
-  //          int cur_height = start_height;
-  //          ImGui::SliderInt("Height", &cur_height, -3, 4);
-  //          if (start_height != cur_height) {
-  //            app->events_mtx.lock();
-  //            app->events.push(std::make_shared<ChangeHeight>(app, row, col, cur_height));
-  //            app->events_mtx.unlock();
-  //          }
-  //        }
-  //
-  //        //color
-  //        {
-  //          int cell_color = app->work_with_map->colors(row, col);
-  //          int n_colors = app->work_with_map->Colors_COUNT;
-  //
-  //          const char* cell_color_name;
-  //          if (cell_color >= 0 &&
-  //            cell_color < n_colors)
-  //            cell_color_name = app->work_with_map->elems_names[cell_color];
-  //          else
-  //            cell_color_name = "Unknown";
-  //
-  //          int cur_color = cell_color;
-  //          ImGui::SliderInt("Biom", &cur_color, 0, n_colors - 1, cell_color_name);
-  //          if (cell_color != cur_color) {
-  //            app->events_mtx.lock();
-  //            app->events.push(std::make_shared<ChangeColor>(app, row, col, cur_color));
-  //            app->events_mtx.unlock();
-  //          }
-  //        }
-  //
-  //        //road
-  //        {
-  //          bool road_state = app->work_with_map->roads(row, col);
-  //          bool cur_road_state = road_state;
-  //          ImGui::Checkbox("Road", &cur_road_state);
-  //          if (road_state != cur_road_state) {
-  //            app->events_mtx.lock();
-  //            app->events.push(std::make_shared<ChangeRoadState>(app, row, col, cur_road_state));
-  //            app->events_mtx.unlock();
-  //          }
-  //        }
-  //
-  //        ImGui::SameLine();
-  //
-  //        //farm
-  //        {
-  //          bool farm_state = app->work_with_map->farms(row, col);
-  //          bool cur_farm_state = farm_state;
-  //          ImGui::Checkbox("Farm", &cur_farm_state);
-  //          if (farm_state != cur_farm_state) {
-  //            app->events_mtx.lock();
-  //            app->events.push(std::make_shared<ChangeFarmState>(app, row, col, cur_farm_state));
-  //            app->events_mtx.unlock();
-  //          }
-  //        }
-  //
-  //        if (ImGui::Button("Close"))
-  //          ImGui::CloseCurrentPopup();
-  //        ImGui::EndPopup();
-  //      }
-  //      ImGui::PopID();
-  //    }
-  //  }
-  //  static bool is_changed_shader = false;
-  //  ImGui::Checkbox("Mesh Render", &is_changed_shader);
-  //  ImGui::End();
-  //
-  //  // per-frame time logic
-  //  // --------------------
-  //  float currentFrame = static_cast<float>(glfwGetTime());
-  //  deltaTime = currentFrame - lastFrame;
-  //  lastFrame = currentFrame;
-  //
-  //  // input
-  //  // -----
-  //  processInput(window);
-  //  // render
-  //  // -----
-  //  glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-  //  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  //  // shader handling
-  //  // -----
-  //  if (is_changed_shader) {
-  //    meshShader->use();
-  //  }
-  //  else {
-  //    filledShader->use();
-  //  }
-  //  // pass projection shader to the shader (in that case it should change every frame)
-  //  glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-  //  filledShader->setMat4("projection", projection);
-  //  meshShader->setMat4("projection", projection);
-  //  // camera/view transformation
-  //  glm::mat4 view = camera.GetViewMatrix();
-  //  filledShader->setMat4("view", view);
-  //  meshShader->setMat4("view", view);
-  //  // draw map
-  //  //app->buffers_mtx.lock();
-  //  
-  //  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * app->Vertices.size(), app->Vertices.data(), GL_STATIC_DRAW);
-  //  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * app->TriList.size(), app->TriList.data(), GL_STATIC_DRAW);
-  //  glBindVertexArray(VAO);
-  //  glDrawElements(GL_TRIANGLES, app->TriList.size(), GL_UNSIGNED_SHORT, 0);
-  //  
-  //  //app->buffers_mtx.unlock();
-  //  /*
-  //  ImGui::Render();
-  //  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());*/
-  //  // glfw: check and call events and swap buffers
-  //  // --------------------------------------------
-  //  glfwSwapBuffers(window);
-  //  glfwPollEvents();
-  //}
-  
   while (!glfwWindowShouldClose(window)) {
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -411,16 +272,23 @@ void Application::Frontend::work()
     filledShader->setMat4("view", view);
     meshShader->setMat4("view", view);
 
-    // map updating
-    glBufferData(GL_ARRAY_BUFFER, sizeof(app->Vertices[0]) * app->Vertices.size(), app->Vertices.data(), GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(app->TriList[0]) * app->TriList.size(), app->TriList.data(), GL_STATIC_DRAW);
+    app->buffers_mtx.lock();
+    if (app->need_update_buffers)
+    {
+      // map updating
+      glBufferData(GL_ARRAY_BUFFER, sizeof(app->Vertices[0]) * app->Vertices.size(), app->Vertices.data(), GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(app->TriList[0]) * app->TriList.size(), app->TriList.data(), GL_STATIC_DRAW);
+      app->need_update_buffers = false;
+    }
 
     // draw map
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, app->TriList.size(), GL_UNSIGNED_SHORT, 0);
 
-    ImGui::Render();
+    app->buffers_mtx.unlock();
 
+    ImGui::Render();
+    
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 

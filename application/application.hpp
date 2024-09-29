@@ -265,5 +265,6 @@ private:
 	std::queue<std::shared_ptr<Event>> events;
 	std::vector<PrintingPoint> Vertices;
 	std::vector<uint16_t> TriList;
+	bool need_update_buffers = true;
 	std::mutex events_mtx, buffers_mtx;
 };

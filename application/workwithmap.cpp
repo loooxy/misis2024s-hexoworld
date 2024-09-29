@@ -106,6 +106,7 @@ void Application::WorkWithMap::work()
     app->buffers_mtx.lock();
     std::swap(app->Vertices, Vertices);
     std::swap(app->TriList, TriList);
+    app->need_update_buffers = true;
     app->buffers_mtx.unlock();
   }
   application_is_alive = false;
