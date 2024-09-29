@@ -28,16 +28,6 @@ add_subdirectory(application)
 
 add_executable(map_render map_render.cpp)
 target_link_libraries(map_render
-bgfx::bx 
-bgfx::bgfx 
-bgfx::bimg 
-bgfx::bimg_decode 
-glfw
-Eigen3::Eigen
-imgui::imgui
-glad::glad
-glm::glm
-
 hexoworld
 application
 )

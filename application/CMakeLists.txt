@@ -5,10 +5,6 @@ workwithmap.cpp
 frontend.cpp)
 
 target_link_libraries(application 
-bgfx::bx 
-bgfx::bgfx 
-bgfx::bimg 
-bgfx::bimg_decode 
 glfw
 Eigen3::Eigen
 imgui::imgui
