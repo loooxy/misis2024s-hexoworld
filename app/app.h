@@ -9,10 +9,7 @@
 
 class App {
 public:
-  explicit App(const std::string *name_) {
-    name{name_};
-  }
-
+  App(const std::string& name);
   virtual ~App();
 
   virtual void openglInit();

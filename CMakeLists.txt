@@ -8,7 +8,6 @@ set(CMAKE_CXX_STANDARD 20)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake")
 
-find_package(bgfx REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(imgui REQUIRED)
@@ -27,10 +26,7 @@ add_subdirectory(hexoworld)
 
 add_executable(map_render map_render.cpp)
 target_link_libraries(map_render
-bgfx::bx 
-bgfx::bgfx 
-bgfx::bimg 
-bgfx::bimg_decode 
+
 glfw
 Eigen3::Eigen
 hexoworld
