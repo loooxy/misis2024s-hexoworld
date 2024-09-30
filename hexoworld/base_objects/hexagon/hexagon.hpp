@@ -27,7 +27,8 @@ struct Hexoworld::Hexagon : public Object {
   std::vector<Eigen::Vector3d> make_river(int32_t in, int32_t out);
 
   /// \brief Сделать затопление.
-  void make_flooding(int32_t height);
+  void add_flooding(int32_t height);
+  void del_flooding();
 
   /// \brief Сделать дорогу.
   /// \param ind_roads Грани, через которые идут дороги.

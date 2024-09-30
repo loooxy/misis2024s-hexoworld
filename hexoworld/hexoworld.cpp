@@ -171,11 +171,34 @@ void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
   }
 
   for (const Coord& pos : flood_cells)
-    manager->get_hexagon(pos)->make_flooding(start_hieght);
+    manager->get_hexagon(pos)->add_flooding(start_hieght);
 }
 
 void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
 {
+  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+
+  Coord start_pos(row, col);
+  int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
+  std::set<Coord> flood_cells;
+  std::queue<Coord> q;
+  q.push(start_pos);
+
+  while (!q.empty())
+  {
+    Coord pos = q.front();
+    q.pop();
+
+    flood_cells.insert(pos);
+
+    for (const Coord& new_pos : manager->get_neighbors(pos))
+      if (flood_cells.find(new_pos) == flood_cells.end() &&
+        manager->get_hexagon(new_pos)->get_height() >= start_hieght)
+        q.push(new_pos);
+  }
+
+  for (const Coord& pos : flood_cells)
+    manager->get_hexagon(pos)->del_flooding();
 }
 
 void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)

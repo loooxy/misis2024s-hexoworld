@@ -1,5 +1,4 @@
 #include "hexagon.hpp"
-#include "hexagon.hpp"
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <hexoworld/wall/wall.hpp>
 #include <hexoworld/cottage/cottage.hpp>
@@ -20,7 +19,7 @@ void Hexoworld::Hexagon::set_height(int32_t height)
 {
   mainData->height = height;
 
-  for (auto& [type, frame] : frames)
+  for (auto& [type, frame] : frames) if (type != Flood)
     std::static_pointer_cast<HexagonFrame>(frame)->set_height(height);
 
   init_inventory();
@@ -40,7 +39,7 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::make_river(int32_t in, int32_t 
   return std::static_pointer_cast<RiversFrame>(frames[River])->get_points();
 }
 
-void Hexoworld::Hexagon::make_flooding(int32_t height)
+void Hexoworld::Hexagon::add_flooding(int32_t height)
 {
   if (height < mainData->height)
     throw std::runtime_error("Wrong height");
@@ -49,6 +48,12 @@ void Hexoworld::Hexagon::make_flooding(int32_t height)
     world.heightStep_ * (height - mainData->height + 0.5));
   drawers[Flood] = std::make_shared<FloodDrawer>(this);
   drawers[Flood]->colorize_points();
+}
+
+void Hexoworld::Hexagon::del_flooding()
+{
+  frames.erase(Flood);
+  drawers.erase(Flood);
 }
 
 void Hexoworld::Hexagon::init_inventory()
