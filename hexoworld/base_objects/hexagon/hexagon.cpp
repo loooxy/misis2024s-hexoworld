@@ -1,3 +1,5 @@
+#include "hexagon.hpp"
+#include "hexagon.hpp"
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <hexoworld/wall/wall.hpp>
 #include <hexoworld/cottage/cottage.hpp>
@@ -16,10 +18,17 @@ Hexoworld::Hexagon::Hexagon(Hexoworld& hexoworld,
 
 void Hexoworld::Hexagon::set_height(int32_t height)
 {
+  mainData->height = height;
+
   for (auto& [type, frame] : frames)
     std::static_pointer_cast<HexagonFrame>(frame)->set_height(height);
 
   init_inventory();
+}
+
+int32_t Hexoworld::Hexagon::get_height() const
+{
+  return mainData->height;
 }
 
 std::vector<Eigen::Vector3d> Hexoworld::Hexagon::make_river(int32_t in, int32_t out)
@@ -31,9 +40,13 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::make_river(int32_t in, int32_t 
   return std::static_pointer_cast<RiversFrame>(frames[River])->get_points();
 }
 
-void Hexoworld::Hexagon::make_flooding()
+void Hexoworld::Hexagon::make_flooding(int32_t height)
 {
-  frames [Flood] = std::make_shared<FloodFrame >(this, world.heightStep_ / 10);
+  if (height < mainData->height)
+    throw std::runtime_error("Wrong height");
+
+  frames [Flood] = std::make_shared<FloodFrame >(this, 
+    world.heightStep_ * (height - mainData->height + 0.5));
   drawers[Flood] = std::make_shared<FloodDrawer>(this);
   drawers[Flood]->colorize_points();
 }

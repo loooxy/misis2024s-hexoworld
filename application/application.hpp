@@ -110,11 +110,13 @@ private:
 		int colors(int row, int col);
 		bool roads(int row, int col);
 		bool farms(int row, int col);
+		bool flood(int row, int col);
 
 		void set_hex_height(int row, int col, int new_height);
 		void set_hex_color(int row, int col, int color_id);
 		void set_road_state_in_hex(int row, int col, bool road_state);
 		void set_farm_state_in_hex(int row, int col, bool farm_state);
+		void set_flood_state_in_hex(int row, int col, bool flood_state);
 		void update_river();
 
 		enum ColorsName
@@ -189,10 +191,28 @@ private:
 			false, false, false, false, false, false, false, false, false, false,
 			false, false, false, false, false, false, false, false, false, false,
 			false, false, false, false, false, false, false, false, false, false).finished();
+
+		Eigen::Matrix<bool, 10, 10> flood_ = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>(10, 10) <<
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false).finished();
 	};
 
 	enum TypeEvent {
-		changeHeight, changeColor, changeRoadState, changeFarmState, updateRiver, close
+		changeHeight, 
+		changeColor, 
+		changeRoadState, 
+		changeFarmState, 
+		changeFloodState, 
+		updateRiver, 
+		close
 	};
 	class Event {
 	public:
@@ -252,6 +272,20 @@ private:
 
 		int row, col;
 		bool farm_state;
+	};
+	class ChangeFloodState : public Event {
+	public:
+		ChangeFloodState(Application* app, int row, int col, bool flood_state)
+			: Event(app), row(row), col(col), flood_state(flood_state) {}
+
+		TypeEvent type() { return changeFloodState; }
+
+		void execute(WorkWithMap* wwm) {
+			wwm->set_flood_state_in_hex(row, col, flood_state);
+		}
+
+		int row, col;
+		bool flood_state;
 	};
 	class UpdateRiver : public Event {
 	public:

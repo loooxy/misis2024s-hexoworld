@@ -100,7 +100,8 @@ public:
   /// \brief Затопить шестиугольник.
   /// \param row Строка позиции шестиугольника.
   /// \param col Столбец позиции шестиугольника.
-  void flood_hex(uint32_t row, uint32_t col);
+  void add_flood_in_hex(uint32_t row, uint32_t col);
+  void del_flood_in_hex(uint32_t row, uint32_t col);
 
   /// \brief Добавить дорогу в шестиугольнике.
   /// \param row Строка позиции шестиугольника.

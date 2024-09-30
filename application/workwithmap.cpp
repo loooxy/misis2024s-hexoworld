@@ -1,3 +1,5 @@
+#include "application.hpp"
+#include "application.hpp"
 #include <application/application.hpp>
 
 void Application::WorkWithMap::generateField(std::shared_ptr<Hexoworld>& map) {
@@ -149,6 +151,11 @@ bool Application::WorkWithMap::farms(int row, int col)
   return farms_(row, col);
 }
 
+bool Application::WorkWithMap::flood(int row, int col)
+{
+  return flood_(row, col);
+}
+
 void Application::WorkWithMap::set_hex_height(int row, int col, int new_height)
 {
   map->set_hex_height(row, col, new_height);
@@ -179,6 +186,16 @@ void Application::WorkWithMap::set_farm_state_in_hex(int row, int col, bool farm
     map->del_farm_in_hex(row, col);
 
   farms_(row, col) = farm_state;
+}
+
+void Application::WorkWithMap::set_flood_state_in_hex(int row, int col, bool flood_state)
+{
+  if (flood_state)
+    map->add_flood_in_hex(row, col);
+  else
+    map->del_flood_in_hex(row, col);
+
+  flood_(row, col) = flood_state;
 }
 
 void Application::WorkWithMap::update_river()

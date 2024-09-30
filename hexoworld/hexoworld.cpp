@@ -1,3 +1,4 @@
+#include "hexoworld.hpp"
 #include <hexoworld/hexoworld.hpp>
 #include <hexoworld/manager/manager.hpp>
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
@@ -8,6 +9,7 @@
 #include <ctime>
 #include <algorithm>
 #include <random>
+#include <queue>
 
 #ifdef PARALLEL
 #include <thread>
@@ -145,11 +147,35 @@ void Hexoworld::add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs) {
   manager->add_river(river);
 }
 
-void Hexoworld::flood_hex(uint32_t row, uint32_t col)
+void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
 {
   OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
 
-  manager->get_hexagon(Coord(row, col))->make_flooding();
+  Coord start_pos(row, col);
+  int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
+  std::set<Coord> flood_cells;
+  std::queue<Coord> q;
+  q.push(start_pos);
+  
+  while (!q.empty())
+  {
+    Coord pos = q.front();
+    q.pop();
+
+    flood_cells.insert(pos);
+    
+    for (const Coord& new_pos : manager->get_neighbors(pos))
+      if (flood_cells.find(new_pos) == flood_cells.end() && 
+        manager->get_hexagon(new_pos)->get_height() <= start_hieght)
+        q.push(new_pos);
+  }
+
+  for (const Coord& pos : flood_cells)
+    manager->get_hexagon(pos)->make_flooding(start_hieght);
+}
+
+void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
+{
 }
 
 void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)

@@ -15,6 +15,7 @@ struct Hexoworld::Hexagon : public Object {
   /// \brief Установить высоту шестиугольнику.
   /// \param height Новая высота.
   void set_height(int32_t height);
+  int32_t get_height() const;
 
   /// \brief Создать реку в шестиугольнике.
   /// \param in Номер грани входа реки. 
@@ -26,7 +27,7 @@ struct Hexoworld::Hexagon : public Object {
   std::vector<Eigen::Vector3d> make_river(int32_t in, int32_t out);
 
   /// \brief Сделать затопление.
-  void make_flooding();
+  void make_flooding(int32_t height);
 
   /// \brief Сделать дорогу.
   /// \param ind_roads Грани, через которые идут дороги.
@@ -128,6 +129,7 @@ struct Hexoworld::Hexagon : public Object {
     IdType centerId; //< Id центра.
     uint32_t gen_init; //< Число, которым инициализируется генератор случайных чисел.
     int32_t dirFarm = -1; //< Направление фермы или -1 если её нет.
+    int32_t height = 0;
   };
 
   /// \brief Каркас шестиугольника.
