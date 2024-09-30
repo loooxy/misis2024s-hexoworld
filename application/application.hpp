@@ -42,6 +42,15 @@ private:
 		~Frontend();
 		static void work();
 	private:
+		static void init_glfw();
+		static void init_ImGui();
+		static void init_Shaders_and_Buffers();
+
+		static void prepare_ImGui();
+		static void prepare_window();
+		static void render_ImGui();
+		static void render_window();
+
 		static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 		static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 		static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -82,6 +91,8 @@ private:
 		static std::unique_ptr<Shader> filledShader;
 		static std::unique_ptr<Shader> meshShader;
 		static unsigned int VBO, VAO, EBO;
+		static const char* glsl_version;
+		static bool is_changed_shader;
 	};
 
 	class WorkWithMap {
