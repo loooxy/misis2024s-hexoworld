@@ -275,13 +275,18 @@ private:
 	class events_queue {
 	public:
 		void push(std::shared_ptr<Event> event) {
-			std::lock_guard<std::recursive_mutex> locker(mtx);
+			mtx.lock();
 			events.push(event);
+			mtx.unlock();
 		}
 		std::shared_ptr<Event> pop() {
-			std::lock_guard<std::recursive_mutex> locker(mtx);
+			mtx.lock();
+			
 			auto ans = events.front();
 			events.pop();
+
+			mtx.unlock();
+			
 			return ans;
 		}
 		bool empty() {
