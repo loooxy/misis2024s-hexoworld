@@ -93,6 +93,8 @@ private:
 		static unsigned int VBO, VAO, EBO;
 		static const char* glsl_version;
 		static bool is_changed_shader;
+		static std::vector<PrintingPoint> Vertices;
+		static std::vector<uint16_t> TriList;
 	};
 
 	class WorkWithMap {
@@ -270,12 +272,61 @@ private:
 		void execute(WorkWithMap* wwm) {}
 	};
 
+	class events_queue {
+	public:
+		void push(std::shared_ptr<Event> event) {
+			std::lock_guard<std::recursive_mutex> locker(mtx);
+			events.push(event);
+		}
+		std::shared_ptr<Event> pop() {
+			std::lock_guard<std::recursive_mutex> locker(mtx);
+			auto ans = events.front();
+			events.pop();
+			return ans;
+		}
+		bool empty() {
+			std::lock_guard<std::recursive_mutex> locker(mtx);
+			return events.empty();
+		}
+		void lock() {
+			mtx.lock();
+		}
+		void unlock() {
+			mtx.unlock();
+		}
+	private:
+		std::recursive_mutex mtx;
+		std::queue<std::shared_ptr<Event>> events;
+	};
+
+	class data_pool {
+	public:
+		bool check() {
+			std::lock_guard<std::mutex> locker(mtx);
+			return need_update_buffers;
+		}
+		void get(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList)
+		{
+			std::lock_guard<std::mutex> locker(mtx);
+			need_update_buffers = false;
+			std::swap(Vertices, Vertices_);
+			std::swap(TriList, TriList_);
+		}
+		void set(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) {
+			std::lock_guard<std::mutex> locker(mtx);
+			need_update_buffers = true;
+			std::swap(Vertices, Vertices_);
+			std::swap(TriList, TriList_);
+		}
+	private:
+		std::vector<PrintingPoint> Vertices_;
+		std::vector<uint16_t> TriList_;
+		bool need_update_buffers = false;
+		std::mutex mtx;
+	};
 
 	std::shared_ptr<Frontend> frontend;
 	std::shared_ptr<WorkWithMap> work_with_map;
-	std::queue<std::shared_ptr<Event>> events;
-	std::vector<PrintingPoint> Vertices;
-	std::vector<uint16_t> TriList;
-	bool need_update_buffers = true;
-	std::mutex events_mtx, buffers_mtx;
+	events_queue events;
+	data_pool data;
 };

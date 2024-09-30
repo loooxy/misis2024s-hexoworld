@@ -15,6 +15,8 @@ unsigned int Application::Frontend::VAO;
 unsigned int Application::Frontend::EBO;
 const char* Application::Frontend::glsl_version;
 bool Application::Frontend::is_changed_shader = false;
+std::vector<PrintingPoint> Application::Frontend::Vertices;
+std::vector<uint16_t> Application::Frontend::TriList;
 
 Application::Frontend::Frontend(Application* app) 
 {
@@ -139,13 +141,15 @@ void Application::Frontend::init_Shaders_and_Buffers()
   // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attribute(s)
   glBindVertexArray(VAO);
 
+  app->data.get(Vertices, TriList);
+
   // bind VBO for Vertices
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(app->Vertices[0]) * app->Vertices.size(), app->Vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
 
   // bind EBO for indices
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(app->TriList[0]) * app->TriList.size(), app->TriList.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
 
   // positon attribute
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)0);
@@ -227,9 +231,7 @@ void Application::Frontend::prepare_ImGui()
         int cur_height = start_height;
         ImGui::SliderInt("Height", &cur_height, -3, 4);
         if (start_height != cur_height) {
-          app->events_mtx.lock();
           app->events.push(std::make_shared<ChangeHeight>(app, row, col, cur_height));
-          app->events_mtx.unlock();
         }
 
 
@@ -248,9 +250,7 @@ void Application::Frontend::prepare_ImGui()
           int cur_color = cell_color;
           ImGui::SliderInt("Biom", &cur_color, 0, n_colors - 1, cell_color_name);
           if (cell_color != cur_color) {
-            app->events_mtx.lock();
             app->events.push(std::make_shared<ChangeColor>(app, row, col, cur_color));
-            app->events_mtx.unlock();
           }
         }
 
@@ -260,9 +260,7 @@ void Application::Frontend::prepare_ImGui()
           bool cur_road_state = road_state;
           ImGui::Checkbox("Road", &cur_road_state);
           if (road_state != cur_road_state) {
-            app->events_mtx.lock();
             app->events.push(std::make_shared<ChangeRoadState>(app, row, col, cur_road_state));
-            app->events_mtx.unlock();
           }
         }
 
@@ -274,9 +272,7 @@ void Application::Frontend::prepare_ImGui()
           bool cur_farm_state = farm_state;
           ImGui::Checkbox("Farm", &cur_farm_state);
           if (farm_state != cur_farm_state) {
-            app->events_mtx.lock();
             app->events.push(std::make_shared<ChangeFarmState>(app, row, col, cur_farm_state));
-            app->events_mtx.unlock();
           }
         }
 
@@ -330,21 +326,17 @@ void Application::Frontend::prepare_window()
 
 void Application::Frontend::render_window()
 {
-  app->buffers_mtx.lock();
-
-  if (app->need_update_buffers)
+  if (app->data.check())
   {
+    app->data.get(Vertices, TriList);
     // map updating
-    glBufferData(GL_ARRAY_BUFFER, sizeof(app->Vertices[0]) * app->Vertices.size(), app->Vertices.data(), GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(app->TriList[0]) * app->TriList.size(), app->TriList.data(), GL_STATIC_DRAW);
-    app->need_update_buffers = false;
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
   }
 
   // draw map
   glBindVertexArray(VAO);
-  glDrawElements(GL_TRIANGLES, app->TriList.size(), GL_UNSIGNED_SHORT, 0);
-
-  app->buffers_mtx.unlock();
+  glDrawElements(GL_TRIANGLES, TriList.size(), GL_UNSIGNED_SHORT, 0);
 }
 
 void Application::Frontend::render_ImGui()
@@ -375,9 +367,7 @@ void Application::Frontend::work()
     glfwPollEvents();
   }
 
-  app->events_mtx.lock();
   app->events.push(std::make_shared<Close>(app));
-  app->events_mtx.unlock();
 }
 
 // process all input : query GLFW whether relevant keys are pressed / released this frame and react accordingly

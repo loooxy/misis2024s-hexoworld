@@ -34,11 +34,7 @@ void Application::WorkWithMap::regular_event_update_river()
 {
   while (application_is_alive)
   {
-    app->events_mtx.lock();
-    
     app->events.push(std::make_shared<UpdateRiver>(app));
-    
-    app->events_mtx.unlock();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
@@ -65,7 +61,10 @@ Application::WorkWithMap::WorkWithMap(Application* app)
   n_rows = map->get_n_rows();
   n_cols = map->get_n_cols();
 
-  map->print_in_vertices_and_triList(app->Vertices, app->TriList);
+  std::vector<PrintingPoint> Vertices;
+  std::vector<uint16_t> TriList;
+  map->print_in_vertices_and_triList(Vertices, TriList);
+  app->data.set(Vertices, TriList);
 }
 
 Application::WorkWithMap::~WorkWithMap()
@@ -83,31 +82,24 @@ void Application::WorkWithMap::work()
   std::vector<uint16_t> TriList;
   while (true)
   {
-    app->events_mtx.lock();
-
+    app->events.lock();
     while (!app->events.empty())
     {
-      event = app->events.front();
-      app->events.pop();
+      event = app->events.pop();
 
       if (event->type() == close)
         break;
       else
         event->execute(this);
     }
-
-    app->events_mtx.unlock();
+    app->events.unlock();
     
     if (event != nullptr && event->type() == close)
       break;
 
     map->print_in_vertices_and_triList(Vertices, TriList);
 
-    app->buffers_mtx.lock();
-    std::swap(app->Vertices, Vertices);
-    std::swap(app->TriList, TriList);
-    app->need_update_buffers = true;
-    app->buffers_mtx.unlock();
+    app->data.set(Vertices, TriList);
   }
   application_is_alive = false;
 
