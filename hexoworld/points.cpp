@@ -8,7 +8,8 @@ void Hexoworld::Points::set_point_color(const IdType& point, Eigen::Vector4i col
   if (is_locked)
     throw std::runtime_error("Points was locked");
 
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
+
   uint32_t id = point.get();
   id_to_color.at(id / colors_on_point).at(id % colors_on_point) = color;
 }
@@ -18,7 +19,8 @@ Eigen::Vector4i Hexoworld::Points::get_point_color(Eigen::Vector3d point, const 
   if (is_locked)
     throw std::runtime_error("Points was locked");
 
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
+
   uint32_t id = get_id_point(point, base).get();
   return id_to_color.at(id / colors_on_point).at(id % colors_on_point);
 }
@@ -28,7 +30,8 @@ bool Hexoworld::Points::in_points(Eigen::Vector3d p) const
   if (is_locked)
     throw std::runtime_error("Points was locked");
 
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
+
   return (point_to_id.find(p) != point_to_id.end());
 }
 
@@ -37,7 +40,8 @@ Hexoworld::IdType Hexoworld::Points::get_id_point(Eigen::Vector3d p, const Essen
   if (is_locked)
     throw std::runtime_error("Points was locked");
 
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
+
   uint32_t short_id;
   if (!in_points(p))
   {
@@ -83,7 +87,7 @@ Eigen::Vector3d Hexoworld::Points::get_point(const IdType& id) const
   if (is_locked)
     throw std::runtime_error("Points was locked");
 
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
 
   uint32_t id_ = id.get();
   if (id_ / colors_on_point >= id_to_point.size())
@@ -97,7 +101,7 @@ void Hexoworld::Points::update_point(const IdType& id, Eigen::Vector3d new_point
   if (is_locked)
     throw std::runtime_error("Points was locked");
 
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
 
   uint32_t id_ = id.get();
 
@@ -109,7 +113,8 @@ void Hexoworld::Points::update_point(const IdType& id, Eigen::Vector3d new_point
 
 void Hexoworld::Points::print_in_vertices(std::vector<PrintingPoint>& Vertices)
 {
-  OneThreadController __otc__(0, std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(points_mtx);
+
 #ifdef PARALLEL
 
   Vertices.resize(id_to_point.size() * colors_on_point);

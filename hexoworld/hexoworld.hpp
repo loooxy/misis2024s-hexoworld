@@ -169,48 +169,6 @@ private:
     }
   };
 
-  class OneThreadController {
-  public:
-    OneThreadController(
-      std::uintptr_t world,
-      std::thread::id id
-    ) : world(world), id_(id) {
-      if (who_blocked.find(world) == who_blocked.end())
-      {
-        who_blocked[world] = std::thread::id();
-        mutexs[world] = std::make_unique<std::mutex>();
-      }
-
-      if (id_ != who_blocked.at(world))
-      {        
-        mutexs[world]->lock();
-        who_blocked[world] = id;
-      }
-      else
-        cnt++;
-    }
-    ~OneThreadController() {
-      if (id_ == who_blocked.at(world))
-      {
-        if (cnt != 0)
-          cnt--;
-        else
-        {
-          who_blocked[world] = std::thread::id();
-          mutexs[world]->unlock();
-        }
-      }
-      else
-        throw std::runtime_error("Something wrong.");
-    }
-  private:
-    uint32_t cnt = 0;
-    std::thread::id id_;
-    std::uintptr_t world;
-    static std::unordered_map<std::uintptr_t, std::thread::id> who_blocked;
-    static std::unordered_map<std::uintptr_t, std::unique_ptr<std::mutex>> mutexs;
-  };
-
   class IdType {
   public:
     explicit IdType()                   noexcept : real(false), id(0)      { }
@@ -350,6 +308,7 @@ private:
     const uint32_t colors_on_point = 5; //< Максимальное число цветов на точку
     bool is_locked = false;
     friend IdType;
+    mutable std::recursive_timed_mutex points_mtx;
   };
 
   /// \brief Класс отрисовщиков.
@@ -541,5 +500,7 @@ private:
   Eigen::Vector4i roadColor = Eigen::Vector4i(96, 96, 96, 255); //< Цвет дороги.
 
   std::unique_ptr<Manager> manager; ///< Менеджер.
+  mutable std::recursive_timed_mutex main_mtx;
+
   static const double PRECISION_DBL_CALC; ///< Точность вещественных вычислений.
 };

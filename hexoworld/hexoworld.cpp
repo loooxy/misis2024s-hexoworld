@@ -37,7 +37,7 @@ Hexoworld::Hexoworld(
   n_rows(n_rows),
   n_cols(n_cols)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   if (abs(rowDirection_.dot(colDirection_)) > PRECISION_DBL_CALC)
     throw std::invalid_argument(
@@ -58,7 +58,7 @@ Hexoworld::Hexoworld(
 void Hexoworld::add_hexagon(uint32_t row, uint32_t col,
   Eigen::Vector4i color)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
   
@@ -85,7 +85,7 @@ void Hexoworld::add_hexagon(uint32_t row, uint32_t col,
 
 void Hexoworld::del_hexagon(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
 
@@ -110,7 +110,7 @@ void Hexoworld::del_hexagon(uint32_t row, uint32_t col)
 }
 
 void Hexoworld::add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs) {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   std::vector<Coord> positions;
   for (const auto& hex : hexs)
@@ -149,7 +149,7 @@ void Hexoworld::add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs) {
 
 void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord start_pos(row, col);
   int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
@@ -176,7 +176,7 @@ void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
 
 void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord start_pos(row, col);
   int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
@@ -203,7 +203,7 @@ void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
 
 void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
   std::set<Coord> neighbors = manager->get_neighbors(pos);
@@ -237,7 +237,7 @@ void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)
 
 void Hexoworld::del_road_in_hex(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
   std::set<Coord> neighbors = manager->get_neighbors(pos);
@@ -266,7 +266,7 @@ void Hexoworld::del_road_in_hex(uint32_t row, uint32_t col)
 
 void Hexoworld::add_farm_in_hex(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
   std::shared_ptr<Hexagon> hex = manager->get_hexagon(pos);
@@ -290,7 +290,7 @@ void Hexoworld::add_farm_in_hex(uint32_t row, uint32_t col)
 
 void Hexoworld::del_farm_in_hex(uint32_t row, uint32_t col)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
   std::set<Coord> neighbors = manager->get_neighbors(pos);
@@ -319,7 +319,7 @@ void Hexoworld::del_farm_in_hex(uint32_t row, uint32_t col)
 
 void Hexoworld::update_river()
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   for (auto& river : manager->get_all_rivers())
   {
@@ -372,7 +372,7 @@ void Hexoworld::update_river()
 
 void Hexoworld::set_hex_height(uint32_t row, uint32_t col, int32_t height)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord pos(row, col);
   std::set<Coord> neighbors = manager->get_neighbors(pos);
@@ -401,7 +401,7 @@ void Hexoworld::set_hex_height(uint32_t row, uint32_t col, int32_t height)
 
 void Hexoworld::set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color)
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   auto pos = Coord(row, col);
 
@@ -431,7 +431,7 @@ void Hexoworld::set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color)
 
 int32_t Hexoworld::get_hex_height(uint32_t row, uint32_t col) const
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   auto center = Points::get_instance().get_point(
     manager->get_hexagon(Coord(row, col))->mainData->centerId
@@ -447,7 +447,7 @@ int32_t Hexoworld::get_hex_height(uint32_t row, uint32_t col) const
 
 Eigen::Vector4i Hexoworld::get_hex_color(uint32_t row, uint32_t col) const
 {
-  OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   return std::static_pointer_cast<Hexagon::UsualDrawer>(
     manager->get_hexagon(Coord(row, col))->drawers[Usual]
@@ -495,7 +495,8 @@ void Hexoworld::print_in_vertices_and_triList(
 #endif // SPEED_TEST
 
   {
-    OneThreadController __otc__(reinterpret_cast<std::uintptr_t>(this), std::this_thread::get_id());
+    std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx); 
+    
     Points::get_instance().lock();
 
     const auto& objects = manager->get_all_object();
