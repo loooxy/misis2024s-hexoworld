@@ -10,7 +10,9 @@ enum CameraMovement {
   FORWARD,
   BACKWARD,
   LEFT,
-  RIGHT
+  RIGHT,
+  UP,
+  DOWN
 };
 
 // Defaut camera values
@@ -64,14 +66,29 @@ public:
   // process input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
   void ProcessKeyboard(CameraMovement direction, float deltaTime) {
     float velocity = MovementSpeed * deltaTime;
-    if (direction == FORWARD)
+    if (direction == FORWARD) {
       Position += Front * velocity;
-    if (direction == BACKWARD)
+    }
+    if (direction == BACKWARD) {
       Position -= Front * velocity;
-    if (direction == LEFT)
+    }
+    if (direction == LEFT) {
       Position -= Right * velocity;
-    if (direction == RIGHT)
+    }
+    if (direction == RIGHT) {
       Position += Right * velocity;
+    }
+    if (direction == UP) {
+      Position += WorldUp * velocity;
+    }
+    if (direction == DOWN) {
+      Position -= WorldUp * velocity;
+    }
+
+    // restrictions for height
+    if (Position.y < 0.0f) {
+      Position.y = 0.0f;
+    }
   }
 
   // process inout from mouse input system. Expects the offset value in both the x and y direction.
