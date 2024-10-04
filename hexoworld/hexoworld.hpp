@@ -97,41 +97,65 @@ public:
   /// \param hexs Координаты {row, col} шестиугольников, по которым течёт река.
   void add_river(std::vector<std::pair<uint32_t, uint32_t>> hexs);
 
-  /// \brief Затопить шестиугольник.
-  /// \param row Строка позиции шестиугольника.
-  /// \param col Столбец позиции шестиугольника.
-  void add_flood_in_hex(uint32_t row, uint32_t col);
-  void del_flood_in_hex(uint32_t row, uint32_t col);
+  class FloodAccessor {
+  public:
+    FloodAccessor(Hexoworld* world, uint32_t row, uint32_t col);
+    bool operator= (bool value);
+    operator bool() const;
+  private:
+    Hexoworld* world_;
+    uint32_t row_, col_;
+  };
+  FloodAccessor flood(uint32_t row, uint32_t col);
 
-  /// \brief Добавить дорогу в шестиугольнике.
-  /// \param row Строка позиции шестиугольника.
-  /// \param col Столбец позиции шестиугольника.
-  void add_road_in_hex(uint32_t row, uint32_t col);
-  void del_road_in_hex(uint32_t row, uint32_t col);
+  class RoadAccessor {
+  public:
+    RoadAccessor(Hexoworld* world, uint32_t row, uint32_t col);
+    bool operator= (bool value);
+    operator bool() const;
+  private:
+    Hexoworld* world_;
+    uint32_t row_, col_;
+  };
+  RoadAccessor road(uint32_t row, uint32_t col);
 
-  /// \brief Создать ферму в шестиугольнике.
-  /// \param row Строка позиции шестиугольника.
-  /// \param col Столбец позиции шестиугольника.
-  void add_farm_in_hex(uint32_t row, uint32_t col);
-  void del_farm_in_hex(uint32_t row, uint32_t col);
+  class FarmAccessor {
+  public:
+    FarmAccessor(Hexoworld* world, uint32_t row, uint32_t col);
+    bool operator= (bool value);
+    operator bool() const;
+  private:
+    Hexoworld* world_;
+    uint32_t row_, col_;
+  };
+  FarmAccessor farm(uint32_t row, uint32_t col);
+
+  class HeightAccessor {
+  public:
+    HeightAccessor(Hexoworld* world, uint32_t row, uint32_t col);
+    int32_t operator= (int32_t value);
+    operator int32_t() const;
+  private:
+    Hexoworld* world_;
+    uint32_t row_, col_;
+  };
+  HeightAccessor height(uint32_t row, uint32_t col);
+  
+  class ColorAccessor {
+  public:
+    ColorAccessor(Hexoworld* world, uint32_t row, uint32_t col);
+    Eigen::Vector4i operator= (Eigen::Vector4i value);
+    operator Eigen::Vector4i() const;
+  private:
+    Hexoworld* world_;
+    uint32_t row_, col_;
+  };
+  ColorAccessor color(uint32_t row, uint32_t col);
+
 
   /// \brief Обновить реку.
   void update_river();
-
-  /// \brief Установить высоту шестиугольнику.
-  /// \param row Номер строки.
-  /// \param col Номер столбца.
-  /// \param height Новая высота.
-  void set_hex_height(uint32_t row, uint32_t col, int32_t height);
-
-  /// \brief Установить цвет шестиугольнику.
-  /// \param row Номер строки.
-  /// \param col Номер столбца.
-  /// \param color Новый цвет шестиугольника.
-  void set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color);
-
-  int32_t get_hex_height(uint32_t row, uint32_t col) const;
-  Eigen::Vector4i get_hex_color(uint32_t row, uint32_t col) const;
+  
   uint32_t get_n_rows() const;
   uint32_t get_n_cols() const;
 
@@ -398,8 +422,6 @@ private:
     Hexoworld& world; ///< Мир к которому принадлежит шестиугольник.
   };
 
-  
-
   /// \brief Структура шестиугольник.
   struct Hexagon;
 
@@ -417,6 +439,70 @@ private:
 
   /// \brief Класс менеджера.
   class Manager;
+
+  struct MainData {
+  public:
+    void set_heights(Coord pos, int32_t height);
+    int32_t get_heights(Coord pos) const;
+    
+    void set_colors(Coord pos, Eigen::Vector4i color);
+    Eigen::Vector4i get_colors(Coord pos) const;
+    
+    void set_rivers(Coord pos, bool river);
+    bool get_rivers(Coord pos) const;
+
+    void set_roads(Coord pos, bool road);
+    bool get_roads(Coord pos) const;
+    
+    void set_farms(Coord pos, bool farm);
+    bool get_farms(Coord pos) const;
+    
+    void set_floods(Coord pos, bool flood);
+    bool get_floods(Coord pos) const;
+
+  private:
+    std::map<Coord, int32_t> heights;
+    std::map<Coord, Eigen::Vector4i> colors;
+    std::map<Coord, bool> rivers;
+    std::map<Coord, bool> roads;
+    std::map<Coord, bool> farms;
+    std::map<Coord, bool> floods;
+    mutable std::mutex mtx;
+  };
+  MainData main_data_;
+
+
+  /// \brief Затопить шестиугольник.
+  /// \param row Строка позиции шестиугольника.
+  /// \param col Столбец позиции шестиугольника.
+  void add_flood_in_hex(uint32_t row, uint32_t col);
+  void del_flood_in_hex(uint32_t row, uint32_t col);
+
+  /// \brief Добавить дорогу в шестиугольнике.
+  /// \param row Строка позиции шестиугольника.
+  /// \param col Столбец позиции шестиугольника.
+  void add_road_in_hex(uint32_t row, uint32_t col);
+  void del_road_in_hex(uint32_t row, uint32_t col);
+
+
+  /// \brief Создать ферму в шестиугольнике.
+  /// \param row Строка позиции шестиугольника.
+  /// \param col Столбец позиции шестиугольника.
+  void add_farm_in_hex(uint32_t row, uint32_t col);
+  void del_farm_in_hex(uint32_t row, uint32_t col);
+
+  /// \brief Установить высоту шестиугольнику.
+  /// \param row Номер строки.
+  /// \param col Номер столбца.
+  /// \param height Новая высота.
+  void set_hex_height(uint32_t row, uint32_t col, int32_t height);
+
+  /// \brief Установить цвет шестиугольнику.
+  /// \param row Номер строки.
+  /// \param col Номер столбца.
+  /// \param color Новый цвет шестиугольника.
+  void set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color);
+
 
   /// \brief Установить высоту точке.
   /// \param point Точка.
@@ -502,6 +588,9 @@ private:
   Eigen::Vector4i roadColor = Eigen::Vector4i(96, 96, 96, 255); //< Цвет дороги.
 
   std::unique_ptr<Manager> manager; ///< Менеджер.
+
+
+
   mutable std::recursive_timed_mutex main_mtx;
 
   static const double PRECISION_DBL_CALC; ///< Точность вещественных вычислений.

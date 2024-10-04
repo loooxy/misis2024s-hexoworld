@@ -6,29 +6,53 @@ void Application::WorkWithMap::generateField(std::shared_ptr<Hexoworld>& map) {
   map = std::make_shared<Hexoworld>(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
     Eigen::Vector3d(0, 0, -2), Eigen::Vector3d(-1, 0, 0), 1, 2, 10, 10);
 
+  Eigen::Matrix<int, 10, 10> colors_ = (Eigen::MatrixXi(10, 10) <<
+    mo, mo, sn, sn, sn, mo, mo, se, se, se,
+    gr, gr, mo, mo, mo, sa, mo, se, se, se,
+    sa, sa, gr, gr, gr, sa, sa, gr, se, se,
+    mo, gr, sa, sa, sa, gr, sa, gr, gr, gr,
+    mo, gr, gr, sa, sa, sa, gr, sa, sa, gr,
+    mo, mo, gr, se, se, se, gr, sa, gr, gr,
+    mo, mo, se, se, se, sa, gr, gr, sa, gr,
+    mo, mo, se, se, se, sa, gr, gr, se, se,
+    mo, mo, gr, gr, se, sa, gr, gr, se, sa,
+    sn, mo, mo, mo, gr, gr, gr, gr, sa, sa).finished();
+
+  Eigen::Matrix<int, 10, 10> heights_ = (Eigen::MatrixXi(10, 10) <<
+    3, 3, 4, 4, 4, 3, 2, -1, -2, -3,
+    1, 1, 2, 2, 3, 1, 2, -1, -2, -2,
+    0, 0, 1, 1, 1, 0, 0, 1, -1, -1,
+    2, 1, 0, 0, 0, 1, 0, 1, 1, 0,
+    3, 1, 1, 1, 0, 0, 1, 0, 0, 1,
+    2, 3, 0, -1, -1, -1, 1, 0, 1, 1,
+    3, 2, -1, -2, -2, 0, 0, 1, 0, 1,
+    3, 2, -1, -1, -1, 0, 1, 0, -1, -2,
+    2, 3, 1, 0, -1, 0, 1, 0, -1, 1,
+    4, 3, 3, 2, 0, 1, 1, 0, 1, 1).finished();
+
   map->add_river({
                     {0, 3}, {1, 2}, {2, 3}, {3, 2}, {3, 3}, {4, 4}, {5, 4}
     });
-  map->add_road_in_hex(4, 6);
-  map->add_road_in_hex(3, 5);
-  map->add_road_in_hex(3, 6);
+  map->road(4, 6) = true;
+  map->road(3, 5) = true;
+  map->road(3, 6) = true;
 
-  map->add_farm_in_hex(4, 9);
+  map->farm(4, 9) = true;
 
   for (int i = 0; i < 10; ++i)
     for (int j = 0; j < 10; ++j)
     {
       switch (colors_(i, j))
       {
-      case gr: map->set_hex_color(i, j, grass); break;
-      case sa: map->set_hex_color(i, j, sand); break;
-      case se: map->set_hex_color(i, j, sea); break;
-      case sn: map->set_hex_color(i, j, snow); break;
-      case mo: map->set_hex_color(i, j, mount); break;
-      case te: map->set_hex_color(i, j, test); break;
+      case gr: map->color(i, j) = grass; break;
+      case sa: map->color(i, j) = sand; break;
+      case se: map->color(i, j) = sea; break;
+      case sn: map->color(i, j) = snow; break;
+      case mo: map->color(i, j) = mount; break;
+      case te: map->color(i, j) = test; break;
       }
 
-      map->set_hex_height(i, j, heights_(i, j));
+      map->height(i, j) = heights_(i, j);
     }
 }
 
@@ -130,72 +154,70 @@ Eigen::Vector4i Application::WorkWithMap::get_color(int color_id)
   case te: return test;
   }
 }
+int Application::WorkWithMap::get_id_color(Eigen::Vector4i color)
+{
+  if (color == sea)
+    return se;
+  if (color == sand)
+    return sa;
+  if (color == grass)
+    return gr;
+  if (color == mount)
+    return mo;
+  if (color == snow)
+    return sn;
+  if (color == test)
+    return te;
+}
 
 int Application::WorkWithMap::heights(int row, int col)
 {
-  return heights_(row, col);
+  return map->height(row, col);
 }
 
 int Application::WorkWithMap::colors(int row, int col)
 {
-  return colors_(row, col);
+  return get_id_color(map->color(row, col));
 }
 
 bool Application::WorkWithMap::roads(int row, int col)
 {
-  return roads_(row, col);
+  return map->road(row, col);
 }
 
 bool Application::WorkWithMap::farms(int row, int col)
 {
-  return farms_(row, col);
+  return map->farm(row, col);
 }
 
 bool Application::WorkWithMap::flood(int row, int col)
 {
-  return flood_(row, col);
+  return map->flood(row, col);
 }
 
 void Application::WorkWithMap::set_hex_height(int row, int col, int new_height)
 {
-  map->set_hex_height(row, col, new_height);
-  heights_(row, col) = new_height;
+  map->height(row, col) = new_height;
 }
 
 void Application::WorkWithMap::set_hex_color(int row, int col, int color_id)
 {
-  map->set_hex_color(row, col, get_color(color_id));
-  colors_(row, col) = color_id;
+  map->color(row, col) = get_color(color_id);
 }
 
 void Application::WorkWithMap::set_road_state_in_hex(int row, int col, bool road_state)
 {
-  if (road_state)
-    map->add_road_in_hex(row, col);
-  else
-    map->del_road_in_hex(row, col);
-
-  roads_(row, col) = road_state;
+  map->road(row, col) = road_state;
 }
 
 void Application::WorkWithMap::set_farm_state_in_hex(int row, int col, bool farm_state)
 {
-  if (farm_state)
-    map->add_farm_in_hex(row, col);
-  else
-    map->del_farm_in_hex(row, col);
-
-  farms_(row, col) = farm_state;
+  map->farm(row, col) = farm_state;
 }
 
 void Application::WorkWithMap::set_flood_state_in_hex(int row, int col, bool flood_state)
 {
-  if (flood_state)
-    map->add_flood_in_hex(row, col);
-  else
-    map->del_flood_in_hex(row, col);
-
-  flood_(row, col) = flood_state;
+  map->flood(row, col) = flood_state;
 }
 
 void Application::WorkWithMap::update_river()

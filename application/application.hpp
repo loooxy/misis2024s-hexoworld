@@ -106,6 +106,7 @@ private:
 		int get_n_cols();
 		int get_n_rows();
 		Eigen::Vector4i get_color(int color_id);
+		int get_id_color(Eigen::Vector4i color);
 		int heights(int row, int col);
 		int colors(int row, int col);
 		bool roads(int row, int col);
@@ -141,68 +142,7 @@ private:
 		Eigen::Vector4i sea;
 		Eigen::Vector4i snow;
 		Eigen::Vector4i mount;
-		Eigen::Vector4i test;
-
-		Eigen::Matrix<int, 10, 10> colors_ = (Eigen::MatrixXi(10, 10) <<
-			mo, mo, sn, sn, sn, mo, mo, se, se, se,
-			gr, gr, mo, mo, mo, sa, mo, se, se, se,
-			sa, sa, gr, gr, gr, sa, sa, gr, se, se,
-			mo, gr, sa, sa, sa, gr, sa, gr, gr, gr,
-			mo, gr, gr, sa, sa, sa, gr, sa, sa, gr,
-			mo, mo, gr, se, se, se, gr, sa, gr, gr,
-			mo, mo, se, se, se, sa, gr, gr, sa, gr,
-			mo, mo, se, se, se, sa, gr, gr, se, se,
-			mo, mo, gr, gr, se, sa, gr, gr, se, sa,
-			sn, mo, mo, mo, gr, gr, gr, gr, sa, sa).finished();
-
-		Eigen::Matrix<int, 10, 10> heights_ = (Eigen::MatrixXi(10, 10) <<
-			3, 3, 4, 4, 4, 3, 2, -1, -2, -3,
-			1, 1, 2, 2, 3, 1, 2, -1, -2, -2,
-			0, 0, 1, 1, 1, 0, 0, 1, -1, -1,
-			2, 1, 0, 0, 0, 1, 0, 1, 1, 0,
-			3, 1, 1, 1, 0, 0, 1, 0, 0, 1,
-			2, 3, 0, -1, -1, -1, 1, 0, 1, 1,
-			3, 2, -1, -2, -2, 0, 0, 1, 0, 1,
-			3, 2, -1, -1, -1, 0, 1, 0, -1, -2,
-			2, 3, 1, 0, -1, 0, 1, 0, -1, 1,
-			4, 3, 3, 2, 0, 1, 1, 0, 1, 1).finished();
-
-		Eigen::Matrix<bool, 10, 10> roads_ = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>(10, 10) <<
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, true, true, false, false, false,
-			false, false, false, false, false, false, true, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false).finished();
-
-
-		Eigen::Matrix<bool, 10, 10> farms_ = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>(10, 10) <<
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, true,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false).finished();
-
-		Eigen::Matrix<bool, 10, 10> flood_ = (Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>(10, 10) <<
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false).finished();
+		Eigen::Vector4i test;		
 	};
 
 	enum TypeEvent {

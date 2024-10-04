@@ -500,31 +500,6 @@ void Hexoworld::set_hex_color(uint32_t row, uint32_t col, Eigen::Vector4i color)
   }
 }
 
-int32_t Hexoworld::get_hex_height(uint32_t row, uint32_t col) const
-{
-  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
-
-  auto center = Points::get_instance().get_point(
-    manager->get_hexagon(Coord(row, col))->mainData->centerId
-  );
-
-  int32_t height = round(
-      heightDirection_.dot(center - origin_) / 
-      heightStep_
-    );
-
-  return height;
-}
-
-Eigen::Vector4i Hexoworld::get_hex_color(uint32_t row, uint32_t col) const
-{
-  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
-
-  return std::static_pointer_cast<Hexagon::UsualDrawer>(
-    manager->get_hexagon(Coord(row, col))->drawers[Usual]
-  )->get_color();
-}
-
 uint32_t Hexoworld::get_n_rows() const {
   return n_rows;
 }

@@ -34,6 +34,8 @@ cottage/frames.cpp
 static_functions.cpp
 static_variable.cpp
 points.cpp
+main_data.cpp
+accessors.cpp
 hexoworld.cpp)
 target_link_libraries(hexoworld Eigen3::Eigen)
 set_property(TARGET hexoworld PROPERTY CXX_STANDARD 20)
