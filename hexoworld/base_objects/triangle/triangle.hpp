@@ -24,6 +24,9 @@ public:
   /// \brief Обновление треугольника.
   void update();
 
+  void add_flooding(int32_t height);
+  void del_flooding();
+
   /// \brief Вывести треугольники, на который треангулируется треугольник.
   /// \param TriList Куда выводить треугольники.
   void print_in_triList(std::vector<uint32_t>& TriList);
@@ -49,6 +52,13 @@ public:
     UsualDrawer(Object* object);
 
     /// \brief Раскрасить точки.
+    void colorize_points();
+  };
+
+  class FloodDrawer : public TriangleDrawer {
+  public:
+    FloodDrawer(Object* base) : TriangleDrawer(base) {}
+
     void colorize_points();
   };
 
@@ -119,6 +129,26 @@ public:
       Eigen::Vector3d c_goal,
       std::vector<std::pair<IdType, IdType>>& stairs,
       uint32_t cliff = 0);
+  };
+
+  class FloodFrame : public TriangleFrame {
+  public:
+    FloodFrame(Object* base, int32_t height);
+
+    /// \brief Получение Id точек обычного каркаса.
+    /// \return Массив Id-шников.
+    std::vector<IdType> get_pointsId() const { return water_points; }
+    /// \brief Получить все точки каркаса.
+    /// \return Массив точек.
+    std::vector<Eigen::Vector3d> get_points() const;
+
+    /// \brief Вывести треугольники.
+    /// \param TriList Куда выводить треугольники.
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
+  
+  private:
+    double A_water_level, B_water_level, C_water_level;
+    std::vector<IdType> water_points;
   };
 
 private:

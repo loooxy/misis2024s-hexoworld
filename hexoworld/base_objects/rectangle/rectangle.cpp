@@ -1,5 +1,4 @@
 #include "rectangle.hpp"
-#include "rectangle.hpp"
 #include <hexoworld/base_objects/rectangle/rectangle.hpp>
 #include <hexoworld/wall/wall.hpp>
 
@@ -131,6 +130,25 @@ void Hexoworld::Rectangle::del_road()
     frames.erase(Road);
     drawers.erase(Road);
     inventory.clear();
+  }
+}
+
+void Hexoworld::Rectangle::add_flooding(int32_t height)
+{
+  if (frames.find(Flood) == frames.end())
+  {
+    frames[Flood] = std::make_shared<FloodFrame>(this, height);
+    drawers[Flood] = std::make_shared<FloodDrawer>(this);
+    drawers[Flood]->colorize_points();
+  }
+}
+
+void Hexoworld::Rectangle::del_flooding()
+{
+  if (frames.find(Flood) != frames.end())
+  {
+    drawers.erase(Flood);
+    frames.erase(Flood);
   }
 }
 

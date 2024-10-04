@@ -116,3 +116,12 @@ void Hexoworld::Rectangle::RoadDrawer::colorize_points()
   for (int i = 0; i < frame->fencePointsId.size(); ++i)
     col_id(frame->fencePointsId[i], base->world.roadColor);
 }
+
+Hexoworld::Rectangle::FloodDrawer::FloodDrawer(Object* object)
+  :RectangleDrawer(object) {}
+
+void Hexoworld::Rectangle::FloodDrawer::colorize_points() {
+  for (const auto& point :
+    std::static_pointer_cast<FloodFrame>(base->frames[Flood])->get_pointsId())
+    Points::get_instance().set_point_color(point, base->world.floodColor);
+}

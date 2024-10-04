@@ -35,6 +35,9 @@ public:
   void make_road();
   void del_road();
 
+  void add_flooding(int32_t height);
+  void del_flooding();
+
   /// \brief Вывести треугольники, на который треангулируется прямоугольник.
   /// \param TriList Куда выводить треугольники.
   void print_in_triList(std::vector<uint32_t>& TriList);
@@ -87,6 +90,12 @@ public:
     RoadDrawer(Object* object);
 
     /// \brief Раскрасить точки.
+    void colorize_points();
+  };
+
+  class FloodDrawer : public RectangleDrawer {
+  public:
+    FloodDrawer(Object* object);
     void colorize_points();
   };
 
@@ -183,6 +192,20 @@ public:
     std::vector<IdType> middlePointsId; //< Точки посередине дороги.
     std::vector<IdType> fencePointsId;  //< Точки забора.
   };
+
+  class FloodFrame : public RectangleFrame
+  {
+  public:
+    FloodFrame(Object* base, int32_t height);
+    std::vector<IdType> get_pointsId() const;
+    std::vector<Eigen::Vector3d> get_points() const;
+    void print_in_triList(std::vector<uint32_t>& TriList) const;
+
+    double AB_water_level, CD_water_level; //< Уровень воды.
+    std::vector<IdType> AB_waterPoints; //< Точки воды.
+    std::vector<IdType> CD_waterPoints; //< Точки воды.
+  };
+
 private:
   std::shared_ptr<MainData> mainData; //< Основные данные.
   const std::shared_ptr<Hexagon> ab_hex_; //< Шестиугольник, к которому принадлежат точки a и b.

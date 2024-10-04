@@ -1,4 +1,3 @@
-#include "hexoworld.hpp"
 #include <hexoworld/hexoworld.hpp>
 #include <hexoworld/manager/manager.hpp>
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
@@ -172,6 +171,33 @@ void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
 
   for (const Coord& pos : flood_cells)
     manager->get_hexagon(pos)->add_flooding(start_hieght);
+
+  for (const Coord& pos1 : flood_cells)
+    for (const Coord& pos2 : manager->get_neighbors(pos1))
+      if (flood_cells.find(pos2) != flood_cells.end())
+        manager->get_rectangle(pos1, pos2)->add_flooding(start_hieght);
+
+  for (const Coord& pos1 : flood_cells)
+  {
+    auto set1 = manager->get_neighbors(pos1);
+    for (const Coord& pos2 : set1)
+      if (flood_cells.find(pos2) != flood_cells.end())
+      {
+        auto set2 = manager->get_neighbors(pos2);
+
+        std::vector<Coord> intersection;
+        std::set_intersection(
+          set1.begin(), set1.end(),
+          set2.begin(), set2.end(),
+          std::back_inserter(intersection));
+
+        for (const auto& pos3 : intersection)
+          if (flood_cells.find(pos3) != flood_cells.end())
+          {
+            manager->get_triangle(pos1, pos2, pos3)->add_flooding(start_hieght);
+          }
+      }
+  }
 }
 
 void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
@@ -180,7 +206,7 @@ void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
 
   Coord start_pos(row, col);
   int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
-  std::set<Coord> flood_cells;
+  std::set<Coord> del_flood_cells;
   std::queue<Coord> q;
   q.push(start_pos);
 
@@ -189,16 +215,61 @@ void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
     Coord pos = q.front();
     q.pop();
 
-    flood_cells.insert(pos);
+    del_flood_cells.insert(pos);
 
     for (const Coord& new_pos : manager->get_neighbors(pos))
-      if (flood_cells.find(new_pos) == flood_cells.end() &&
-        manager->get_hexagon(new_pos)->get_height() >= start_hieght)
-        q.push(new_pos);
+      if (del_flood_cells.find(new_pos) == del_flood_cells.end())
+      {
+        auto hex = manager->get_hexagon(new_pos);
+        if (hex->get_height() >= start_hieght &&
+          hex->frames.find(Flood) != hex->frames.end())
+          q.push(new_pos);
+      }
   }
 
-  for (const Coord& pos : flood_cells)
+  for (const Coord& pos : del_flood_cells)
     manager->get_hexagon(pos)->del_flooding();
+
+  for (const Coord& pos1 : del_flood_cells)
+    for (const Coord& pos2 : manager->get_neighbors(pos1))
+    {
+      auto rect = manager->get_rectangle(pos1, pos2);
+      if (rect->frames.find(Flood) != rect->frames.end())
+        rect->del_flooding();
+    }
+
+  for (const Coord& pos1 : del_flood_cells)
+  {
+    auto set1 = manager->get_neighbors(pos1);
+    for (const Coord& pos2 : set1)
+    {
+      auto set2 = manager->get_neighbors(pos2);
+
+      std::vector<Coord> intersection;
+      std::set_intersection(
+        set1.begin(), set1.end(),
+        set2.begin(), set2.end(),
+        std::back_inserter(intersection));
+
+      for (const auto& pos3 : intersection)
+      {
+        const auto& tri = manager->get_triangle(pos1, pos2, pos3);
+        
+        const auto& hex1 = manager->get_hexagon(pos1);
+        const auto& hex2 = manager->get_hexagon(pos2);
+        const auto& hex3 = manager->get_hexagon(pos3);
+
+        bool flood1 = hex1->frames.find(Flood) != hex1->frames.end();
+        bool flood2 = hex2->frames.find(Flood) != hex2->frames.end();
+        bool flood3 = hex3->frames.find(Flood) != hex3->frames.end();
+
+        if (!flood1 || !flood2 || !flood3)
+        {
+          tri->del_flooding();
+        }
+      }
+    }
+  }
 }
 
 void Hexoworld::add_road_in_hex(uint32_t row, uint32_t col)

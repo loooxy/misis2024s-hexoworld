@@ -734,20 +734,6 @@ void Hexoworld::Hexagon::FloodFrame::print_in_triList(std::vector<uint32_t>& Tri
       waterPoints[i],
       waterPoints[(i + 1) % (waterPoints.size() - 1)],
       TriList);
-
-  std::vector<IdType> points;
-  for (int i = 0; i < 6; ++i)
-  {
-    points.push_back(static_cast<Hexagon*>(base)->mainData->polygonPointsId[i]);
-    for (int j = 0; j < static_cast<Hexagon*>(base)->mainData->extraPointsId[i].size(); ++j)
-      points.push_back(static_cast<Hexagon*>(base)->mainData->extraPointsId[i][j]);
-  }
-
-  for (int i = 0; i < waterPoints.size() - 1; ++i)
-    printRect(
-      {points[i], points[(i + 1) % points.size()]},
-      {waterPoints[i], waterPoints[(i + 1) % points.size()]},
-      TriList);
 }
 
 //struct RoadFrame-----------------------------------------

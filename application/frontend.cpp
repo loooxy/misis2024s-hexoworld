@@ -280,7 +280,7 @@ void Application::Frontend::prepare_ImGui()
         {
           bool flood_state = app->work_with_map->flood(row, col);
           bool cur_flood_state = flood_state;
-          ImGui::Checkbox("flood(in process, only add)", &cur_flood_state);
+          ImGui::Checkbox("flood(in process)", &cur_flood_state);
           if (flood_state != cur_flood_state) {
             app->events.push(std::make_shared<ChangeFloodState>(app, row, col, cur_flood_state));
           }

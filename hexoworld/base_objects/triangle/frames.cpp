@@ -280,3 +280,47 @@ void Hexoworld::Triangle::UsualFrame::init_stair(Eigen::Vector3d a, Eigen::Vecto
   }
   stairs.push_back({ c_id, d_id });
 }
+
+
+Hexoworld::Triangle::FloodFrame::FloodFrame(Object* base, int32_t height) 
+  : TriangleFrame(base)
+{
+  auto& mainData = static_cast<Triangle*>(base)->mainData;
+  Eigen::Vector3d A = Points::get_instance().get_point(mainData->AId);
+  Eigen::Vector3d B = Points::get_instance().get_point(mainData->BId);
+  Eigen::Vector3d C = Points::get_instance().get_point(mainData->CId);
+
+  A_water_level =
+    base->world.heightStep_ *
+    (height - base->world.get_points_height(A) + 0.5);
+  B_water_level =
+    base->world.heightStep_ *
+    (height - base->world.get_points_height(B) + 0.5);
+  C_water_level =
+    base->world.heightStep_ *
+    (height - base->world.get_points_height(C) + 0.5);
+
+
+  water_points.resize(3);
+  water_points[0] = Points::get_instance().get_id_point(
+    A + base->world.heightDirection_ * A_water_level, this);
+  water_points[1] = Points::get_instance().get_id_point(
+    B + base->world.heightDirection_ * B_water_level, this);
+  water_points[2] = Points::get_instance().get_id_point(
+    C + base->world.heightDirection_ * C_water_level, this);
+}
+
+std::vector<Eigen::Vector3d> Hexoworld::Triangle::FloodFrame::get_points() const {
+  std::vector<Eigen::Vector3d> answer;
+  for (auto i : get_pointsId())
+    answer.push_back(
+      Points::get_instance().get_point(
+        i
+      )
+    );
+  return answer;
+}
+
+void Hexoworld::Triangle::FloodFrame::print_in_triList(std::vector<uint32_t>& TriList) const {
+  printTri(water_points[0], water_points[1], water_points[2], TriList);
+}

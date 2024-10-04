@@ -430,6 +430,8 @@ private:
   /// \param type К какому каркасу/отрисовщику относится.
   Eigen::Vector3d set_new_height_to_point(IdType id_point, int32_t height, FrameAndDrawersTypes type);
 
+  int32_t get_points_height(Eigen::Vector3d point);
+
   /// \brief Получить номер грани между двумя вершинами.
   /// \param vertex1 Первая вершина.
   /// \param vertex2 Вторая вершина.

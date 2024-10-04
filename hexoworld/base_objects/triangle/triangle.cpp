@@ -1,3 +1,5 @@
+#include "triangle.hpp"
+#include "triangle.hpp"
 #include <hexoworld/base_objects/triangle/triangle.hpp>
 
 Hexoworld::Triangle::Triangle(Hexoworld& hexoworld,
@@ -28,6 +30,19 @@ void Hexoworld::Triangle::update()
   frames[Usual] = std::make_shared<UsualFrame>(this, aid, bid, cid);
   drawers[Usual] = std::make_shared<UsualDrawer>(this);
   drawers[Usual]->colorize_points();
+}
+
+void Hexoworld::Triangle::add_flooding(int32_t height)
+{
+  frames[Flood] = std::make_shared<FloodFrame>(this, height);
+  drawers[Flood] = std::make_shared<FloodDrawer>(this);
+  colorize_points();
+}
+
+void Hexoworld::Triangle::del_flooding()
+{
+  frames.erase(Flood);
+  drawers.erase(Flood);
 }
 
 void Hexoworld::Triangle::print_in_triList(std::vector<uint32_t>& TriList) {

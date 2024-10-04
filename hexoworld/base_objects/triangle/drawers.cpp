@@ -110,3 +110,10 @@ void Hexoworld::Triangle::UsualDrawer::colorize_points() {
   col_id(tri->mainData->CId, 
     c_color + ((c_color == a_color ? (c_color + b_color) / 2 : (c_color + a_color) / 2) - c_color) / 5);
 }
+
+
+void Hexoworld::Triangle::FloodDrawer::colorize_points() {
+  for (auto& i : std::static_pointer_cast<FloodFrame>(base->frames[Flood])->get_pointsId()) {
+    Points::get_instance().set_point_color(i, base->world.floodColor);
+  }
+}

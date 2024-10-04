@@ -1,7 +1,3 @@
-#include "rectangle.hpp"
-#include "rectangle.hpp"
-#include "rectangle.hpp"
-#include "rectangle.hpp"
 #include <hexoworld/base_objects/rectangle/rectangle.hpp>
 
 
@@ -372,4 +368,82 @@ void Hexoworld::Rectangle::RoadFrame::print_in_triList(std::vector<uint32_t>& Tr
     { fencePointsId[3], middlePointsId[1] },
     TriList
   );
+}
+
+
+Hexoworld::Rectangle::FloodFrame::FloodFrame(Object* base, int32_t height)
+  : RectangleFrame(base)
+{
+  AB_water_level = base->world.heightStep_ * 
+    (height - 
+      base->world.get_points_height(
+        Points::get_instance().get_point(
+          static_cast<Rectangle*>(base)->mainData->AId
+        )
+      ) + 0.5);
+
+  CD_water_level = base->world.heightStep_ *
+    (height -
+      base->world.get_points_height(
+        Points::get_instance().get_point(
+          static_cast<Rectangle*>(base)->mainData->CId
+        )
+      ) + 0.5);
+
+  AB_waterPoints.push_back(Points::get_instance().get_id_point(
+    Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->AId) +
+    base->world.heightDirection_ * AB_water_level,
+    this
+  ));
+  for (auto i : static_cast<Rectangle*>(base)->mainData->ABIds)
+    AB_waterPoints.push_back(Points::get_instance().get_id_point(
+      Points::get_instance().get_point(i) + 
+      base->world.heightDirection_ * AB_water_level,
+      this
+    ));
+  AB_waterPoints.push_back(Points::get_instance().get_id_point(
+    Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->BId) +
+    base->world.heightDirection_ * AB_water_level,
+    this
+  ));
+
+  CD_waterPoints.push_back(Points::get_instance().get_id_point(
+    Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->CId) +
+    base->world.heightDirection_ * CD_water_level,
+    this
+  ));
+  for (auto i : static_cast<Rectangle*>(base)->mainData->CDIds)
+    CD_waterPoints.push_back(Points::get_instance().get_id_point(
+      Points::get_instance().get_point(i) + 
+      base->world.heightDirection_ * CD_water_level,
+      this
+    ));
+  CD_waterPoints.push_back(Points::get_instance().get_id_point(
+    Points::get_instance().get_point(static_cast<Rectangle*>(base)->mainData->DId) +
+    base->world.heightDirection_ * CD_water_level,
+    this
+  ));
+}
+
+std::vector<Hexoworld::IdType> Hexoworld::Rectangle::FloodFrame::get_pointsId() const {
+  std::vector<IdType> answer = AB_waterPoints;
+  for (const auto& i : CD_waterPoints)
+    answer.push_back(i);
+  return answer;
+}
+
+std::vector<Eigen::Vector3d> Hexoworld::Rectangle::FloodFrame::get_points() const {
+  std::vector<Eigen::Vector3d> answer;
+  for (const auto& i : get_pointsId())
+    answer.push_back(Points::get_instance().get_point(i));
+  return answer;
+}
+
+void Hexoworld::Rectangle::FloodFrame::print_in_triList(std::vector<uint32_t>& TriList) const
+{
+  for (auto i = 0; i < AB_waterPoints.size() - 1; ++i)
+    printRect(
+      { AB_waterPoints[i], AB_waterPoints[i + 1] },
+      { CD_waterPoints[i], CD_waterPoints[i + 1] },
+      TriList);
 }

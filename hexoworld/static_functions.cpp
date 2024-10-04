@@ -1,3 +1,4 @@
+#include "hexoworld.hpp"
 #include <hexoworld/hexoworld.hpp>
 
 uint32_t Hexoworld::get_ind_extraPoints(uint32_t vertex1, uint32_t vertex2)
@@ -28,6 +29,11 @@ Eigen::Vector3d Hexoworld::set_new_height_to_point(IdType id_point, int32_t heig
   set_new_height_to_point(point, height, type);
   Points::get_instance().update_point(id_point, point);
   return point;
+}
+
+int32_t Hexoworld::get_points_height(Eigen::Vector3d point)
+{
+  return round(heightDirection_.dot(point - origin_) / heightStep_);
 }
 
 
