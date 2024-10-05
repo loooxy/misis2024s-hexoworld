@@ -106,26 +106,31 @@ void Application::WorkWithMap::work()
 
   std::vector<PrintingPoint> Vertices;
   std::vector<uint16_t> TriList;
+  bool was_events = false;
   while (true)
   {
+    was_events = false;
     app->events.lock();
     while (!app->events.empty())
     {
       event = app->events.pop();
+      was_events = true;
 
       if (event->type() == close)
         break;
-      else
+      else 
         event->execute(this);
     }
     app->events.unlock();
     
-    if (event != nullptr && event->type() == close)
-      break;
+    if (was_events) {
+      if (event != nullptr && event->type() == close)
+        break;
 
-    map->print_in_vertices_and_triList(Vertices, TriList);
+      map->print_in_vertices_and_triList(Vertices, TriList);
 
-    app->data.set(Vertices, TriList);
+      app->data.set(Vertices, TriList);
+    }
   }
   application_is_alive = false;
 
