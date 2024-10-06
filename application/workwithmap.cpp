@@ -75,11 +75,11 @@ Application::WorkWithMap::WorkWithMap(Application* app)
   mount(181, 184, 177, 255),
   test(219, 255, 255, 255)
 {
-  elems_names[0] = "grass";
+  elems_names[0] = "sea";
   elems_names[1] = "sand";
-  elems_names[2] = "sea";
-  elems_names[3] = "snow";
-  elems_names[4] = "mount";
+  elems_names[2] = "grass";
+  elems_names[3] = "mount";
+  elems_names[4] = "snow";
   elems_names[5] = "test";
 
   generateField(map);
