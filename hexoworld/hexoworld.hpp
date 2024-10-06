@@ -589,8 +589,6 @@ private:
 
   std::unique_ptr<Manager> manager; ///< Менеджер.
 
-
-
   mutable std::recursive_timed_mutex main_mtx;
 
   static const double PRECISION_DBL_CALC; ///< Точность вещественных вычислений.
