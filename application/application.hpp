@@ -18,7 +18,7 @@
 #include <opengl/camera.h>
 #include <opengl/shader_s.h>
 
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -38,7 +38,7 @@ public:
 private:
 	static class Frontend {
 	public:
-		Frontend(Application* app);
+		explicit Frontend(Application* app);
 		~Frontend();
 		static void work();
 	private:
@@ -99,7 +99,7 @@ private:
 
 	class WorkWithMap {
 	public:
-		WorkWithMap(Application* app);
+		explicit WorkWithMap(Application* app);
 		~WorkWithMap();
 		void work();
 
@@ -157,6 +157,7 @@ private:
 	class Event {
 	public:
 		Event(Application* app) : app(app) {}
+		virtual ~Event() = default;
 
 		virtual TypeEvent type() = 0;
 		virtual void execute(WorkWithMap* wwm) = 0;
@@ -165,21 +166,21 @@ private:
 	};
 	class ChangeHeight : public Event {
 	public:
-		ChangeHeight(Application* app, int row, int col, int new_height)
+		ChangeHeight(Application* app, const int row, const int col, const int new_height)
 			: Event(app), row(row), col(col), new_height(new_height) {}
-		TypeEvent type() { return changeHeight; }
+		TypeEvent type() override { return changeHeight; }
 
-		void execute(WorkWithMap* wwm) { wwm->set_hex_height(row, col, new_height); }
+		void execute(WorkWithMap* wwm) override { wwm->set_hex_height(row, col, new_height); }
 
 		int row, col, new_height;
 	};
 	class ChangeColor : public Event {
 	public:
-		ChangeColor(Application* app, int row, int col, int new_color)
+		ChangeColor(Application* app, const int row, const int col, const int new_color)
 			: Event(app), row(row), col(col), new_color(new_color) {}
-		TypeEvent type() { return changeColor; }
+		TypeEvent type() override { return changeColor; }
 
-		void execute(WorkWithMap* wwm) {
+		void execute(WorkWithMap* wwm) override {
 			wwm->set_hex_color(row, col, new_color);
 		}
 
@@ -187,12 +188,12 @@ private:
 	};
 	class ChangeRoadState : public Event {
 	public:
-		ChangeRoadState(Application* app, int row, int col, bool road_state)
+		ChangeRoadState(Application* app, const int row, const int col, const bool road_state)
 			: Event(app), row(row), col(col), road_state(road_state) {}
 
-		TypeEvent type() { return changeRoadState; }
+		TypeEvent type() override { return changeRoadState; }
 
-		void execute(WorkWithMap* wwm) {
+		void execute(WorkWithMap* wwm) override {
 				wwm->set_road_state_in_hex(row, col, road_state);
 		}
 
@@ -204,9 +205,9 @@ private:
 		ChangeFarmState(Application* app, int row, int col, bool farm_state)
 			: Event(app), row(row), col(col), farm_state(farm_state) {}
 
-		TypeEvent type() { return changeFarmState; }
+		TypeEvent type() override { return changeFarmState; }
 
-		void execute(WorkWithMap* wwm) {
+		void execute(WorkWithMap* wwm) override {
 			wwm->set_farm_state_in_hex(row, col, farm_state);
 		}
 
@@ -215,12 +216,12 @@ private:
 	};
 	class ChangeFloodState : public Event {
 	public:
-		ChangeFloodState(Application* app, int row, int col, bool flood_state)
+		ChangeFloodState(Application* app, const int row, const int col, const bool flood_state)
 			: Event(app), row(row), col(col), flood_state(flood_state) {}
 
-		TypeEvent type() { return changeFloodState; }
+		TypeEvent type() override { return changeFloodState; }
 
-		void execute(WorkWithMap* wwm) {
+		void execute(WorkWithMap* wwm) override {
 			wwm->set_flood_state_in_hex(row, col, flood_state);
 		}
 
@@ -229,26 +230,26 @@ private:
 	};
 	class UpdateRiver : public Event {
 	public:
-		UpdateRiver(Application* app) : Event(app) {}
+		explicit UpdateRiver(Application* app) : Event(app) {}
 
-		TypeEvent type() { return updateRiver; }
+		TypeEvent type() override { return updateRiver; }
 
-		void execute(WorkWithMap* wwm) {
+		void execute(WorkWithMap* wwm) override {
 			wwm->update_river();
 		}
 	};
 	class Close : public Event {
 	public:
-		Close(Application* app) : Event(app) {}
+		explicit Close(Application* app) : Event(app) {}
 
-		TypeEvent type() { return close; }
+		TypeEvent type() override { return close; }
 
-		void execute(WorkWithMap* wwm) {}
+		void execute(WorkWithMap* wwm) override {}
 	};
 
 	class events_queue {
 	public:
-		void push(std::shared_ptr<Event> event) {
+		void push(const std::shared_ptr<Event>& event) {
 			mtx.lock();
 			events.push(event);
 			mtx.unlock();
