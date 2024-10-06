@@ -41,6 +41,7 @@ void Application::Frontend::init_glfw()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
    */
 
+  glfwWindowHint(GLFW_SAMPLES, 4); // Anti-Aliasing MSAA
 
    // Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -100,7 +101,7 @@ void Application::Frontend::init_ImGui()
   if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
   {
     style.WindowRounding = 0.0f;
-    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    style.Colors[ImGuiCol_WindowBg].w = 0.3f; // imgui transparency
   }
 
   // Setup Platform/Renderer backends
@@ -122,6 +123,7 @@ void Application::Frontend::init_Shaders_and_Buffers()
   // configure global opengl state
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_MULTISAMPLE);
 
   // build and compile our shader program
   // ------------------------------------
@@ -324,7 +326,7 @@ void Application::Frontend::prepare_window()
   }
 
   // pass projection shader to the shader (in that case it should change every frame)
-  glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+  glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 800.0f);
   filledShader->setMat4("projection", projection);
   meshShader->setMat4("projection", projection);
 

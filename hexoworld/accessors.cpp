@@ -1,5 +1,3 @@
-#include "hexoworld.hpp"
-#include "hexoworld.hpp"
 #include <hexoworld/hexoworld.hpp>
 #include <iostream>
 #include <thread>
@@ -13,8 +11,6 @@ bool Hexoworld::FloodAccessor::operator=(bool value)
     world_->add_flood_in_hex(row_, col_);
   else
     world_->del_flood_in_hex(row_, col_);
-
-  world_->main_data_.set_floods(Coord(row_, col_), value);
 
   return value;
 }

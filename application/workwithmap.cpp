@@ -75,11 +75,11 @@ Application::WorkWithMap::WorkWithMap(Application* app)
   mount(181, 184, 177, 255),
   test(219, 255, 255, 255)
 {
-  elems_names[0] = "grass";
+  elems_names[0] = "sea";
   elems_names[1] = "sand";
-  elems_names[2] = "sea";
-  elems_names[3] = "snow";
-  elems_names[4] = "mount";
+  elems_names[2] = "grass";
+  elems_names[3] = "mount";
+  elems_names[4] = "snow";
   elems_names[5] = "test";
 
   generateField(map);
@@ -106,26 +106,31 @@ void Application::WorkWithMap::work()
 
   std::vector<PrintingPoint> Vertices;
   std::vector<uint16_t> TriList;
+  bool was_events = false;
   while (true)
   {
+    was_events = false;
     app->events.lock();
     while (!app->events.empty())
     {
       event = app->events.pop();
+      was_events = true;
 
       if (event->type() == close)
         break;
-      else
+      else 
         event->execute(this);
     }
     app->events.unlock();
     
-    if (event != nullptr && event->type() == close)
-      break;
+    if (was_events) {
+      if (event != nullptr && event->type() == close)
+        break;
 
-    map->print_in_vertices_and_triList(Vertices, TriList);
+      map->print_in_vertices_and_triList(Vertices, TriList);
 
-    app->data.set(Vertices, TriList);
+      app->data.set(Vertices, TriList);
+    }
   }
   application_is_alive = false;
 

@@ -170,7 +170,10 @@ void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
   }
 
   for (const Coord& pos : flood_cells)
+  {
     manager->get_hexagon(pos)->add_flooding(start_hieght);
+    main_data_.set_floods(pos, true);
+  }
 
   for (const Coord& pos1 : flood_cells)
     for (const Coord& pos2 : manager->get_neighbors(pos1))
@@ -228,7 +231,10 @@ void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
   }
 
   for (const Coord& pos : del_flood_cells)
+  {
     manager->get_hexagon(pos)->del_flooding();
+    main_data_.set_floods(pos, false);
+  }
 
   for (const Coord& pos1 : del_flood_cells)
     for (const Coord& pos2 : manager->get_neighbors(pos1))
