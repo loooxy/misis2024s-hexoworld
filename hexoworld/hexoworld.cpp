@@ -151,100 +151,26 @@ void Hexoworld::add_flood_in_hex(uint32_t row, uint32_t col)
   std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
   Coord start_pos(row, col);
-  int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
-  std::set<Coord> flood_cells;
-  std::queue<Coord> q;
-  q.push(start_pos);
+  int32_t start_height = manager->get_hexagon(start_pos)->get_height();
   
-  while (!q.empty())
-  {
-    Coord pos = q.front();
-    q.pop();
-
-    flood_cells.insert(pos);
-    
-    for (const Coord& new_pos : manager->get_neighbors(pos))
-      if (flood_cells.find(new_pos) == flood_cells.end() && 
-        manager->get_hexagon(new_pos)->get_height() <= start_hieght)
-        q.push(new_pos);
-  }
+  std::set<Coord> flood_cells;
+  flood_bfs(start_pos, flood_cells,
+    [start_height](std::shared_ptr<Hexagon> hex) -> bool {
+      return hex->get_height() <= start_height;
+    });
+  
 
   for (const Coord& pos : flood_cells)
   {
-    manager->get_hexagon(pos)->add_flooding(start_hieght);
+    manager->get_hexagon(pos)->add_flooding(start_height);
     main_data_.set_floods(pos, true);
   }
 
   for (const Coord& pos1 : flood_cells)
     for (const Coord& pos2 : manager->get_neighbors(pos1))
-      if (flood_cells.find(pos2) != flood_cells.end())
-        manager->get_rectangle(pos1, pos2)->add_flooding(start_hieght);
+        manager->get_rectangle(pos1, pos2)->add_flooding(start_height);
 
   for (const Coord& pos1 : flood_cells)
-  {
-    auto set1 = manager->get_neighbors(pos1);
-    for (const Coord& pos2 : set1)
-      if (flood_cells.find(pos2) != flood_cells.end())
-      {
-        auto set2 = manager->get_neighbors(pos2);
-
-        std::vector<Coord> intersection;
-        std::set_intersection(
-          set1.begin(), set1.end(),
-          set2.begin(), set2.end(),
-          std::back_inserter(intersection));
-
-        for (const auto& pos3 : intersection)
-          if (flood_cells.find(pos3) != flood_cells.end())
-          {
-            manager->get_triangle(pos1, pos2, pos3)->add_flooding(start_hieght);
-          }
-      }
-  }
-}
-
-void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
-{
-  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
-
-  Coord start_pos(row, col);
-  int32_t start_hieght = manager->get_hexagon(start_pos)->get_height();
-  std::set<Coord> del_flood_cells;
-  std::queue<Coord> q;
-  q.push(start_pos);
-
-  while (!q.empty())
-  {
-    Coord pos = q.front();
-    q.pop();
-
-    del_flood_cells.insert(pos);
-
-    for (const Coord& new_pos : manager->get_neighbors(pos))
-      if (del_flood_cells.find(new_pos) == del_flood_cells.end())
-      {
-        auto hex = manager->get_hexagon(new_pos);
-        if (hex->get_height() >= start_hieght &&
-          hex->frames.find(Flood) != hex->frames.end())
-          q.push(new_pos);
-      }
-  }
-
-  for (const Coord& pos : del_flood_cells)
-  {
-    manager->get_hexagon(pos)->del_flooding();
-    main_data_.set_floods(pos, false);
-  }
-
-  for (const Coord& pos1 : del_flood_cells)
-    for (const Coord& pos2 : manager->get_neighbors(pos1))
-    {
-      auto rect = manager->get_rectangle(pos1, pos2);
-      if (rect->frames.find(Flood) != rect->frames.end())
-        rect->del_flooding();
-    }
-
-  for (const Coord& pos1 : del_flood_cells)
   {
     auto set1 = manager->get_neighbors(pos1);
     for (const Coord& pos2 : set1)
@@ -258,23 +184,122 @@ void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
         std::back_inserter(intersection));
 
       for (const auto& pos3 : intersection)
-      {
-        const auto& tri = manager->get_triangle(pos1, pos2, pos3);
-        
-        const auto& hex1 = manager->get_hexagon(pos1);
-        const auto& hex2 = manager->get_hexagon(pos2);
-        const auto& hex3 = manager->get_hexagon(pos3);
+        manager->get_triangle(pos1, pos2, pos3)->add_flooding(start_height);
+          
+    }
+  }
+}
 
-        bool flood1 = hex1->frames.find(Flood) != hex1->frames.end();
-        bool flood2 = hex2->frames.find(Flood) != hex2->frames.end();
-        bool flood3 = hex3->frames.find(Flood) != hex3->frames.end();
+void Hexoworld::del_flood_in_hex(uint32_t row, uint32_t col)
+{
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 
-        if (!flood1 || !flood2 || !flood3)
+  Coord start_pos(row, col);
+  int32_t start_height = manager->get_hexagon(start_pos)->get_height();
+
+  std::set<Coord> flood_cells;
+  flood_bfs(start_pos, flood_cells, 
+    [](std::shared_ptr<Hexagon> hex) -> bool {
+      return (hex->frames.find(Flood) != hex->frames.end());
+    });
+  
+  std::set<Coord> reduce_height;
+  for (Coord pos1 : flood_cells)
+    if (manager->get_hexagon(pos1)->get_height() >= start_height)
+    {
+      manager->get_hexagon(pos1)->del_flooding();
+      main_data_.set_floods(pos1, false);
+
+      auto neighbors = manager->get_neighbors(pos1);
+      for (Coord pos2 : neighbors)
+        if (manager->get_hexagon(pos2)->get_height() >= start_height)
         {
-          tri->del_flooding();
+          manager->get_rectangle(pos1, pos2)->del_flooding();
+
+          for (Coord pos3 : manager->get_neighbors(pos2))
+            if (neighbors.find(pos3) != neighbors.end() &&
+              manager->get_hexagon(pos3)->get_height() >= start_height)
+            {
+              manager->get_triangle(pos1, pos2, pos3)->del_flooding();
+            }
         }
+    }
+    else
+      reduce_height.insert(pos1);
+
+  while (!reduce_height.empty())
+  {
+    std::set<Coord> cur_step_cells;
+    
+    flood_bfs(*reduce_height.begin(), cur_step_cells,
+      [&reduce_height](std::shared_ptr<Hexagon> hex) -> bool
+      {
+        bool ans = reduce_height.find(hex->coord) != reduce_height.end();
+        if (ans)
+          reduce_height.erase(hex->coord);
+        return ans;
+      }
+    );
+    reduce_height.erase(reduce_height.begin());
+
+    auto mx_height = 
+      manager->get_hexagon(*cur_step_cells.begin())->get_height();
+
+    for (auto coord : cur_step_cells)
+      mx_height = std::max(mx_height, 
+        manager->get_hexagon(coord)->get_height());
+
+    for (const Coord& pos : cur_step_cells)
+    {
+      manager->get_hexagon(pos)->add_flooding(mx_height);
+    }
+
+    for (const Coord& pos1 : cur_step_cells)
+      for (const Coord& pos2 : manager->get_neighbors(pos1))
+        manager->get_rectangle(pos1, pos2)->add_flooding(mx_height);
+
+    for (const Coord& pos1 : cur_step_cells)
+    {
+      auto set1 = manager->get_neighbors(pos1);
+      for (const Coord& pos2 : set1)
+      {
+        auto set2 = manager->get_neighbors(pos2);
+
+        std::vector<Coord> intersection;
+        std::set_intersection(
+          set1.begin(), set1.end(),
+          set2.begin(), set2.end(),
+          std::back_inserter(intersection));
+
+        for (const auto& pos3 : intersection)
+          manager->get_triangle(pos1, pos2, pos3)->add_flooding(mx_height);
+
       }
     }
+  }
+}
+template <class CondFuncT>
+void Hexoworld::flood_bfs(Coord start, std::set<Coord>& answer, CondFuncT condition)
+{
+  std::queue<Coord> q;
+  q.push(start);
+
+  while (!q.empty())
+  {
+    Coord pos = q.front();
+    q.pop();
+
+    answer.insert(pos);
+
+    for (const Coord& new_pos : manager->get_neighbors(pos))
+      if (answer.find(new_pos) == answer.end())
+      {
+        auto hex = manager->get_hexagon(new_pos);
+        if (condition(hex))
+        {
+          q.push(new_pos);
+        }
+      }
   }
 }
 

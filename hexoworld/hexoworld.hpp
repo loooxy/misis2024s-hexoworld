@@ -477,6 +477,8 @@ private:
   /// \param col Столбец позиции шестиугольника.
   void add_flood_in_hex(uint32_t row, uint32_t col);
   void del_flood_in_hex(uint32_t row, uint32_t col);
+  template<class CondFuncT>
+  void flood_bfs(Coord start, std::set<Coord>& answer, CondFuncT);
 
   /// \brief Добавить дорогу в шестиугольнике.
   /// \param row Строка позиции шестиугольника.

@@ -135,12 +135,9 @@ void Hexoworld::Rectangle::del_road()
 
 void Hexoworld::Rectangle::add_flooding(int32_t height)
 {
-  if (frames.find(Flood) == frames.end())
-  {
-    frames[Flood] = std::make_shared<FloodFrame>(this, height);
-    drawers[Flood] = std::make_shared<FloodDrawer>(this);
-    drawers[Flood]->colorize_points();
-  }
+  frames[Flood] = std::make_shared<FloodFrame>(this, height);
+  drawers[Flood] = std::make_shared<FloodDrawer>(this);
+  drawers[Flood]->colorize_points();
 }
 
 void Hexoworld::Rectangle::del_flooding()
