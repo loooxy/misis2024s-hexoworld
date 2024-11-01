@@ -18,6 +18,8 @@
 #include <opengl/camera.h>
 #include <opengl/shader_s.h>
 
+#include <zmq.hpp>
+
 #include <cstdio>
 #include <string>
 #include <iostream>
@@ -36,11 +38,50 @@ public:
 
 	void work();
 private:
+	class Server {
+	public:
+		Server(Application* app);
+		Server(const Server& copy) = delete;
+		Server operator=(const Server& copy) = delete;
+		~Server();
+
+		void CreateServer(int port);
+		void Run();
+		
+	private:
+		void FillReply(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist, zmq::message_t& reply_cameras);
+
+		zmq::context_t ctx_;
+		zmq::socket_t server_;
+		Application* app_;
+		std::map<std::string, Camera> id_to_cam;
+	};
+
+	class Client {
+	public:
+		Client(Application* app);
+		Client(const Client& copy) = delete;
+		Client operator=(const Client& copy) = delete;
+		~Client();
+
+		void ConnectToServer(const std::string& address);
+	private:
+		void FillRequest(zmq::message_t& request);
+		void ForwardDataToApp(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist, zmq::message_t& reply_cameras);
+
+		zmq::context_t ctx_;
+		zmq::socket_t client_;
+		Application* app_;
+	};
+
 	static class Frontend {
 	public:
 		explicit Frontend(Application* app);
 		~Frontend();
 		static void work();
+
+		static std::vector<PrintingPoint> GetVertices();
+		static std::vector<uint16_t> GetTriList();
 	private:
 		static void init_glfw();
 		static void init_ImGui();
@@ -305,6 +346,8 @@ private:
 		std::mutex mtx;
 	};
 
+	std::shared_ptr<Server> server;
+	std::shared_ptr<Client> client;
 	std::shared_ptr<Frontend> frontend;
 	std::shared_ptr<WorkWithMap> work_with_map;
 	events_queue events;

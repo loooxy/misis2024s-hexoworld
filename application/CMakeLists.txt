@@ -2,7 +2,9 @@ add_library(application
 application.hpp 
 application.cpp
 workwithmap.cpp
-frontend.cpp)
+frontend.cpp 
+server.cpp
+client.cpp)
 
 target_link_libraries(application 
 glfw
@@ -10,6 +12,7 @@ Eigen3::Eigen
 imgui::imgui
 glad::glad
 glm::glm
+cppzmq
 
 hexoworld
 )

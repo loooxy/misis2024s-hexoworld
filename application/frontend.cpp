@@ -18,6 +18,14 @@ bool Application::Frontend::is_changed_shader = false;
 std::vector<PrintingPoint> Application::Frontend::Vertices;
 std::vector<uint16_t> Application::Frontend::TriList;
 
+std::vector<PrintingPoint> Application::Frontend::GetVertices() {
+  return Vertices;
+}
+
+std::vector<uint16_t> Application::Frontend::GetTriList() {
+  return TriList;
+}
+
 Application::Frontend::Frontend(Application* app) 
 {
   Application::Frontend::app = app;
