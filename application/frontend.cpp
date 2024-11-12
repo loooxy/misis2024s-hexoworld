@@ -1,4 +1,6 @@
 #include <application/application.hpp>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 Camera Application::Frontend::camera(glm::vec3(-60.0f, 15.0f, 50.0f));
 bool Application::Frontend::firstMouse = true;
@@ -124,6 +126,11 @@ void Application::Frontend::init_Shaders_and_Buffers()
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
+  glEnable(GL_BLEND);
+  glEnable(GL_ALPHA_TEST);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+  glBlendEquation(GL_FUNC_ADD);
 
   // build and compile our shader program
   // ------------------------------------
@@ -324,7 +331,14 @@ void Application::Frontend::prepare_window()
   else {
     filledShader->use();
   }
-
+/*
+  std::map<float, glm::vec3> sorted;
+  for (unsigned int i = 0; i < Vertices.size(); i++)
+  {
+    float distance = glm::length(camera.Position - glm::vec3(Vertices[i].x, Vertices[i].y, Vertices[i].z));
+    sorted[distance] = glm::vec3(Vertices[i].x, Vertices[i].y, Vertices[i].z);
+  }
+*/
   // pass projection shader to the shader (in that case it should change every frame)
   glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 800.0f);
   filledShader->setMat4("projection", projection);
@@ -341,6 +355,7 @@ void Application::Frontend::render_window()
   if (app->data.check())
   {
     app->data.get(Vertices, TriList);
+
     // map updating
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
