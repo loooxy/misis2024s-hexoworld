@@ -10,19 +10,28 @@ enum DataType {
   CAMERAS
 };
 
-Application::Client::Client(Application* app)
-  : app_(app),
+Client::Client()
+  :
   ctx_(1),
   client_(ctx_, ZMQ_REQ)
 {}
 
-Application::Client::~Client() {
+Client::~Client() {
 
 }
 
-void Application::Client::ConnectToServer(const std::string& address = "tcp://*:5555") {
+void Client::Work() {
+  auto frontend_func = [this]() {frontend_->work(); };
+  std::thread th_frontend(frontend_func);
+
+  th_frontend.detach();
+
+  ConnectToServer("tcp://*:5555");
+}
+
+void Client::ConnectToServer(const std::string& address = "tcp://*:5555") {
   client_.connect(address);
-  Application::Frontend::SetIsClient(true);
+  frontend_->SetIsClient(true);
 
   int retries_left = REQUEST_RETRIES;
 
@@ -46,12 +55,13 @@ void Application::Client::ConnectToServer(const std::string& address = "tcp://*:
       if (items[0].revents & ZMQ_POLLIN) {
         zmq::message_t reply_vertices;
         zmq::message_t reply_trilist;
-        zmq::message_t reply_cameras;
+        //zmq::message_t reply_cameras;
         client_.recv(reply_vertices, zmq::recv_flags::none);
         client_.recv(reply_trilist, zmq::recv_flags::none);
-        client_.recv(reply_cameras, zmq::recv_flags::none);
+        //client_.recv(reply_cameras, zmq::recv_flags::none);
 
         // forward map data to application
+        ForwardDataToApp(reply_vertices, reply_trilist);
 
         // forward camera data to application
 
@@ -74,13 +84,14 @@ void Application::Client::ConnectToServer(const std::string& address = "tcp://*:
 }
 
 // fill request with data about commands
-void Application::Client::FillRequest(zmq::message_t& request) {
-
-  request.rebuild(Application::Frontend::GetCommands().data(), sizeof(Application::Frontend::GetCommands.data());
+void Client::FillRequest(zmq::message_t& request) {
+  std::string ev;
+  frontend_->GetDataToRequest(ev);
+  request.rebuild(ev.data(), sizeof(ev[0]) * ev.size());
 }
 
 // forward data to application
-void Application::Client::ForwardDataToApp(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist, zmq::message_t& reply_cameras) {
+void Client::ForwardDataToApp(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist) {
     // vertices
     std::vector<PrintingPoint> Vertices(reply_vertices.size() / sizeof(PrintingPoint));
     memcpy(Vertices.data(), reply_vertices.data(), reply_vertices.size());
@@ -90,15 +101,15 @@ void Application::Client::ForwardDataToApp(zmq::message_t& reply_vertices, zmq::
     memcpy(TriList.data(), reply_trilist.data(), reply_trilist.size());
 
     // forward to app
-    app_->data.set(Vertices, TriList);
+    frontend_->SetDataFromReply(Vertices, TriList);
 
     // cameras
-    std::vector<std::pair<std::string, Camera>> v(reply_cameras.size() / (IDENTITY_SIZE + sizeof(Camera)));
-    memcpy(v.data(), reply_cameras.data(), reply_cameras.size());
+    //std::vector<std::pair<std::string, Camera>> v(reply_cameras.size() / (IDENTITY_SIZE + sizeof(Camera)));
+    //memcpy(v.data(), reply_cameras.data(), reply_cameras.size());
 
-    // TODO: add drawing other cameras
-    std::map<std::string, Camera> id_to_cam;
-    for (const auto& pair : v) {
-      id_to_cam[pair.first] = pair.second;
-    }
+    //// TODO: add drawing other cameras
+    //std::map<std::string, Camera> id_to_cam;
+    //for (const auto& pair : v) {
+    //  id_to_cam[pair.first] = pair.second;
+    //}
 }

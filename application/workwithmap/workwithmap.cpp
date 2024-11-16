@@ -1,8 +1,6 @@
 #include "application.hpp"
-#include "application.hpp"
-#include <application/application.hpp>
 
-void Application::WorkWithMap::generateField(std::shared_ptr<Hexoworld>& map) {
+void WorkWithMap::generateField(std::shared_ptr<Hexoworld>& map) {
   map = std::make_shared<Hexoworld>(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),
     Eigen::Vector3d(0, 0, -2), Eigen::Vector3d(-1, 0, 0), 1, 2, 10, 10);
 
@@ -56,18 +54,10 @@ void Application::WorkWithMap::generateField(std::shared_ptr<Hexoworld>& map) {
     }
 }
 
-void Application::WorkWithMap::regular_event_update_river()
-{
-  while (application_is_alive)
-  {
-    app->events.push(std::make_shared<UpdateRiver>(app));
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-}
 
-Application::WorkWithMap::WorkWithMap(Application* app)
-  : app(app),
+WorkWithMap::WorkWithMap()
+  : 
   grass(53, 200, 45, 255),
   sand(252, 221, 50, 255),
   sea(0, 100, 255, 255),
@@ -90,64 +80,26 @@ Application::WorkWithMap::WorkWithMap(Application* app)
   std::vector<PrintingPoint> Vertices;
   std::vector<uint16_t> TriList;
   map->print_in_vertices_and_triList(Vertices, TriList);
-  app->data.set(Vertices, TriList);
+  // data.set(Vertices, TriList);
 }
 
-Application::WorkWithMap::~WorkWithMap()
+WorkWithMap::~WorkWithMap()
 {
 }
 
-void Application::WorkWithMap::work()
-{
-  auto river_update_func = [this]() { regular_event_update_river(); };
-  std::thread river_update(river_update_func);
 
-  std::shared_ptr<Event> event = nullptr;
 
-  std::vector<PrintingPoint> Vertices;
-  std::vector<uint16_t> TriList;
-  bool was_events = false;
-  while (true)
-  {
-    was_events = false;
-    app->events.lock();
-    while (!app->events.empty())
-    {
-      event = app->events.pop();
-      was_events = true;
-
-      if (event->type() == close)
-        break;
-      else 
-        event->execute(this);
-    }
-    app->events.unlock();
-    
-    if (was_events) {
-      if (event != nullptr && event->type() == close)
-        break;
-
-      map->print_in_vertices_and_triList(Vertices, TriList);
-
-      app->data.set(Vertices, TriList);
-    }
-  }
-  application_is_alive = false;
-
-  river_update.join();
-}
-
-int Application::WorkWithMap::get_n_cols()
+int WorkWithMap::get_n_cols()
 {
   return n_cols;
 }
 
-int Application::WorkWithMap::get_n_rows()
+int WorkWithMap::get_n_rows()
 {
   return n_rows;
 }
 
-Eigen::Vector4i Application::WorkWithMap::get_color(int color_id)
+Eigen::Vector4i WorkWithMap::get_color(int color_id)
 {
   switch (color_id)
   {
@@ -159,7 +111,7 @@ Eigen::Vector4i Application::WorkWithMap::get_color(int color_id)
   case te: return test;
   }
 }
-int Application::WorkWithMap::get_id_color(Eigen::Vector4i color)
+int WorkWithMap::get_id_color(Eigen::Vector4i color)
 {
   if (color == sea)
     return se;
@@ -175,58 +127,65 @@ int Application::WorkWithMap::get_id_color(Eigen::Vector4i color)
     return te;
 }
 
-int Application::WorkWithMap::heights(int row, int col)
+int WorkWithMap::heights(int row, int col)
 {
   return map->height(row, col);
 }
 
-int Application::WorkWithMap::colors(int row, int col)
+int WorkWithMap::colors(int row, int col)
 {
   return get_id_color(map->color(row, col));
 }
 
-bool Application::WorkWithMap::roads(int row, int col)
+bool WorkWithMap::roads(int row, int col)
 {
   return map->road(row, col);
 }
 
-bool Application::WorkWithMap::farms(int row, int col)
+bool WorkWithMap::farms(int row, int col)
 {
   return map->farm(row, col);
 }
 
-bool Application::WorkWithMap::flood(int row, int col)
+bool WorkWithMap::flood(int row, int col)
 {
   return map->flood(row, col);
 }
 
-void Application::WorkWithMap::set_hex_height(int row, int col, int new_height)
+void WorkWithMap::set_hex_height(int row, int col, int new_height)
 {
   map->height(row, col) = new_height;
 }
 
-void Application::WorkWithMap::set_hex_color(int row, int col, int color_id)
+void WorkWithMap::set_hex_color(int row, int col, int color_id)
 {
   map->color(row, col) = get_color(color_id);
 }
 
-void Application::WorkWithMap::set_road_state_in_hex(int row, int col, bool road_state)
+void WorkWithMap::set_road_state_in_hex(int row, int col, bool road_state)
 {
   map->road(row, col) = road_state;
 }
 
-void Application::WorkWithMap::set_farm_state_in_hex(int row, int col, bool farm_state)
+void WorkWithMap::set_farm_state_in_hex(int row, int col, bool farm_state)
 {
   map->farm(row, col) = farm_state;
 }
 
-void Application::WorkWithMap::set_flood_state_in_hex(int row, int col, bool flood_state)
+void WorkWithMap::set_flood_state_in_hex(int row, int col, bool flood_state)
 {
   map->flood(row, col) = flood_state;
 }
 
-void Application::WorkWithMap::update_river()
+void WorkWithMap::update_river()
 {
   map->update_river();
+}
+
+void WorkWithMap::get_data(data_pool& data) {
+  std::vector<PrintingPoint> Vertices;
+  std::vector<uint16_t> TriList;
+  map->print_in_vertices_and_triList(Vertices, TriList);
+  data.set(Vertices, TriList);
 }
 

@@ -1,4 +1,4 @@
-#include <application/application.hpp>
+#include "server.hpp"
 #define REQUEST_TIMEOUT 10
 #define REQUEST_CYCLES 10
 #define IDENTITY_SIZE 5
@@ -10,21 +10,23 @@ enum DataType {
   CAMERAS
 };
 
-Application::Server::Server(Application* app) 
-  : app_(app), 
+Server::Server() 
+  : 
   ctx_(1), 
   server_(ctx_, ZMQ_ROUTER)
-{}
+{
+  backend_ = std::make_unique<Backend>();
+}
 
-Application::Server::~Server() {
+Server::~Server() {
 
 }
 
-void Application::Server::CreateServer(int port = 5555) {
+void Server::CreateServer(int port = 5555) {
   server_.bind("tcp://*:" + port);
 }
 
-void Application::Server::Run() {
+void Server::Run() {
   while (true) {
     // server receive requests from clients
     for (int i = 0; i < REQUEST_CYCLES; ++i) {
@@ -47,7 +49,7 @@ void Application::Server::Run() {
         server_.recv(request, zmq::recv_flags::none);
 
         // server can process request here
-
+        ProcessRequest(request);
 
         // change id_to_cam
         std::string id = identity.to_string();
@@ -58,8 +60,8 @@ void Application::Server::Run() {
         // fill reply with data
         zmq::message_t reply_vertices;
         zmq::message_t reply_trilist;
-        zmq::message_t reply_cameras;
-        FillReply(reply_vertices, reply_trilist, reply_cameras);
+        //zmq::message_t reply_cameras;
+        FillReply(reply_vertices, reply_trilist);
 
         // send identity
         server_.send(identity, zmq::send_flags::sndmore);
@@ -67,8 +69,8 @@ void Application::Server::Run() {
         server_.send(delimiter, zmq::send_flags::sndmore);
         // send reply
         server_.send(reply_vertices, zmq::send_flags::sndmore);
-        server_.send(reply_trilist, zmq::send_flags::sndmore);
-        server_.send(reply_cameras, zmq::send_flags::none);
+        server_.send(reply_trilist, zmq::send_flags::none);
+        //server_.send(reply_cameras, zmq::send_flags::none);
       }
     }
 
@@ -78,21 +80,29 @@ void Application::Server::Run() {
 
 // TODO: using class data get vertices and trilist
 // fill reply with data about map (and cameras)
-void Application::Server::FillReply(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist, zmq::message_t& reply_cameras) {
+void Server::FillReply(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist) {
   // maybe we can use zero-copy, but not now
   
+  std::vector<PrintingPoint> Vertices;
+  std::vector<uint16_t> TriList;
+  backend_->GetDataToReply(Vertices, TriList);
+
   // vertices
-  reply_vertices.rebuild(Application::Frontend::GetVertices().data(), sizeof(Application::Frontend::GetVertices()[0]) * Application::Frontend::GetVertices().size());
+  reply_vertices.rebuild(Vertices.data(), sizeof(Vertices[0]) * Vertices.size());
 
   // trilist
-  reply_trilist.rebuild(Application::Frontend::GetTriList().data(), sizeof(Application::Frontend::GetTriList()[0]) * Application::Frontend::GetTriList().size());
+  reply_trilist.rebuild(TriList.data(), sizeof(TriList[0]) * TriList.size());
 
   // cameras
-  std::vector<std::pair<std::string, Camera>> v;
-  for (const auto& pair : id_to_cam) {
-    v.push_back({ pair.first, pair.second });
-  }
+  //std::vector<std::pair<std::string, Camera>> v;
+  //for (const auto& pair : id_to_cam) {
+  //  v.push_back({ pair.first, pair.second });
+  //}
 
-  reply_cameras.rebuild(v.data(), (IDENTITY_SIZE + sizeof(Camera)) * v.size());
+  //reply_cameras.rebuild(v.data(), (IDENTITY_SIZE + sizeof(Camera)) * v.size());
+}
 
+void Server::ProcessRequest(zmq::message_t& request) {
+  std::string ev = request.to_string();
+  backend_->ProcessData(ev);
 }

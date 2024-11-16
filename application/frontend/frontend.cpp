@@ -1,42 +1,54 @@
-#include <application/application.hpp>
+#include "frontend.hpp"
+#include <cereal/archives/portable_binary.hpp>
 
-Camera Application::Frontend::camera(glm::vec3(-60.0f, 15.0f, 50.0f));
-bool Application::Frontend::firstMouse = true;
-float Application::Frontend::lastX = SCR_WIDTH / 2.0;
-float Application::Frontend::lastY = SCR_HEIGHT / 2.0;
-float Application::Frontend::deltaTime = 0.0f;
-float Application::Frontend::lastFrame = 0.0f;
-GLFWwindow* Application::Frontend::window;
-Application* Application::Frontend::app;
-std::unique_ptr<Shader> Application::Frontend::filledShader;
-std::unique_ptr<Shader> Application::Frontend::meshShader;
-unsigned int Application::Frontend::VBO;
-unsigned int Application::Frontend::VAO;
-unsigned int Application::Frontend::EBO;
-const char* Application::Frontend::glsl_version;
-bool Application::Frontend::is_changed_shader = false;
-std::vector<PrintingPoint> Application::Frontend::Vertices;
-std::vector<uint16_t> Application::Frontend::TriList;
+// TODO: add vector<Camera> players;
 
-std::vector<PrintingPoint> Application::Frontend::GetVertices() {
+void Frontend::SetDataFromReply(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) {
+  data.set(Vertices, TriList);
+}
+
+void Frontend::GetDataToRequest(std::string& ev) {
+  ev = saveEv(events.pop());
+}
+
+std::string saveEv(const std::shared_ptr<Event>& ev) {
+  std::ostringstream oss;
+  cereal::PortableBinaryOutputArchive archive(oss);
+  archive(ev);
+  return oss.str();
+}
+
+std::vector<PrintingPoint> Frontend::GetVertices() {
   return Vertices;
 }
 
-std::vector<uint16_t> Application::Frontend::GetTriList() {
+std::vector<uint16_t> Frontend::GetTriList() {
   return TriList;
 }
 
-Application::Frontend::Frontend(Application* app) 
+std::queue<std::pair<int, int>> Frontend::GetCommands() {
+  return Commands;
+}
+
+void Frontend::SetIsClient(bool is_client) {
+  Frontend::is_client = is_client;
+}
+
+Frontend::Frontend() 
 {
-  Application::Frontend::app = app;
+  work_with_map = std::make_unique<WorkWithMap>();
 
   init_glfw();
   init_ImGui();
   init_Shaders_and_Buffers();
 }
 
+void Frontend::glfw_error_callback(int error, const char* description)
+{
+  fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+}
 
-void Application::Frontend::init_glfw()
+void Frontend::init_glfw()
 {
   // glfw initialize and configure
       // -----------------------------
@@ -88,7 +100,7 @@ void Application::Frontend::init_glfw()
   glfwSetScrollCallback(window, scroll_callback);
 }
 
-void Application::Frontend::init_ImGui()
+void Frontend::init_ImGui()
 {
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
@@ -120,7 +132,7 @@ void Application::Frontend::init_ImGui()
   ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-void Application::Frontend::init_Shaders_and_Buffers()
+void Frontend::init_Shaders_and_Buffers()
 {
   //glad: load all OpenGl functions pointers
   // ---------------------------------------
@@ -151,7 +163,7 @@ void Application::Frontend::init_Shaders_and_Buffers()
   // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attribute(s)
   glBindVertexArray(VAO);
 
-  app->data.get(Vertices, TriList);
+  data.get(Vertices, TriList);
 
   // bind VBO for Vertices
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -169,7 +181,7 @@ void Application::Frontend::init_Shaders_and_Buffers()
   glEnableVertexAttribArray(1);
 }
 
-Application::Frontend::~Frontend()
+Frontend::~Frontend()
 {
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
@@ -178,7 +190,7 @@ Application::Frontend::~Frontend()
   glfwTerminate();
 }
 
-void Application::Frontend::prepare_ImGui()
+void Frontend::prepare_ImGui()
 {
   // Start the Dear ImGui frame
   ImGui_ImplOpenGL3_NewFrame();
@@ -222,12 +234,12 @@ void Application::Frontend::prepare_ImGui()
   char buffer[50];
   ImGui::Begin("debug");
   HelpMarker("Right Click to open hex settings");
-  for (int col = 0; col < app->work_with_map->get_n_cols(); col++) {
-    for (int row = 0; row < app->work_with_map->get_n_rows(); row++) {
+  for (int col = 0; col < n_cols; col++) {
+    for (int row = 0; row < n_rows; row++) {
       if (row > 0)
         ImGui::SameLine();
 
-      ImGui::PushID(row * (app->work_with_map->get_n_cols() + 1) + col);
+      ImGui::PushID(row * (n_cols + 1) + col);
 
       sprintf(buffer, "Hex %d %d", row, col);
 
@@ -237,40 +249,40 @@ void Application::Frontend::prepare_ImGui()
 
         //height
 
-        int start_height = app->work_with_map->heights(row, col);
+        int start_height = work_with_map->heights(row, col);
         int cur_height = start_height;
         ImGui::SliderInt("Height", &cur_height, -3, 4);
         if (start_height != cur_height) {
-          app->events.push(std::make_shared<ChangeHeight>(app, row, col, cur_height));
+          events.push(std::make_shared<ChangeHeight>(row, col, cur_height));
         }
 
 
         //color
         {
-          int cell_color = app->work_with_map->colors(row, col);
-          int n_colors = app->work_with_map->Colors_COUNT;
+          int cell_color = work_with_map->colors(row, col);
+          int n_colors = work_with_map->Colors_COUNT;
 
           const char* cell_color_name;
           if (cell_color >= 0 &&
             cell_color < n_colors)
-            cell_color_name = app->work_with_map->elems_names[cell_color];
+            cell_color_name = work_with_map->elems_names[cell_color];
           else
             cell_color_name = "Unknown";
 
           int cur_color = cell_color;
           ImGui::SliderInt("Biom", &cur_color, 0, n_colors - 1, cell_color_name);
           if (cell_color != cur_color) {
-            app->events.push(std::make_shared<ChangeColor>(app, row, col, cur_color));
+            events.push(std::make_shared<ChangeColor>(row, col, cur_color));
           }
         }
 
         //road
         {
-          bool road_state = app->work_with_map->roads(row, col);
+          bool road_state = work_with_map->roads(row, col);
           bool cur_road_state = road_state;
           ImGui::Checkbox("Road", &cur_road_state);
           if (road_state != cur_road_state) {
-            app->events.push(std::make_shared<ChangeRoadState>(app, row, col, cur_road_state));
+            events.push(std::make_shared<ChangeRoadState>(row, col, cur_road_state));
           }
         }
 
@@ -278,21 +290,21 @@ void Application::Frontend::prepare_ImGui()
 
         //farm
         {
-          bool farm_state = app->work_with_map->farms(row, col);
+          bool farm_state = work_with_map->farms(row, col);
           bool cur_farm_state = farm_state;
           ImGui::Checkbox("Farm", &cur_farm_state);
           if (farm_state != cur_farm_state) {
-            app->events.push(std::make_shared<ChangeFarmState>(app, row, col, cur_farm_state));
+            events.push(std::make_shared<ChangeFarmState>(row, col, cur_farm_state));
           }
         }
 
         //flood
         {
-          bool flood_state = app->work_with_map->flood(row, col);
+          bool flood_state = work_with_map->flood(row, col);
           bool cur_flood_state = flood_state;
           ImGui::Checkbox("flood(in process)", &cur_flood_state);
           if (flood_state != cur_flood_state) {
-            app->events.push(std::make_shared<ChangeFloodState>(app, row, col, cur_flood_state));
+            events.push(std::make_shared<ChangeFloodState>(row, col, cur_flood_state));
           }
         }
 
@@ -307,7 +319,7 @@ void Application::Frontend::prepare_ImGui()
   ImGui::End();
 }
 
-void Application::Frontend::prepare_window()
+void Frontend::prepare_window()
 {
   // per-frame time logic
     // --------------------
@@ -317,7 +329,12 @@ void Application::Frontend::prepare_window()
 
   // input
   // -----
-  processInput(window);
+  if (!is_client) {
+    processInput(window);
+  }
+  else {
+    processInputInQueue(window);
+  }
 
   // render
   // -----
@@ -344,11 +361,11 @@ void Application::Frontend::prepare_window()
   meshShader->setMat4("view", view);
 }
 
-void Application::Frontend::render_window()
+void Frontend::render_window()
 {
-  if (app->data.check())
+  if (data.check())
   {
-    app->data.get(Vertices, TriList);
+    data.get(Vertices, TriList);
     // map updating
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
@@ -359,7 +376,7 @@ void Application::Frontend::render_window()
   glDrawElements(GL_TRIANGLES, TriList.size(), GL_UNSIGNED_SHORT, 0);
 }
 
-void Application::Frontend::render_ImGui()
+void Frontend::render_ImGui()
 {
   ImGui::Render();
 
@@ -374,7 +391,7 @@ void Application::Frontend::render_ImGui()
   }
 }
 
-void Application::Frontend::work()
+void Frontend::work()
 {
   while (!glfwWindowShouldClose(window)) {
     prepare_ImGui();
@@ -387,12 +404,12 @@ void Application::Frontend::work()
     glfwPollEvents();
   }
 
-  app->events.push(std::make_shared<Close>(app));
+  events.push(std::make_shared<Close>());
 }
 
 // process all input : query GLFW whether relevant keys are pressed / released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void Application::Frontend::processInput(GLFWwindow * window) {
+void Frontend::processInput(GLFWwindow * window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
 
@@ -411,15 +428,35 @@ void Application::Frontend::processInput(GLFWwindow * window) {
     camera.ProcessKeyboard(UP, deltaTime);
 }
 
+// for adding input commands in queue
+void Frontend::processInputInQueue(GLFWwindow* window) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
+
+  float cameraSpeed = static_cast<float>(2.5 * deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    Commands.push({ FORWARD, deltaTime });
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    Commands.push({ BACKWARD, deltaTime });
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    Commands.push({ LEFT, deltaTime });
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    Commands.push({ RIGHT, deltaTime });
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    Commands.push({ DOWN, deltaTime });
+  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    Commands.push({ UP, deltaTime });
+}
+
 // glfw: whenver the window size changed this callback function executes
 // ---------------------------------------------------------------------
-void Application::Frontend::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+void Frontend::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
-void Application::Frontend::mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+void Frontend::mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
   float xpos = static_cast<float>(xposIn);
   float ypos = static_cast<float>(yposIn);
 
@@ -445,6 +482,6 @@ void Application::Frontend::mouse_callback(GLFWwindow* window, double xposIn, do
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
-void Application::Frontend::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+void Frontend::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
   camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }

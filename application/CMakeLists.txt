@@ -1,20 +1,21 @@
+add_subdirectory(events)
+add_subdirectory(data_pool)
+add_subdirectory(server)
+add_subdirectory(client)
+add_subdirectory(workwithmap)
+add_subdirectory(frontend)
+add_subdirectory(events_queue)
+add_subdirectory(backend)
+add_subdirectory(command)
+
 add_library(application 
 application.hpp 
 application.cpp
-workwithmap.cpp
-frontend.cpp 
-server.cpp
-client.cpp)
+)
 
 target_link_libraries(application 
-glfw
-Eigen3::Eigen
-imgui::imgui
-glad::glad
-glm::glm
-cppzmq
-
-hexoworld
+server
+client
 )
 
 set_property(TARGET application PROPERTY CXX_STANDARD 20)
@@ -22,4 +23,5 @@ target_include_directories(application PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
   $<INSTALL_INTERFACE:include>
 )
+
 install(TARGETS application)

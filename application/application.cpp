@@ -1,9 +1,10 @@
 #include <application/application.hpp>
+#include <thread>
 
 Application::Application() 
 {
-  work_with_map = std::make_shared<WorkWithMap>(this);
-  frontend = std::make_shared<Frontend>(this);
+  client = std::make_shared<Client>();
+  server = std::make_shared<Server>();
 }
 
 Application::~Application()
@@ -12,11 +13,11 @@ Application::~Application()
 
 void Application::work()
 {
-  auto wwm_func = [this]() { work_with_map->work(); };
+  auto server_func = [this]() { server->Run(); };
   
-  std::thread wwm(wwm_func);
+  std::thread th_server(server_func);
  
-  frontend->work();
+  client->Work();
   
-  wwm.join();
+  th_server.join();
 }
