@@ -26,6 +26,15 @@ void Server::CreateServer(int port = 5555) {
   server_.bind("tcp://*:" + std::to_string(port));
 }
 
+void Server::Work() {
+  auto run_func = [this]() {Run(); };
+  std::thread th_run(run_func);
+
+
+  backend_->work();
+  th_run.detach();
+}
+
 void Server::Run() {
   while (true) {
     // server receive requests from clients

@@ -13,7 +13,7 @@ Application::~Application()
 
 void Application::work()
 {
-  auto server_func = [this]() { server->Run(); };
+  auto server_func = [this]() { server->Work(); };
   
   server->CreateServer(5555);
 

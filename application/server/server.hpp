@@ -16,6 +16,7 @@ public:
 
 	void CreateServer(int port);
 	void Run();
+	void Work();
 
 private:
 	void FillReply(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist); // zmq::message_t& reply_cameras

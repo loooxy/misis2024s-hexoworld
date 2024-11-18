@@ -27,7 +27,7 @@ void Backend::work()
   {
     was_events = false;
     events.lock();
-    while (events.empty())
+    while (!events.empty())
     {
       event = events.pop();
       was_events = true;

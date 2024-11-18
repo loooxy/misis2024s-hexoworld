@@ -1,5 +1,5 @@
 #include <application/application.hpp>
-#define REQUEST_TIMEOUT 100
+#define REQUEST_TIMEOUT 1000
 #define REQUEST_RETRIES 3
 #define IDENTITY_SIZE 5
 
