@@ -4,7 +4,7 @@
 
 // TODO: add vector<Camera> players;
 
-Camera Frontend::camera(glm::vec3(-60.0f, 15.0f, 50.0f));
+Camera Frontend::camera(glm::vec3(-30.0f, 30.0f, 30.0f));
 bool Frontend::firstMouse = true;
 float Frontend::lastX = SCR_WIDTH / 2.0;
 float Frontend::lastY = SCR_HEIGHT / 2.0;
@@ -234,12 +234,12 @@ void Frontend::prepare_ImGui()
   char buffer[50];
   ImGui::Begin("debug");
   HelpMarker("Right Click to open hex settings");
-  for (int col = 0; col < n_cols; col++) {
-    for (int row = 0; row < n_rows; row++) {
+  for (int col = 0; col < work_with_map->get_n_cols(); col++) {
+    for (int row = 0; row < work_with_map->get_n_rows(); row++) {
       if (row > 0)
         ImGui::SameLine();
 
-      ImGui::PushID(row * (n_cols + 1) + col);
+      ImGui::PushID(row * (work_with_map->get_n_cols() + 1) + col);
 
       sprintf(buffer, "Hex %d %d", row, col);
 
@@ -329,12 +329,13 @@ void Frontend::prepare_window()
 
   // input
   // -----
-  if (!is_client) {
-    processInput(window);
-  }
-  else {
-    processInputInQueue(window);
-  }
+  //if (!is_client) {
+  //  processInput(window);
+  //}
+  //else {
+  //  processInputInQueue(window);
+  //}
+  processInput(window);
 
   // render
   // -----
@@ -393,6 +394,7 @@ void Frontend::render_ImGui()
 
 void Frontend::work()
 {
+  // glfwMakeContextCurrent(window);
   while (!glfwWindowShouldClose(window)) {
     prepare_ImGui();
     prepare_window();

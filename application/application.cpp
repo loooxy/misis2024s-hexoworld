@@ -21,5 +21,5 @@ void Application::work()
  
   client->Work();
   
-  th_server.join();
+  th_server.detach();
 }

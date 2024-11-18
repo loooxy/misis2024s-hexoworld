@@ -23,13 +23,20 @@ Client::~Client() {
 }
 
 void Client::Work() {
-  auto frontend_func = [this]() {frontend_->work(); };
-  std::thread th_frontend(frontend_func);
+  //auto frontend_func = [this]() {frontend_->work(); };
+  //std::thread th_frontend(frontend_func);
 
-  // th_frontend.detach();
+  //// th_frontend.detach();
 
-  ConnectToServer("tcp://localhost:5555");
-  th_frontend.join();
+  //ConnectToServer("tcp://localhost:5555");
+  //th_frontend.join();
+
+  auto connect_func = [this]() {ConnectToServer("tcp://localhost:5555"); };
+  std::thread th_connect(connect_func);
+
+
+  frontend_->work();
+  th_connect.detach();
 }
 
 void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555") {
@@ -68,6 +75,8 @@ void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555"
 
         // forward camera data to application
 
+        expect_reply = false;
+
       }
       else if (--retries_left == 0){
         std::cout << "E: server seems to be offline, abandoning" << std::endl;
@@ -78,7 +87,7 @@ void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555"
         std::cout << "W: no response from server, retrying..." << std::endl;
         client_.close();
         client_ = zmq::socket_t(ctx_, zmq::socket_type::req);
-
+        client_.connect("tcp://localhost:5555");
         FillRequest(request);
         client_.send(request);
       }
@@ -96,6 +105,7 @@ void Client::FillRequest(zmq::message_t& request) {
 // forward data to application
 void Client::ForwardDataToApp(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist) {
     // vertices
+  if (reply_vertices.size() > 0) {
     std::vector<PrintingPoint> Vertices(reply_vertices.size() / sizeof(PrintingPoint));
     memcpy(Vertices.data(), reply_vertices.data(), reply_vertices.size());
 
@@ -105,6 +115,7 @@ void Client::ForwardDataToApp(zmq::message_t& reply_vertices, zmq::message_t& re
 
     // forward to app
     frontend_->SetDataFromReply(Vertices, TriList);
+  }
 
     // cameras
     //std::vector<std::pair<std::string, Camera>> v(reply_cameras.size() / (IDENTITY_SIZE + sizeof(Camera)));

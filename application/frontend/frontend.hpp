@@ -91,9 +91,6 @@ private:
 	static std::queue < std::pair<int, int> > Commands;
 	events_queue<Event> events;
 
-	int n_cols;
-	int n_rows;
-
 	// isClient
 	bool is_client;
 

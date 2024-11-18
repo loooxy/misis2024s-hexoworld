@@ -12,6 +12,7 @@ std::shared_ptr<Event> loadEv(const std::string& data) {
 
 Backend::Backend() {
   wwm = std::make_shared<WorkWithMap>();
+  wwm->get_data(data);
 }
 
 void Backend::work()
@@ -63,7 +64,9 @@ void Backend::regular_event_update_river()
 }
 
 void Backend::GetDataToReply(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) {
-  data.get(Vertices, TriList);
+  if (data.check()) {
+    data.get(Vertices, TriList);
+  }
 }
 
 void Backend::ProcessData(std::string& ev) {
