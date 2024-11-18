@@ -10,8 +10,10 @@ imgui::imgui
 glad::glad
 glm::glm
 cppzmq
-cereal
+cereal::cereal
 
+shader_s
+camera
 data_pool
 hexoworld
 )

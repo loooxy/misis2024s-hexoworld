@@ -1,15 +1,16 @@
 #include "frontend.hpp"
 #include <cereal/archives/portable_binary.hpp>
+#include <sstream>
 
 // TODO: add vector<Camera> players;
 
-void Frontend::SetDataFromReply(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) {
-  data.set(Vertices, TriList);
-}
-
-void Frontend::GetDataToRequest(std::string& ev) {
-  ev = saveEv(events.pop());
-}
+Camera Frontend::camera(glm::vec3(-60.0f, 15.0f, 50.0f));
+bool Frontend::firstMouse = true;
+float Frontend::lastX = SCR_WIDTH / 2.0;
+float Frontend::lastY = SCR_HEIGHT / 2.0;
+float Frontend::deltaTime = 0.0f;
+float Frontend::lastFrame = 0.0f;
+std::queue<std::pair<int, int>> Frontend::Commands;
 
 std::string saveEv(const std::shared_ptr<Event>& ev) {
   std::ostringstream oss;
@@ -18,16 +19,15 @@ std::string saveEv(const std::shared_ptr<Event>& ev) {
   return oss.str();
 }
 
-std::vector<PrintingPoint> Frontend::GetVertices() {
-  return Vertices;
+
+void Frontend::SetDataFromReply(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList) {
+  data.set(Vertices, TriList);
 }
 
-std::vector<uint16_t> Frontend::GetTriList() {
-  return TriList;
-}
-
-std::queue<std::pair<int, int>> Frontend::GetCommands() {
-  return Commands;
+void Frontend::GetDataToRequest(std::string& ev) {
+  if (!events.empty()) {
+    ev = saveEv(events.pop());
+  }
 }
 
 void Frontend::SetIsClient(bool is_client) {

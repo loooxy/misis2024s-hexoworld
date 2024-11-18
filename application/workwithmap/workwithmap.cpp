@@ -1,4 +1,4 @@
-#include "application.hpp"
+#include "workwithmap.hpp"
 
 void WorkWithMap::generateField(std::shared_ptr<Hexoworld>& map) {
   map = std::make_shared<Hexoworld>(2.0f, Eigen::Vector3d(-2.0f, -2.0f, 0.0f),

@@ -4,7 +4,8 @@ backend.cpp
 )
 
 target_link_libraries(backend
-PRIVATE cereal::cereal
+cereal::cereal
+
 workwithmap
 data_pool
 events_queue

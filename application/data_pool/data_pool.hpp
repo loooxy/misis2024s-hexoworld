@@ -1,6 +1,5 @@
 #pragma once
 #include <hexoworld/includes.hpp>
-#include <application/server/server.hpp>
 
 class data_pool {
 public:

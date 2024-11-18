@@ -1,13 +1,3 @@
-add_subdirectory(events)
-add_subdirectory(data_pool)
-add_subdirectory(server)
-add_subdirectory(client)
-add_subdirectory(workwithmap)
-add_subdirectory(frontend)
-add_subdirectory(events_queue)
-add_subdirectory(backend)
-add_subdirectory(command)
-
 add_library(application 
 application.hpp 
 application.cpp
@@ -25,3 +15,13 @@ target_include_directories(application PUBLIC
 )
 
 install(TARGETS application)
+
+add_subdirectory(events)
+add_subdirectory(data_pool)
+add_subdirectory(server)
+add_subdirectory(client)
+add_subdirectory(workwithmap)
+add_subdirectory(frontend)
+add_subdirectory(events_queue)
+add_subdirectory(backend)
+add_subdirectory(command)

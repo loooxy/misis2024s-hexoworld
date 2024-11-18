@@ -13,7 +13,7 @@ enum DataType {
 Server::Server() 
   : 
   ctx_(1), 
-  server_(ctx_, ZMQ_ROUTER)
+  server_(ctx_, zmq::socket_type::router)
 {
   backend_ = std::make_unique<Backend>();
 }
@@ -23,7 +23,7 @@ Server::~Server() {
 }
 
 void Server::CreateServer(int port = 5555) {
-  server_.bind("tcp://*:" + port);
+  server_.bind("tcp://*:" + std::to_string(port));
 }
 
 void Server::Run() {

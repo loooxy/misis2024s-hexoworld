@@ -31,9 +31,6 @@ public:
 	void GetDataToRequest(std::string& ev);
 	void SetDataFromReply(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList);
 
-	std::vector<PrintingPoint> GetVertices();
-	std::vector<uint16_t> GetTriList();
-	std::queue<std::pair<int, int>> GetCommands();
 	void SetIsClient(bool is_client);
 
 private:
@@ -66,8 +63,8 @@ private:
 	}
 	static void glfw_error_callback(int error, const char* description);
 
-	const unsigned int SCR_WIDTH = 1920;
-	const unsigned int SCR_HEIGHT = 1080;
+	static const unsigned int SCR_WIDTH = 1920;
+	static const unsigned int SCR_HEIGHT = 1080;
 
 	// camera
 	static Camera camera;

@@ -4,9 +4,8 @@ events.cpp
 )
 
 target_link_libraries(events 
+cereal::cereal
 workwithmap
-hexoworld
-data_pool
 )
 
 set_property(TARGET events PROPERTY CXX_STANDARD 20)

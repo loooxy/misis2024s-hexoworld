@@ -3,9 +3,6 @@ command.hpp
 command.cpp
 )
 
-target_link_libraries(command 
-
-)
 
 set_property(TARGET command PROPERTY CXX_STANDARD 20)
 target_include_directories(command PUBLIC

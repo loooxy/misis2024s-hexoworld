@@ -1,5 +1,6 @@
 #include "backend.hpp"
 #include <cereal/archives/portable_binary.hpp>
+#include <sstream>
 
 std::shared_ptr<Event> loadEv(const std::string& data) {
   std::shared_ptr<Event> ev;
@@ -66,6 +67,8 @@ void Backend::GetDataToReply(std::vector<PrintingPoint>& Vertices, std::vector<u
 }
 
 void Backend::ProcessData(std::string& ev) {
-  events.push(loadEv(ev));
+  if (!ev.empty()) {
+    events.push(loadEv(ev));
+  }
 }
 

@@ -15,7 +15,7 @@ find_package(imgui REQUIRED)
 find_package(glad REQUIRED)
 find_package(glm REQUIRED)
 find_package(cppzmq REQUIRED)
-find_package(cereal REQUIRED)
+find_package(cereal CONFIG REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/bin.dbg)
@@ -25,10 +25,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_CURRENT_SOURCE_DIR}bin
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-16>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-16>")
 
+add_subdirectory(opengl)
 add_subdirectory(hexoworld)
 add_subdirectory(application)
-add_subdirectory(opengl)
-
 
 add_executable(map_render map_render.cpp)
 target_link_libraries(map_render

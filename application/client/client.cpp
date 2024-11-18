@@ -13,8 +13,10 @@ enum DataType {
 Client::Client()
   :
   ctx_(1),
-  client_(ctx_, ZMQ_REQ)
-{}
+  client_(ctx_, zmq::socket_type::req)
+{
+  frontend_ = std::make_unique<Frontend>();
+}
 
 Client::~Client() {
 
@@ -24,12 +26,13 @@ void Client::Work() {
   auto frontend_func = [this]() {frontend_->work(); };
   std::thread th_frontend(frontend_func);
 
-  th_frontend.detach();
+  // th_frontend.detach();
 
-  ConnectToServer("tcp://*:5555");
+  ConnectToServer("tcp://localhost:5555");
+  th_frontend.join();
 }
 
-void Client::ConnectToServer(const std::string& address = "tcp://*:5555") {
+void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555") {
   client_.connect(address);
   frontend_->SetIsClient(true);
 

@@ -1,5 +1,7 @@
 #pragma once
 #include <workwithmap/workwithmap.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/types/polymorphic.hpp>
 
 enum TypeEvent {
 	changeHeight,
@@ -39,6 +41,7 @@ public:
 
 class ChangeColor : public Event {
 public:
+	ChangeColor() = default;
 	ChangeColor(const int row, const int col, const int new_color)
 		: Event(), row(row), col(col), new_color(new_color) {}
 	TypeEvent type() override { return changeColor; }
@@ -57,6 +60,7 @@ public:
 
 class ChangeRoadState : public Event {
 public:
+	ChangeRoadState() = default;
 	ChangeRoadState(const int row, const int col, const bool road_state)
 		: Event(), row(row), col(col), road_state(road_state) {}
 
@@ -77,6 +81,7 @@ public:
 
 class ChangeFarmState : public Event {
 public:
+	ChangeFarmState() = default;
 	ChangeFarmState(int row, int col, bool farm_state)
 		: Event(), row(row), col(col), farm_state(farm_state) {}
 
@@ -97,6 +102,7 @@ public:
 
 class ChangeFloodState : public Event {
 public:
+	ChangeFloodState() = default;
 	ChangeFloodState(const int row, const int col, const bool flood_state)
 		: Event(), row(row), col(col), flood_state(flood_state) {}
 
@@ -134,3 +140,16 @@ public:
 
 	void execute(std::shared_ptr<WorkWithMap> wwm) override {}
 };
+
+CEREAL_REGISTER_TYPE(ChangeHeight)
+CEREAL_REGISTER_TYPE(ChangeColor)
+CEREAL_REGISTER_TYPE(ChangeRoadState)
+CEREAL_REGISTER_TYPE(ChangeFarmState)
+CEREAL_REGISTER_TYPE(ChangeFloodState)
+
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeHeight)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeColor)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeRoadState)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFarmState)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFloodState)
