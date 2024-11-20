@@ -91,7 +91,6 @@ void rescale_framebuffer(float width, float height)
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
 }
 
-
 // camera
 Camera camera(glm::vec3(-60.0f, 15.0f, 50.0f));
 bool firstMouse = true;
@@ -348,7 +347,6 @@ int main() {
   glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
-  create_framebuffer();
 
   // render loop
   // -----------
@@ -393,6 +391,32 @@ int main() {
     ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::End();
 
+
+    ImGui::Begin("My Scene");
+
+    // we access the ImGui window size
+    const float window_width = ImGui::GetContentRegionAvail().x;
+    const float window_height = ImGui::GetContentRegionAvail().y;
+
+    // we rescale the framebuffer to the actual window size here and reset the glViewport
+    rescale_framebuffer(window_width, window_height);
+    glViewport(0, 0, window_width, window_height);
+
+    // we get the screen position of the window
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+
+    // and here we can add our created texture as image to ImGui
+    // unfortunately we need to use the cast to void* or I didn't find another way tbh
+    ImGui::GetWindowDrawList()->AddImage(
+        (void *)texture_id,
+        ImVec2(pos.x, pos.y),
+        ImVec2(pos.x + window_width, pos.y + window_height),
+        ImVec2(0, 1),
+        ImVec2(1, 0)
+    );
+
+
+    ImGui::End();
 
     ImGui::ShowMetricsWindow();
     char buffer[50];
@@ -472,30 +496,9 @@ int main() {
     ImGui::End();
 
 
-    ImGui::Begin("My Scene");
+    ImGui::Render();
 
-    // we access the ImGui window size
-    const float window_width = ImGui::GetContentRegionAvail().x;
-    const float window_height = ImGui::GetContentRegionAvail().y;
-
-    // we rescale the framebuffer to the actual window size here and reset the glViewport
-    rescale_framebuffer(window_width, window_height);
-    glViewport(0, 0, window_width, window_height);
-
-    // we get the screen position of the window
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-
-    // and here we can add our created texture as image to ImGui
-    // unfortunately we need to use the cast to void* or I didn't find another way tbh
-    ImGui::GetWindowDrawList()->AddImage(
-        (void *)texture_id,
-        ImVec2(pos.x, pos.y),
-        ImVec2(pos.x + window_width, pos.y + window_height),
-        ImVec2(0, 1),
-        ImVec2(1, 0)
-    );
-
-    ImGui::End();
+    bind_framebuffer();
 
     // per-frame time logic
     // --------------------
@@ -507,7 +510,6 @@ int main() {
     // -----
     processInput(window);
 
-    bind_framebuffer();
     // render
     // -----
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -544,8 +546,6 @@ int main() {
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, TriList.size(), GL_UNSIGNED_SHORT, 0);
 
-    ImGui::Render();
-
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -555,6 +555,7 @@ int main() {
       ImGui::RenderPlatformWindowsDefault();
       glfwMakeContextCurrent(backup_current_context);
     }
+
     unbind_framebuffer();
 
     // glfw: check and call events and swap buffers
