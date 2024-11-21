@@ -1,6 +1,5 @@
 #pragma once
 #include <workwithmap/workwithmap.hpp>
-#include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/polymorphic.hpp>
 
 enum TypeEvent {
@@ -19,137 +18,94 @@ public:
 	virtual ~Event() = default;
 
 	virtual TypeEvent type() = 0;
-	virtual void execute(std::shared_ptr<WorkWithMap> wwm) = 0;
+	virtual void execute(std::shared_ptr<WorkWithMap>& wwm) = 0;
 };
 
 class ChangeHeight : public Event {
 public:
 	ChangeHeight() = default;
-	ChangeHeight(const int row, const int col, const int new_height)
-		: Event(), row(row), col(col), new_height(new_height) {}
-	TypeEvent type() override { return changeHeight; }
+	ChangeHeight(const int row, const int col, const int new_height);
+	TypeEvent type() override;
 
-	void execute(std::shared_ptr<WorkWithMap> wwm) override { wwm->set_hex_height(row, col, new_height); }
+	void execute(std::shared_ptr<WorkWithMap>& wwm);
 
-	int row, col, new_height;
+	int row = 0;
+	int col = 0;
+	int new_height = 0;
 
 	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(row, col, new_height);
-	}
+	void serialize(Archive& ar);
 };
 
 class ChangeColor : public Event {
 public:
 	ChangeColor() = default;
-	ChangeColor(const int row, const int col, const int new_color)
-		: Event(), row(row), col(col), new_color(new_color) {}
-	TypeEvent type() override { return changeColor; }
+	ChangeColor(const int row, const int col, const int new_color);
+	TypeEvent type() override;
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 
-	void execute(std::shared_ptr<WorkWithMap> wwm) override {
-		wwm->set_hex_color(row, col, new_color);
-	}
-
-	int row, col, new_color;
+	int row = 0;
+	int col = 0; 
+	int new_color = 0;
 
 	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(row, col, new_color);
-	}
+	void serialize(Archive& ar);
 };
 
 class ChangeRoadState : public Event {
 public:
 	ChangeRoadState() = default;
-	ChangeRoadState(const int row, const int col, const bool road_state)
-		: Event(), row(row), col(col), road_state(road_state) {}
+	ChangeRoadState(const int row, const int col, const bool road_state);
+	TypeEvent type() override;
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 
-	TypeEvent type() override { return changeRoadState; }
-
-	void execute(std::shared_ptr<WorkWithMap> wwm) override {
-		wwm->set_road_state_in_hex(row, col, road_state);
-	}
-
-	int row, col;
-	bool road_state;
+	int row = 0;
+	int col = 0;
+	bool road_state = false;
 
 	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(row, col, road_state);
-	}
+	void serialize(Archive& ar);
 };
 
 class ChangeFarmState : public Event {
 public:
 	ChangeFarmState() = default;
-	ChangeFarmState(int row, int col, bool farm_state)
-		: Event(), row(row), col(col), farm_state(farm_state) {}
-
-	TypeEvent type() override { return changeFarmState; }
-
-	void execute(std::shared_ptr<WorkWithMap> wwm) override {
-		wwm->set_farm_state_in_hex(row, col, farm_state);
-	}
+	ChangeFarmState(const int row, const int col, const bool farm_state);
+	TypeEvent type() override;
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 
 	int row, col;
 	bool farm_state;
 
 	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(row, col, farm_state);
-	}
+	void serialize(Archive& ar);
 };
 
 class ChangeFloodState : public Event {
 public:
 	ChangeFloodState() = default;
-	ChangeFloodState(const int row, const int col, const bool flood_state)
-		: Event(), row(row), col(col), flood_state(flood_state) {}
+	ChangeFloodState(const int row, const int col, const bool flood_state);
+	TypeEvent type() override;
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 
-	TypeEvent type() override { return changeFloodState; }
-
-	void execute(std::shared_ptr<WorkWithMap> wwm) override {
-		wwm->set_flood_state_in_hex(row, col, flood_state);
-	}
-
-	int row, col;
-	bool flood_state;
+	int row = 0;
+	int col = 0;
+	bool flood_state = false;;
 
 	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(row, col, flood_state);
-	}
+	void serialize(Archive& ar);
 };
 
 class UpdateRiver : public Event {
 public:
-	explicit UpdateRiver() : Event() {}
-
-	TypeEvent type() override { return updateRiver; }
-
-	void execute(std::shared_ptr<WorkWithMap> wwm) override {
-		wwm->update_river();
-	}
+	explicit UpdateRiver();
+	TypeEvent type() override;
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 };
 
 class Close : public Event {
 public:
-	explicit Close() : Event() {}
-
-	TypeEvent type() override { return close; }
-
-	void execute(std::shared_ptr<WorkWithMap> wwm) override {}
+	explicit Close();
+	TypeEvent type() override;
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 };
-
-CEREAL_REGISTER_TYPE(ChangeHeight)
-CEREAL_REGISTER_TYPE(ChangeColor)
-CEREAL_REGISTER_TYPE(ChangeRoadState)
-CEREAL_REGISTER_TYPE(ChangeFarmState)
-CEREAL_REGISTER_TYPE(ChangeFloodState)
-
-
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeHeight)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeColor)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeRoadState)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFarmState)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFloodState)
