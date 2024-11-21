@@ -1,5 +1,6 @@
 #include <application/application.hpp>
 #include <thread>
+#include <iostream>
 
 Application::Application() 
 {
@@ -13,13 +14,35 @@ Application::~Application()
 
 void Application::work()
 {
-  auto server_func = [this]() { server->Work(); };
+  std::string address;
+  std::string port;
   
-  server->CreateServer(5555);
+  std::string action;
+  while (true) {
+    std::cin >> action;
 
+    if (action == "Create") {
+      std::cout << "Enter port: ";
+      std::cin >> port;
+      CreateServer(port);
+    }
+    if (action == "Connect") {
+      std::cout << "Enter address: ";
+      std::cin >> address;
+      Connect(address);
+    }
+  }
+}
+
+void Application::CreateServer(const std::string& port = "5555") {
+  server->CreateServer(port);
+  auto server_func = [this]() { server->Work(); };
   std::thread th_server(server_func);
- 
-  client->Work();
-  
   th_server.detach();
+}
+
+void Application::Connect(const std::string& address = "tcp://localhost:5555") {
+  auto client_func = [this](const std::string& address) { client->Work(address); };
+  std::thread th_client(client_func, address);
+  th_client.detach();
 }
