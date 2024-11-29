@@ -46,12 +46,12 @@ void Hexoworld::Triangle::del_flooding()
 }
 
 void Hexoworld::Triangle::print_in_triList(std::vector<uint32_t>& TriList) {
-  for (auto& [type, frame] : frames)
+  for (auto& [type, frame] : frames)// if (is(Flood))
     frame->print_in_triList(TriList);
 }
 
 void Hexoworld::Triangle::colorize_points()
 {
-  for (auto& [type, drawer] : drawers)
+  for (auto& [type, drawer] : drawers)// if (is(Flood))
     drawer->colorize_points();
 }

@@ -150,7 +150,7 @@ void Hexoworld::Rectangle::del_flooding()
 }
 
 void Hexoworld::Rectangle::print_in_triList(std::vector<uint32_t>& TriList) {
-  for (auto& [type, frame] : frames)
+  for (auto& [type, frame] : frames)// if (is(Flood))
     frame->print_in_triList(TriList);
 
   for (auto& inv : inventory)
@@ -159,7 +159,7 @@ void Hexoworld::Rectangle::print_in_triList(std::vector<uint32_t>& TriList) {
 
 void Hexoworld::Rectangle::colorize_points()
 {
-  for (auto& [type, drawer] : drawers)
+  for (auto& [type, drawer] : drawers)// if (is(Flood))
     drawer->colorize_points();
 
   for (auto& inv : inventory)
