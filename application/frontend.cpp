@@ -20,6 +20,12 @@ bool Application::Frontend::is_changed_shader = false;
 std::vector<PrintingPoint> Application::Frontend::Vertices;
 std::vector<uint16_t> Application::Frontend::TriList;
 
+// light point
+glm::vec3 lightPos = {5, 5, 1};
+
+//temporary normal vector
+glm::vec3 normal = {0, 0, 1};
+
 Application::Frontend::Frontend(Application* app) 
 {
   Application::Frontend::app = app;
@@ -135,7 +141,7 @@ void Application::Frontend::init_Shaders_and_Buffers()
   // build and compile our shader program
   // ------------------------------------
   //Bilikto's common shaders
-  filledShader = std::make_unique<Shader>("../shaders/1_shader.vs", "../shaders/1_shader.fs");
+  filledShader = std::make_unique<Shader>("../shaders/1_shader.vs", "../shaders/1_shader.fs", "../shaders/1_shader.geom");
 
   //Edited with geometry shaders
   meshShader = std::make_unique<Shader>("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs", "../shaders/3.3.shader.geom");
@@ -348,6 +354,16 @@ void Application::Frontend::prepare_window()
   glm::mat4 view = camera.GetViewMatrix();
   filledShader->setMat4("view", view);
   meshShader->setMat4("view", view);
+
+  //light
+  float time = glfwGetTime();
+  float colorValue = (sin(0.2 * time) / 2) + 0.5;
+  //filledShader->setFloat("lightColor", colorValue);
+  auto color = glGetUniformLocation(filledShader->ID, "lightColor");
+  glUniform4f(color, colorValue, colorValue, colorValue, 1.0f);
+
+  //test light
+  filledShader->setVec3("lightPos", lightPos);
 }
 
 void Application::Frontend::render_window()
