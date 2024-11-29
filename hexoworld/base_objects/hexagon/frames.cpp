@@ -984,6 +984,12 @@ Hexoworld::Hexagon::RoadFrame::RoadFrame(Object* object, std::vector<uint32_t> e
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
+  for (int i = 0; i < 6; ++i)
+  {
+    std::static_pointer_cast<UsualFrame>(base->frames[Usual])->hide_triangle(i, 0);
+    std::static_pointer_cast<UsualFrame>(base->frames[Usual])->hide_triangle(i, 1);
+  }
+
   centerId = Points::get_instance().get_id_point(
     Points::get_instance().get_point(
       static_cast<Hexagon*>(base)->mainData->centerId
@@ -1023,6 +1029,27 @@ void Hexoworld::Hexagon::RoadFrame::add_road(uint32_t ind)
   if (!isRoad[ind])
   {
     isRoad[ind] = true;
+
+    {
+      auto hide = [ind, this](int id) -> void {
+        std::static_pointer_cast<UsualFrame>
+          (base->frames[Usual])->hide_triangle(ind, id);
+        };
+      
+      hide(16);
+      hide(15);
+      hide(14);
+      hide(8);
+      hide(7);
+      hide(9);
+      hide(4);
+      hide(3);
+      hide(2);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->hide_triangle((ind + 5) % 6, 3);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->hide_triangle((ind + 1) % 6, 2);
+    }
 
     auto mainData = static_cast<Hexagon*>(base)->mainData;
 
@@ -1091,6 +1118,27 @@ void Hexoworld::Hexagon::RoadFrame::del_road(uint32_t ind)
   if (isRoad[ind])
   {
     isRoad[ind] = false;
+
+    {
+      auto show = [ind, this](int id) -> void {
+        std::static_pointer_cast<UsualFrame>
+          (base->frames[Usual])->show_triangle(ind, id);
+        };
+
+      show(16);
+      show(15);
+      show(14);
+      show(8);
+      show(7);
+      show(9);
+      show(4);
+      show(3);
+      show(2);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->show_triangle((ind + 5) % 6, 3);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->show_triangle((ind + 1) % 6, 2);
+    }
 
     middleFence.erase(ind);
 
@@ -1382,5 +1430,12 @@ void Hexoworld::Hexagon::RoadFrame::print_in_triList(std::vector<uint32_t>& TriL
       },
       TriList
     );
+  }
+}
+Hexoworld::Hexagon::RoadFrame::~RoadFrame() {
+  for (int i = 0; i < 6; ++i)
+  {
+    for (int j = 0; j < 17; ++j)
+      std::static_pointer_cast<UsualFrame>(base->frames[Usual])->show_triangle(i, j);
   }
 }

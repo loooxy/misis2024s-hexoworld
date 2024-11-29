@@ -310,6 +310,7 @@ struct Hexoworld::Hexagon : public Object {
     /// \param object Объект, к которому принадлежит каркас.
     /// \param edges Грани, через которые пролегает дорога.
     RoadFrame(Object* object, std::vector<uint32_t> edges);
+    ~RoadFrame();
 
     /// \brief Добавить дорогу.
     /// \param ind Грань, через которую проходит дорога.
