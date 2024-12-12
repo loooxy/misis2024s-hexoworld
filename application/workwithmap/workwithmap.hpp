@@ -1,6 +1,7 @@
 #pragma once
 #include <hexoworld/includes.hpp>
 #include <data_pool/data_pool.hpp>
+#include <cereal/access.hpp>
 
 class WorkWithMap {
 public:
@@ -26,6 +27,9 @@ public:
 	
 	void get_data(data_pool& data);
 
+	MapBasis get_map_basis();
+	void build_map_from_basis(const MapBasis& map_basis);
+
 	enum ColorsName
 	{
 		se, sa, gr, mo, sn, te, Colors_COUNT
@@ -44,4 +48,9 @@ private:
 	Eigen::Vector4i snow;
 	Eigen::Vector4i mount;
 	Eigen::Vector4i test;
+
+	friend class cereal::access;
+	template<class Archive>
+	void serialize(Archive& ar);
 };
+

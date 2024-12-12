@@ -1,5 +1,6 @@
 #pragma once
 #include <hexoworld/hexoworld.hpp>
+#include <bitset>
 
 /// \brief Структура шестиугольник.
 struct Hexoworld::Hexagon : public Object {
@@ -127,6 +128,9 @@ struct Hexoworld::Hexagon : public Object {
   struct MainData {
     std::vector<IdType> polygonPointsId; ///< Id точек шестиугольника.
     std::vector<std::vector<IdType>> extraPointsId; ///< Id дополнительных точек
+    std::vector<std::vector<IdType>> radial_points;
+    std::vector<std::vector<IdType>> inner_points;
+
     IdType centerId; //< Id центра.
     uint32_t gen_init; //< Число, которым инициализируется генератор случайных чисел.
     int32_t dirFarm = -1; //< Направление фермы или -1 если её нет.
@@ -163,13 +167,12 @@ struct Hexoworld::Hexagon : public Object {
     /// \return Массив точек.
     std::vector<Eigen::Vector3d> get_points() const;
 
-    /// \brief Выравнивание грани.
-    /// \param ind_edge Номер грани. 
-    void normalize_edge(uint32_t ind_edge);
-
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
+
+    void hide_triangle(int ind_edge, int ind_tr);
+    void show_triangle(int ind_edge, int ind_tr);
   private:
     /// \brief Инициализация точек.
     /// \param center Центр шестиугольника.
@@ -179,7 +182,9 @@ struct Hexoworld::Hexagon : public Object {
     void init_points(Eigen::Vector3d center, 
       Eigen::Vector3d& center_, 
       std::vector<Eigen::Vector3d>& polygonPoints_,
-      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_);
+      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_,
+      std::vector<std::vector<Eigen::Vector3d>>& radial_points_,
+      std::vector<std::vector<Eigen::Vector3d>>& inner_points_);
 
     /// \brief Добавление случайной компоненты к вершинам.
     /// \param center_ Центр шестиугольника.
@@ -187,7 +192,9 @@ struct Hexoworld::Hexagon : public Object {
     /// \param extraPoints_ Точки на гранях.
     void random_move_points(Eigen::Vector3d& center_,
       std::vector<Eigen::Vector3d>& polygonPoints_,
-      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_);
+      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_,
+      std::vector<std::vector<Eigen::Vector3d>>& radial_points_,
+      std::vector<std::vector<Eigen::Vector3d>>& inner_points_);
 
     /// \brief Инициализация Id точек.
     /// \param center_ Центр шестиугольника.
@@ -195,7 +202,11 @@ struct Hexoworld::Hexagon : public Object {
     /// \param extraPoints_ Точки на гранях.
     void init_ids(Eigen::Vector3d& center_,
       std::vector<Eigen::Vector3d>& polygonPoints_,
-      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_);
+      std::vector<std::vector<Eigen::Vector3d>>& extraPoints_,
+      std::vector<std::vector<Eigen::Vector3d>>& radial_points_,
+      std::vector<std::vector<Eigen::Vector3d>>& inner_points_);
+
+    std::vector<std::bitset<17>> triangles_in_edges;
   };
 
   /// \brief Речной каркас.
@@ -299,6 +310,7 @@ struct Hexoworld::Hexagon : public Object {
     /// \param object Объект, к которому принадлежит каркас.
     /// \param edges Грани, через которые пролегает дорога.
     RoadFrame(Object* object, std::vector<uint32_t> edges);
+    ~RoadFrame();
 
     /// \brief Добавить дорогу.
     /// \param ind Грань, через которую проходит дорога.

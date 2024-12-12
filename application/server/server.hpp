@@ -4,6 +4,8 @@
 
 #include <backend/backend.hpp>
 #include <opengl/camera/camera.hpp>
+#include <eventid/eventid.hpp>
+#include <clock/clock.hpp>
 
 #include <zmq.hpp>
 
@@ -14,19 +16,25 @@ public:
 	Server operator=(const Server& copy) = delete;
 	~Server();
 
-	void CreateServer(int port);
+	void CreateServer(const std::string& port);
 	void Run();
 	void Work();
 
 private:
-	void FillReply(zmq::message_t& reply_vertices, zmq::message_t& reply_trilist); // zmq::message_t& reply_cameras
+	void FillReplyEvent(zmq::message_t& reply_event, const std::string& id); 
 	void ProcessRequest(zmq::message_t& request);
+	void UpdateEventsQueue();
+	void ConfirmEvent(const std::string& id, const std::string& event_id);
 
 	std::unique_ptr<Backend> backend_;
 
 	zmq::context_t ctx_;
 	zmq::socket_t server_;
 	std::map<std::string, Camera> id_to_cam;
+	std::map<std::string, std::queue<EventId>> id_to_queue;
+	std::map<std::string, time_point> id_to_time;
+
+	std::mutex id_to_queue_mtx;
 };
 
 #endif

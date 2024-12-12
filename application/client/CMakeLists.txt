@@ -13,6 +13,8 @@ cppzmq
 
 hexoworld
 frontend
+clock
+eventid
 )
 
 set_property(TARGET client PROPERTY CXX_STANDARD 20)

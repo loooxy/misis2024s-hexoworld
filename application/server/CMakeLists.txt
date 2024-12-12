@@ -14,6 +14,8 @@ cppzmq
 hexoworld
 backend
 camera
+clock
+eventid
 )
 
 set_property(TARGET server PROPERTY CXX_STANDARD 20)

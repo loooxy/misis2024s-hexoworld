@@ -586,7 +586,7 @@ private:
   const uint32_t n_cols; ///< Кол-во столбцоы
 
   Eigen::Vector4i riverColor = Eigen::Vector4i(0, 100, 255, 255); //< Цвет воды в реке.
-  Eigen::Vector4i floodColor = Eigen::Vector4i(72, 209, 204, 1); //< Цвет затопления.
+  Eigen::Vector4i floodColor = Eigen::Vector4i(72, 209, 204, 180); //< Цвет затопления.
   Eigen::Vector4i roadColor = Eigen::Vector4i(96, 96, 96, 255); //< Цвет дороги.
 
   std::unique_ptr<Manager> manager; ///< Менеджер.

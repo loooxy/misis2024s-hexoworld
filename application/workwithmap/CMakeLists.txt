@@ -6,6 +6,8 @@ workwithmap.cpp
 target_link_libraries(workwithmap
 hexoworld
 data_pool
+
+cereal::cereal
 )
 
 set_property(TARGET workwithmap PROPERTY CXX_STANDARD 20)

@@ -15,7 +15,7 @@ Hexoworld::Hexagon::UsualFrame::UsualFrame(Object* base, Eigen::Vector3d center)
 {
   if (static_cast<Hexagon*>(base)->mainData == nullptr)
   {
-
+    triangles_in_edges.resize(6, std::bitset<17>(((1 << 18) - 1)));
     static_cast<Hexagon*>(base)->mainData = std::make_shared<MainData>();
 
     std::random_device rd;
@@ -24,12 +24,14 @@ Hexoworld::Hexagon::UsualFrame::UsualFrame(Object* base, Eigen::Vector3d center)
     Eigen::Vector3d center_; ///< центр шестиугольника
     std::vector<Eigen::Vector3d> polygonPoints_; ///< Точки шестиугольника.
     std::vector<std::vector<Eigen::Vector3d>> extraPoints_; ///< Дополнительные точки
+    std::vector<std::vector<Eigen::Vector3d>> radial_points_;
+    std::vector<std::vector<Eigen::Vector3d>> inner_points_;
 
-    init_points(center, center_, polygonPoints_, extraPoints_);
+    init_points(center, center_, polygonPoints_, extraPoints_, radial_points_, inner_points_);
 #ifdef RANDOM
-    random_move_points(center_, polygonPoints_, extraPoints_);
+    random_move_points(center_, polygonPoints_, extraPoints_, radial_points_, inner_points_);
 #endif
-    init_ids(center_, polygonPoints_, extraPoints_);
+    init_ids(center_, polygonPoints_, extraPoints_, radial_points_, inner_points_);
   }
 }
 
@@ -37,15 +39,10 @@ void Hexoworld::Hexagon::UsualFrame::set_height(int32_t height)
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
-  for (int i = 0; i < 6; ++i)
+  for (auto id : get_pointsId())
   {
-    base->world.set_new_height_to_point(
-      mainData->polygonPointsId[i], height, Usual);
-    for (int j = 0; j < 3; ++j)
-      base->world.set_new_height_to_point(
-        mainData->extraPointsId[i][j], height, Usual);
+    base->world.set_new_height_to_point(id, height, Usual);
   }
-  base->world.set_new_height_to_point(mainData->centerId, height, Usual);
 }
 
 std::vector<Hexoworld::IdType> Hexoworld::Hexagon::UsualFrame::get_pointsId() const
@@ -62,6 +59,13 @@ std::vector<Hexoworld::IdType> Hexoworld::Hexagon::UsualFrame::get_pointsId() co
     }
   }
   answerId.push_back(mainData->centerId);
+  for (int i = 0; i < 6; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+      answerId.push_back(mainData->radial_points[i][j]);
+    for (int j = 0; j < 4; ++j)
+      answerId.push_back(mainData->inner_points[i][j]);
+  }
   return answerId;
 }
 std::vector<Eigen::Vector3d> Hexoworld::Hexagon::UsualFrame::get_points() const
@@ -79,36 +83,172 @@ std::vector<Eigen::Vector3d> Hexoworld::Hexagon::UsualFrame::get_points() const
   return answer;
 }
 
-void Hexoworld::Hexagon::UsualFrame::normalize_edge(uint32_t ind_edge)
-{
-  auto mainData = static_cast<Hexagon*>(base)->mainData;
-
-  Eigen::Vector3d a = Points::get_instance().get_point(
-    mainData->polygonPointsId[ind_edge]);
-  Eigen::Vector3d b = Points::get_instance().get_point(
-    mainData->polygonPointsId[(ind_edge + 1) % 6]);
-  Eigen::Vector3d v = (b - a) / 4;
-
-  for (int j = 0; j < 3; ++j)
-  {
-    Points::get_instance().update_point(mainData->extraPointsId[ind_edge][j], a + v * (j + 1));
-  }
-}
-
 void Hexoworld::Hexagon::UsualFrame::print_in_triList(std::vector<uint32_t>& TriList) const
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
-  std::vector<IdType> points = get_pointsId();
+  for (int i = 0; i < 6; ++i)
+  {
+    {
+      {
+        if (triangles_in_edges[i][0])
+          printTri(
+            mainData->centerId,
+            mainData->radial_points[i][0],
+            mainData->inner_points[i][0], TriList);
+        if (triangles_in_edges[i][1])
+          printTri(
+            mainData->centerId,
+            mainData->radial_points[(i + 1) % 6][0],
+            mainData->inner_points[i][0], TriList);
+      }
 
-  for (int i = 0; i < points.size() - 1; ++i)
-    printTri(points.back(), points[i], points[(i + 1) % (points.size() - 1)], TriList);
+      {
+        if (triangles_in_edges[i][2])
+          printTri(
+          mainData->radial_points[i][0],
+          mainData->inner_points[i][0],
+          mainData->radial_points[i][1],
+          TriList
+        );
+        if (triangles_in_edges[i][3])
+          printTri(
+          mainData->radial_points[(i + 1) % 6][0],
+          mainData->inner_points[i][0],
+          mainData->radial_points[(i + 1) % 6][1],
+          TriList
+        );
+      }
+
+      if (triangles_in_edges[i][4])
+        printTri(
+        mainData->radial_points[i][1],
+        mainData->inner_points[i][0],
+        mainData->radial_points[(i + 1) % 6][1],
+        TriList
+      );
+    }
+
+    {
+      {
+        if (triangles_in_edges[i][5])
+          printTri(
+          mainData->radial_points[i][1],
+          mainData->radial_points[i][2],
+          mainData->inner_points[i][1],
+          TriList
+        );
+        if (triangles_in_edges[i][6])
+          printTri(
+          mainData->radial_points[(i + 1) % 6][1],
+          mainData->radial_points[(i + 1) % 6][2],
+          mainData->inner_points[i][3],
+          TriList
+        );
+      }
+
+       {
+        if (triangles_in_edges[i][7])
+          printTri(
+          mainData->radial_points[i][1],
+          mainData->inner_points[i][1],
+          mainData->inner_points[i][2],
+          TriList
+        );
+        if (triangles_in_edges[i][8])
+          printTri(
+          mainData->radial_points[(i + 1) % 6][1],
+          mainData->inner_points[i][3],
+          mainData->inner_points[i][2],
+          TriList
+        );
+      }
+       if (triangles_in_edges[i][9])
+         printTri(
+        mainData->radial_points[i][1],
+        mainData->inner_points[i][2],
+        mainData->radial_points[(i + 1) % 6][1],
+        TriList
+      );
+    }
+
+    {
+      {
+        if (triangles_in_edges[i][10])
+          printTri(
+          mainData->radial_points[i][2],
+          mainData->polygonPointsId[i],
+          mainData->extraPointsId[i][0],
+          TriList
+        );
+        if (triangles_in_edges[i][11])
+          printTri(
+          mainData->radial_points[(i + 1) % 6][2],
+          mainData->polygonPointsId[(i + 1) % 6],
+          mainData->extraPointsId[i][2],
+          TriList
+        );
+      }
+      {
+        if (triangles_in_edges[i][12])
+          printTri(
+          mainData->radial_points[i][2],
+          mainData->inner_points[i][1],
+          mainData->extraPointsId[i][0],
+          TriList
+        );
+        if (triangles_in_edges[i][13])
+          printTri(
+          mainData->radial_points[(i + 1) % 6][2],
+          mainData->inner_points[i][3],
+          mainData->extraPointsId[i][2],
+          TriList
+        );
+      }
+      {
+        if (triangles_in_edges[i][14])
+          printTri(
+          mainData->inner_points[i][1],
+          mainData->inner_points[i][2],
+          mainData->extraPointsId[i][0],
+          TriList
+        );
+        if (triangles_in_edges[i][15])
+          printTri(
+          mainData->inner_points[i][3],
+          mainData->inner_points[i][2],
+          mainData->extraPointsId[i][2],
+          TriList
+        );
+      }
+      if (triangles_in_edges[i][16])
+        printTri(
+        mainData->inner_points[i][2],
+        mainData->extraPointsId[i][0],
+        mainData->extraPointsId[i][2],
+        TriList
+      );
+    }
+  }
 }
+
+void Hexoworld::Hexagon::UsualFrame::hide_triangle(int ind_edge, int ind_tr)
+{
+  triangles_in_edges[ind_edge][ind_tr] = 0;
+}
+
+void Hexoworld::Hexagon::UsualFrame::show_triangle(int ind_edge, int ind_tr)
+{
+  triangles_in_edges[ind_edge][ind_tr] = 1;
+}
+
 
 void Hexoworld::Hexagon::UsualFrame::init_points(Eigen::Vector3d center,
   Eigen::Vector3d& center_,
   std::vector<Eigen::Vector3d>& polygonPoints_,
-  std::vector<std::vector<Eigen::Vector3d>>& extraPoints_)
+  std::vector<std::vector<Eigen::Vector3d>>& extraPoints_,
+  std::vector<std::vector<Eigen::Vector3d>>& radial_points_,
+  std::vector<std::vector<Eigen::Vector3d>>& inner_points_)
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
@@ -152,11 +292,41 @@ void Hexoworld::Hexagon::UsualFrame::init_points(Eigen::Vector3d center,
     for (int j = 0; j < 3; ++j)
       extraPoints_[i][j] = a + v * (j + 1);
   }
+
+  radial_points_.resize(6);
+  for (int i = 0; i < 6; ++i)
+  {
+    radial_points_[i].resize(3);
+    Eigen::Vector3d vec = polygonPoints_[i] - center_;
+    for (int j = 0; j < 3; ++j)
+      radial_points_[i][j] = center_ + (j + 1) * vec / 4;
+  }
+
+  inner_points_.resize(6);
+  for (int i = 0; i < 6; ++i)
+  {
+    inner_points_[i].resize(4);
+    {
+      Eigen::Vector3d A = radial_points_[i][1];
+      Eigen::Vector3d B = radial_points_[(i + 1) % 6][1];
+      Eigen::Vector3d C = radial_points_[(i + 1) % 6][0];
+      Eigen::Vector3d D = radial_points_[i][0];
+      Eigen::Vector3d E = (A + B) / 2;
+      Eigen::Vector3d F = (D + C) / 2;
+
+      inner_points_[i][0] = E + 2 * (F - E) / 3;
+    }
+    inner_points_[i][1] = (radial_points_[i][1] + extraPoints_[i][0]) / 2;
+    inner_points_[i][3] = (radial_points_[(i + 1) % 6][1] + extraPoints_[i][2]) / 2;
+    inner_points_[i][2] = (inner_points_[i][1] + inner_points_[i][3]) / 2;
+  }
 }
 
 void Hexoworld::Hexagon::UsualFrame::random_move_points(Eigen::Vector3d& center_,
   std::vector<Eigen::Vector3d>& polygonPoints_,
-  std::vector<std::vector<Eigen::Vector3d>>& extraPoints_)
+  std::vector<std::vector<Eigen::Vector3d>>& extraPoints_,
+  std::vector<std::vector<Eigen::Vector3d>>& radial_points_,
+  std::vector<std::vector<Eigen::Vector3d>>& inner_points_)
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
@@ -171,23 +341,77 @@ void Hexoworld::Hexagon::UsualFrame::random_move_points(Eigen::Vector3d& center_
         base->world.heightDirection_ * height_move;
     };
 
-  modify(center_);
-  for (Eigen::Vector3d& point : polygonPoints_)
-    modify(point);
-
-  for (uint32_t i = 0; i < 6; ++i)
+  bool correct_random = false;
+  Eigen::Vector3d new_center_ = center_;
+  std::vector<Eigen::Vector3d> new_points = polygonPoints_;
+  std::vector<std::vector<Eigen::Vector3d>> new_extra = extraPoints_;
+  while (!correct_random)
   {
-    for (uint32_t j = 0; j <= 2; j += 2)
-      modify(extraPoints_[i][j]);
+    modify(new_center_);
+    for (Eigen::Vector3d& point : new_points)
+      modify(point);
 
-    extraPoints_[i][1] =
-      (extraPoints_[i][0] + extraPoints_[i][2]) / 2;
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+      for (uint32_t j = 0; j <= 2; j += 2)
+        modify(new_extra[i][j]);
+
+      new_extra[i][1] = (new_extra[i][0] + new_extra[i][2]) / 2;
+    }
+
+    std::vector<Eigen::Vector3d> all_new_points;
+    for (int i = 0; i < 6; ++i)
+    {
+      all_new_points.push_back(new_points[i]);
+      all_new_points.push_back(new_extra[i][0]);
+      all_new_points.push_back(new_extra[i][1]);
+      all_new_points.push_back(new_extra[i][2]);
+    }
+
+    double cross_dot = (all_new_points[0] - new_center_).cross(
+      all_new_points[1] - center_).dot(base->world.heightDirection_);
+    int sign_cross_dot = round(cross_dot / abs(cross_dot));
+    correct_random = true;
+
+    for (int i = 1; i < all_new_points.size(); ++i)
+    {
+      cross_dot = (all_new_points[i] - new_center_).cross(
+        all_new_points[(i + 1) % all_new_points.size()] - center_).dot(
+          base->world.heightDirection_);
+
+      if (sign_cross_dot != round(cross_dot / abs(cross_dot)))
+      {
+        correct_random = false;
+        new_center_ = center_;
+        new_points = polygonPoints_;
+        new_extra = extraPoints_;
+        break;
+      }
+    }
+  }
+
+  std::swap(center_, new_center_);
+  std::swap(new_points, polygonPoints_);
+  std::swap(new_extra, extraPoints_);
+
+  std::uniform_real_distribution<> dis_height_inner_points(-0.1, 0.1);
+  for (int i = 0; i < 6; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+      radial_points_[i][j] += dis_height_inner_points(gen) * 
+      base->world.heightDirection_;
+    
+    for (int j = 0; j < 4; ++j)
+      inner_points_[i][j] += dis_height_inner_points(gen) *
+      base->world.heightDirection_;
   }
 }
 
 void Hexoworld::Hexagon::UsualFrame::init_ids(Eigen::Vector3d& center_,
   std::vector<Eigen::Vector3d>& polygonPoints_,
-  std::vector<std::vector<Eigen::Vector3d>>& extraPoints_)
+  std::vector<std::vector<Eigen::Vector3d>>& extraPoints_,
+  std::vector<std::vector<Eigen::Vector3d>>& radial_points_,
+  std::vector<std::vector<Eigen::Vector3d>>& inner_points_)
 {
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
@@ -206,6 +430,23 @@ void Hexoworld::Hexagon::UsualFrame::init_ids(Eigen::Vector3d& center_,
     for (int j = 0; j < extraPoints_[i].size(); ++j)
       mainData->extraPointsId[i][j] = Points::get_instance().get_id_point(
         extraPoints_[i][j], base);
+  }
+
+  mainData->radial_points.resize(6);
+  for (int i = 0; i < 6; ++i)
+  {
+    mainData->radial_points[i].resize(radial_points_[i].size());
+    for (int j = 0; j < radial_points_[i].size(); ++j)
+      mainData->radial_points[i][j] = Points::get_instance().get_id_point(
+        radial_points_[i][j], base);
+  }
+  mainData->inner_points.resize(6);
+  for (int i = 0; i < 6; ++i)
+  {
+    mainData->inner_points[i].resize(4);
+    for (int j = 0; j < 4; ++j)
+      mainData->inner_points[i][j] = Points::get_instance().get_id_point(
+        inner_points_[i][j], base);
   }
 }
 
@@ -741,6 +982,14 @@ void Hexoworld::Hexagon::FloodFrame::print_in_triList(std::vector<uint32_t>& Tri
 Hexoworld::Hexagon::RoadFrame::RoadFrame(Object* object, std::vector<uint32_t> edges)
   : HexagonFrame(object)
 {
+  auto mainData = static_cast<Hexagon*>(base)->mainData;
+
+  for (int i = 0; i < 6; ++i)
+  {
+    std::static_pointer_cast<UsualFrame>(base->frames[Usual])->hide_triangle(i, 0);
+    std::static_pointer_cast<UsualFrame>(base->frames[Usual])->hide_triangle(i, 1);
+  }
+
   centerId = Points::get_instance().get_id_point(
     Points::get_instance().get_point(
       static_cast<Hexagon*>(base)->mainData->centerId
@@ -749,7 +998,6 @@ Hexoworld::Hexagon::RoadFrame::RoadFrame(Object* object, std::vector<uint32_t> e
   );
 
   crossroads.resize(6, IdType());
-  auto mainData = static_cast<Hexagon*>(base)->mainData;
   auto center = Points::get_instance().get_point(mainData->centerId);
   std::vector<Eigen::Vector3d> polygonPoints;
   for (IdType i : mainData->polygonPointsId)
@@ -782,8 +1030,28 @@ void Hexoworld::Hexagon::RoadFrame::add_road(uint32_t ind)
   {
     isRoad[ind] = true;
 
+    {
+      auto hide = [ind, this](int id) -> void {
+        std::static_pointer_cast<UsualFrame>
+          (base->frames[Usual])->hide_triangle(ind, id);
+        };
+      
+      hide(16);
+      hide(15);
+      hide(14);
+      hide(8);
+      hide(7);
+      hide(9);
+      hide(4);
+      hide(3);
+      hide(2);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->hide_triangle((ind + 5) % 6, 3);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->hide_triangle((ind + 1) % 6, 2);
+    }
+
     auto mainData = static_cast<Hexagon*>(base)->mainData;
-    std::static_pointer_cast<Hexagon::UsualFrame>(base->frames[Usual])->normalize_edge(ind);
 
     auto center = Points::get_instance().get_point(mainData->centerId);
     std::vector<Eigen::Vector3d> polygonPoints;
@@ -851,10 +1119,31 @@ void Hexoworld::Hexagon::RoadFrame::del_road(uint32_t ind)
   {
     isRoad[ind] = false;
 
+    {
+      auto show = [ind, this](int id) -> void {
+        std::static_pointer_cast<UsualFrame>
+          (base->frames[Usual])->show_triangle(ind, id);
+        };
+
+      show(16);
+      show(15);
+      show(14);
+      show(8);
+      show(7);
+      show(9);
+      show(4);
+      show(3);
+      show(2);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->show_triangle((ind + 5) % 6, 3);
+      std::static_pointer_cast<UsualFrame>
+        (base->frames[Usual])->show_triangle((ind + 1) % 6, 2);
+    }
+
     middleFence.erase(ind);
 
     auto mainData = static_cast<Hexagon*>(base)->mainData;
-    std::static_pointer_cast<Hexagon::UsualFrame>(base->frames[Usual])->normalize_edge(ind);
+//    std::static_pointer_cast<Hexagon::UsualFrame>(base->frames[Usual])->normalize_edge(ind);
 
     auto center = Points::get_instance().get_point(mainData->centerId);
     std::vector<Eigen::Vector3d> polygonPoints;
@@ -1141,5 +1430,12 @@ void Hexoworld::Hexagon::RoadFrame::print_in_triList(std::vector<uint32_t>& TriL
       },
       TriList
     );
+  }
+}
+Hexoworld::Hexagon::RoadFrame::~RoadFrame() {
+  for (int i = 0; i < 6; ++i)
+  {
+    for (int j = 0; j < 17; ++j)
+      std::static_pointer_cast<UsualFrame>(base->frames[Usual])->show_triangle(i, j);
   }
 }

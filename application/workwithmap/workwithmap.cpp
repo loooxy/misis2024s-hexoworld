@@ -76,11 +76,6 @@ WorkWithMap::WorkWithMap()
 
   n_rows = map->get_n_rows();
   n_cols = map->get_n_cols();
-
-  std::vector<PrintingPoint> Vertices;
-  std::vector<uint16_t> TriList;
-  map->print_in_vertices_and_triList(Vertices, TriList);
-  // data.set(Vertices, TriList);
 }
 
 WorkWithMap::~WorkWithMap()
@@ -187,5 +182,18 @@ void WorkWithMap::get_data(data_pool& data) {
   std::vector<uint16_t> TriList;
   map->print_in_vertices_and_triList(Vertices, TriList);
   data.set(Vertices, TriList);
+}
+
+MapBasis WorkWithMap::get_map_basis() {
+  return map->GetBasis();
+}
+
+void WorkWithMap::build_map_from_basis(const MapBasis& map_basis) {
+  map = std::make_shared<Hexoworld>(map_basis);
+}
+
+template<class Archive>
+void WorkWithMap::serialize(Archive& ar) {
+  ar(n_rows, n_cols, grass, sand, sea, snow, mount, test);
 }
 

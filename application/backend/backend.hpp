@@ -11,13 +11,16 @@ public:
   void work();
 
   void ProcessData(std::string& ev);
-  void GetDataToReply(std::vector<PrintingPoint>& Vertices, std::vector<uint16_t>& TriList);
+  void GetDataToReply(std::string& ev);
+  void GetMap(std::string& map);
+  void GetMapBasis(std::string& map_basis);
 
 private:
-  std::shared_ptr<WorkWithMap> wwm;
   void regular_event_update_river();
 
-  events_queue<Event> events;
+  std::shared_ptr<WorkWithMap> wwm;
+  events_queue<Event> events_out;
+  events_queue<Event> events_in;
   bool application_is_alive = true;
-  data_pool data;
+
 };
