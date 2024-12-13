@@ -21,7 +21,7 @@ std::vector<PrintingPoint> Application::Frontend::Vertices;
 std::vector<uint16_t> Application::Frontend::TriList;
 
 // light point
-glm::vec3 lightPos = {5, 5, 1};
+glm::vec3 lightPos = {10, 10, 10};
 
 //temporary normal vector
 glm::vec3 normal = {0, 0, 1};
@@ -399,7 +399,13 @@ void Application::Frontend::render_ImGui()
 
 void Application::Frontend::work()
 {
+  double angle = 0;
+  int cnt = 0;
   while (!glfwWindowShouldClose(window)) {
+    angle += 0.001;
+    //cnt++;
+    lightPos = glm::vec3(400 + 200 * sin(angle), 400 + 200 * cos(angle), 20);
+
     prepare_ImGui();
     prepare_window();
 

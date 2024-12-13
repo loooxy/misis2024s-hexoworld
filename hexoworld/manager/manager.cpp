@@ -6,7 +6,7 @@
 #include <hexoworld/base_objects/rectangle/rectangle.hpp>
 #include <hexoworld/base_objects/triangle/triangle.hpp>
 
-void Hexoworld::Manager::add_hexagon(Coord coord) {
+void Hexoworld::Manager::add_hexagon(Coord coord, uint32_t gen_init) {
   if (grid_.find(coord) == grid_.end())
   {
     grid_[coord] = std::make_shared<Hexoworld::Hexagon>(
@@ -18,7 +18,8 @@ void Hexoworld::Manager::add_hexagon(Coord coord) {
       + world.rowDirection_ *
       (1.5 * 1.5 * world.size_ * coord.row),
 
-      coord
+      coord,
+      gen_init
     );
   }
 }

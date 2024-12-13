@@ -19,6 +19,101 @@
 #include <chrono>
 #endif // SPEED_TEST
 
+Hexoworld::Hexoworld(const MapBasis& mapBasis)
+  : origin_(mapBasis.get_mainData().origin_),
+  rowDirection_(mapBasis.get_mainData().rowDirection_.normalized()),
+  colDirection_(mapBasis.get_mainData().colDirection_.normalized()),
+  heightDirection_(mapBasis.get_mainData().rowDirection_.cross(
+    mapBasis.get_mainData().colDirection_).normalized()),
+  size_(mapBasis.get_mainData().size_),
+  heightStep_(mapBasis.get_mainData().heightStep_),
+  nTerracesOnHeightStep_(mapBasis.get_mainData().nTerracesOnHeightStep_),
+  n_rows(mapBasis.get_mainData().n_rows),
+  n_cols(mapBasis.get_mainData().n_cols)
+{
+  std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
+
+  if (abs(rowDirection_.dot(colDirection_)) > PRECISION_DBL_CALC)
+    throw std::invalid_argument(
+      "row_direction and сol_direction not perpendicular");
+
+  manager = std::make_unique<Manager>(*this);
+
+  auto recreation_hexagon = [this](std::shared_ptr<MapBasis::HexagonData> hd) {
+    manager->add_hexagon({ hd->row, hd->col }, hd->gen_init);
+    add_hexagon(hd->row, hd->col, hd->color);
+    };
+  auto recreation_river = [this](std::shared_ptr<MapBasis::RiverData> rd) {
+    add_river(rd->hexs);
+    };
+  auto recreation_flood = [this](std::shared_ptr<MapBasis::FloodData> fd) {
+    add_flood_in_hex(fd->row, fd->col);
+    };
+  auto recreation_road = [this](std::shared_ptr<MapBasis::RoadData> rd) {
+    add_road_in_hex(rd->row, rd->col);
+    };
+  auto recreation_farm = [this](std::shared_ptr<MapBasis::FarmData> fd) {
+    add_farm_in_hex(fd->row, fd->col);
+    };
+  for (const auto& elem : mapBasis.get_elems())
+  {
+    switch (elem->type())
+    {
+    case MapBasis::ElemData::HexagonType: 
+      recreation_hexagon(std::static_pointer_cast<MapBasis::HexagonData>(elem));
+    break;
+    case MapBasis::ElemData::RiverType:
+      recreation_river(std::static_pointer_cast<MapBasis::RiverData>(elem));
+    break;
+    case MapBasis::ElemData::FloodType:
+      recreation_flood(std::static_pointer_cast<MapBasis::FloodData>(elem));
+    break;
+    case MapBasis::ElemData::RoadType:
+      recreation_road(std::static_pointer_cast<MapBasis::RoadData>(elem));
+    break;
+    case MapBasis::ElemData::FarmType:
+      recreation_farm(std::static_pointer_cast<MapBasis::FarmData>(elem));
+    break;
+    }
+  }
+}
+
+MapBasis Hexoworld::GetBasis()
+{
+  MapBasis::MainData mainData;
+  {
+    mainData.rowDirection_ = rowDirection_;
+    mainData.colDirection_ = colDirection_;
+    mainData.heightDirection_ = heightDirection_;
+    mainData.heightStep_ = heightStep_;
+    mainData.nTerracesOnHeightStep_ = nTerracesOnHeightStep_;
+    mainData.origin_ = origin_;
+    mainData.n_cols = n_cols;
+    mainData.n_rows = n_rows;
+    mainData.size_ = size_;
+    mainData.floodColor = floodColor;
+    mainData.riverColor = riverColor;
+    mainData.roadColor = roadColor;
+  }
+
+  MapBasis answer(mainData);
+  for (auto object : manager->get_all_object())
+    if (std::dynamic_pointer_cast<Hexagon>(object))
+      std::static_pointer_cast<Hexagon>(object)->AddBasis(answer);
+
+  for (auto river : manager->get_all_rivers())
+  {
+    std::shared_ptr<MapBasis::RiverData> riverData = std::make_shared<MapBasis::RiverData>();
+    for (auto object : river) if (std::dynamic_pointer_cast<Hexagon>(object))
+    {
+      auto hex = std::static_pointer_cast<Hexagon>(object);
+      riverData->hexs.push_back({ hex->coord.row, hex->coord.col });
+    }
+  }
+
+  return answer;
+}
+
 Hexoworld::Hexoworld(
   float size, Eigen::Vector3d origin,
   Eigen::Vector3d row_direction, 
@@ -55,7 +150,7 @@ Hexoworld::Hexoworld(
 }
 
 void Hexoworld::add_hexagon(uint32_t row, uint32_t col,
-  Eigen::Vector4i color)
+  Eigen::Vector4i color, uint32_t gen_init)
 {
   std::unique_lock<std::recursive_timed_mutex> mtx(main_mtx);
 

@@ -11,7 +11,7 @@ struct Hexoworld::Hexagon : public Object {
   /// \param hexoworld Мир к которому принадлежит шестиугольник.
   /// \param center Центр шестиугольника.
   /// \param coord Координаты шестиугольника.
-  Hexagon(Hexoworld& hexoworld, Eigen::Vector3d center, Coord coord);
+  Hexagon(Hexoworld& hexoworld, Eigen::Vector3d center, Coord coord, uint32_t gen_init = 0);
 
   /// \brief Установить высоту шестиугольнику.
   /// \param height Новая высота.
@@ -55,6 +55,8 @@ struct Hexoworld::Hexagon : public Object {
 
   /// \brief Раскрашивание точек.
   void colorize_points();
+
+  void AddBasis(MapBasis& mapBasis);
 
   /// \brief Шестиугольный отрисовщик.
   class HexagonDrawer : public Drawer<Object>{
@@ -146,6 +148,7 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Установить высоту.
     /// \param height Новая высота.
     virtual void set_height(int32_t height) = 0;
+    virtual void AddBasis(MapBasis& mapBasis) = 0;
   };
 
   /// \brief Обычный каркас.
@@ -153,7 +156,7 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Создает обычный шестиугольник.
     /// \param base Шестиугольник к которому принадлежит каркас.
     /// \param center Центр шестиугольника.
-    UsualFrame(Object* base, Eigen::Vector3d center);
+    UsualFrame(Object* base, Eigen::Vector3d center, uint32_t gen_init = 0);
 
     /// \brief Установить высоту.
     /// \param height Новая высота.
@@ -170,6 +173,8 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Вывести треугольники.
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
+
+    void AddBasis(MapBasis& mapBasis);
 
     void hide_triangle(int ind_edge, int ind_tr);
     void show_triangle(int ind_edge, int ind_tr);
@@ -247,6 +252,7 @@ struct Hexoworld::Hexagon : public Object {
     /// \param TriList Куда выводить треугольники.
     void print_in_triList(std::vector<uint32_t>& TriList) const;
 
+    void AddBasis(MapBasis& mapBasis);
   private:
 
     /// \brief Создать исток/устье.
@@ -300,6 +306,8 @@ struct Hexoworld::Hexagon : public Object {
     /// \param TriList Куда выводить треугольники. 
     void print_in_triList(std::vector<uint32_t>& TriList) const;
 
+    void AddBasis(MapBasis& mapBasis);
+
     double water_level; //< Уровень воды.
     std::vector<IdType> waterPoints; //< Точки воды.
   };
@@ -338,6 +346,8 @@ struct Hexoworld::Hexagon : public Object {
     /// \brief Вывести треугольники, на которые треангулируется каркас.
     /// \param TriList Куда выводить треугольники. 
     void print_in_triList(std::vector<uint32_t>& TriList) const;
+
+    void AddBasis(MapBasis& mapBasis);
 
     std::vector<IdType> radial_points; //< Радиальные точки
     std::vector<IdType> middle_points; //< Точки посередине грани

@@ -63,12 +63,99 @@ struct PrintingPoint {
   uint32_t abgr; //< Цвет.
 };
 
+class MapBasis {
+public:
+  struct MainData{
+    Eigen::Vector3d rowDirection_;
+    Eigen::Vector3d colDirection_;
+    Eigen::Vector3d heightDirection_;
+    Eigen::Vector3d origin_;
+    float size_;
+    float heightStep_;
+    uint32_t nTerracesOnHeightStep_;
+    uint32_t n_rows;
+    uint32_t n_cols;
+
+    Eigen::Vector4i riverColor;
+    Eigen::Vector4i floodColor;
+    Eigen::Vector4i roadColor;
+  };
+
+  class ElemData {
+  public:
+    enum TypeElem {
+      HexagonType, RiverType, FloodType, RoadType, FarmType
+    };
+    virtual TypeElem type() = 0;
+  };
+  class HexagonData : public ElemData {
+  public:
+    TypeElem type()
+    {
+      return HexagonType;
+    }
+
+    uint32_t row;
+    uint32_t col;
+    Eigen::Vector4i color;
+    uint32_t gen_init;
+  };
+  class RiverData : public ElemData {
+  public:
+    TypeElem type() {
+      return RiverType;
+    }
+
+    std::vector<std::pair<uint32_t, uint32_t>> hexs;
+  };
+  class FloodData : public ElemData {
+  public:
+    TypeElem type() {
+      return FloodType;
+    }
+    uint32_t row, col;
+  };
+  class RoadData : public ElemData {
+  public:
+    TypeElem type() {
+      return RoadType;
+    }
+    uint32_t row, col;
+  };
+  class FarmData : public ElemData{
+  public:
+    TypeElem type() {
+      return FarmType;
+    }
+
+    uint32_t row, col;
+  };
+
+  MapBasis(const MainData& mainData) : mainData(mainData) {}
+  void AddElem(const std::shared_ptr<ElemData>& elem) {
+    elems.push_back(elem);
+  }
+
+  MainData get_mainData() const {
+    return mainData;
+  }
+  std::vector<std::shared_ptr<ElemData>> get_elems() const {
+    return elems;
+  }
+private:
+  const MainData mainData;
+  std::vector<std::shared_ptr<ElemData>> elems;
+};
+
 /// \brief Класс шестиугольного мира.
 class Hexoworld
 {
 public:
   /// \brief Конструктор по умолчанию запрещён, так как необходимы параметры мира.
   Hexoworld() = delete;
+
+  Hexoworld(const MapBasis& mapBasis);
+  MapBasis GetBasis();
 
   /// \brief Создает шестиугольный мир.
   /// \param size Радиус шестиугольников.
@@ -90,7 +177,7 @@ public:
   /// \param row Номер строки.
   /// \param col Номер столбца.
   /// \param color Цвет шестиугольника.
-  void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color);
+  void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color, uint32_t gen_init = 0);
   void del_hexagon(uint32_t row, uint32_t col);
 
   /// \brief Добавить реку
