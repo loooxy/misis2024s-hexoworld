@@ -1,5 +1,9 @@
 #include "hexagon.hpp"
 #include "hexagon.hpp"
+#include "hexagon.hpp"
+#include "hexagon.hpp"
+#include "hexagon.hpp"
+#include "hexagon.hpp"
 #include <hexoworld/base_objects/hexagon/hexagon.hpp>
 #include <random>
 #include <cmath>
@@ -10,7 +14,7 @@ Hexoworld::Hexagon::HexagonFrame::HexagonFrame(Object* base)
 
 //struct UsualType-----------------------------------------
 
-Hexoworld::Hexagon::UsualFrame::UsualFrame(Object* base, Eigen::Vector3d center)
+Hexoworld::Hexagon::UsualFrame::UsualFrame(Object* base, Eigen::Vector3d center, uint32_t gen_init)
   : HexagonFrame(base)
 {
   if (static_cast<Hexagon*>(base)->mainData == nullptr)
@@ -18,8 +22,12 @@ Hexoworld::Hexagon::UsualFrame::UsualFrame(Object* base, Eigen::Vector3d center)
     triangles_in_edges.resize(6, std::bitset<17>(((1 << 18) - 1)));
     static_cast<Hexagon*>(base)->mainData = std::make_shared<MainData>();
 
+    static_cast<Hexagon*>(base)->mainData->gen_init = gen_init;
     std::random_device rd;
-    static_cast<Hexagon*>(base)->mainData->gen_init = rd();
+    while (static_cast<Hexagon*>(base)->mainData->gen_init == 0)
+    {
+        static_cast<Hexagon*>(base)->mainData->gen_init = rd();
+    }
 
     Eigen::Vector3d center_; ///< центр шестиугольника
     std::vector<Eigen::Vector3d> polygonPoints_; ///< Точки шестиугольника.
@@ -232,6 +240,19 @@ void Hexoworld::Hexagon::UsualFrame::print_in_triList(std::vector<uint32_t>& Tri
   }
 }
 
+void Hexoworld::Hexagon::UsualFrame::AddBasis(MapBasis& mapBasis)
+{
+  std::shared_ptr<MapBasis::HexagonData> hexagonData =
+    std::make_shared<MapBasis::HexagonData>();
+  hexagonData->row = static_cast<Hexagon*>(base)->coord.row;
+  hexagonData->col = static_cast<Hexagon*>(base)->coord.col;
+  hexagonData->color = std::static_pointer_cast<UsualDrawer>(
+    static_cast<Hexagon*>(base)->drawers[Usual])->get_color();
+  hexagonData->gen_init = static_cast<Hexagon*>(base)->mainData->gen_init;
+
+  mapBasis.AddElem(std::static_pointer_cast<MapBasis::ElemData>(hexagonData));
+}
+
 void Hexoworld::Hexagon::UsualFrame::hide_triangle(int ind_edge, int ind_tr)
 {
   triangles_in_edges[ind_edge][ind_tr] = 0;
@@ -331,7 +352,7 @@ void Hexoworld::Hexagon::UsualFrame::random_move_points(Eigen::Vector3d& center_
   auto mainData = static_cast<Hexagon*>(base)->mainData;
 
   std::mt19937 gen(mainData->gen_init);
-  std::uniform_real_distribution<> dis(-0.3, 0.3);
+  std::uniform_real_distribution<> dis(-0.1, 0.1);
   double height_move = dis(gen);
   auto modify = [&dis, &gen, &height_move, this](Eigen::Vector3d& point) -> void
     {
@@ -394,7 +415,7 @@ void Hexoworld::Hexagon::UsualFrame::random_move_points(Eigen::Vector3d& center_
   std::swap(new_points, polygonPoints_);
   std::swap(new_extra, extraPoints_);
 
-  std::uniform_real_distribution<> dis_height_inner_points(-0.1, 0.1);
+  std::uniform_real_distribution<> dis_height_inner_points(-0.05, 0.05);
   for (int i = 0; i < 6; ++i)
   {
     for (int j = 0; j < 3; ++j)
@@ -589,6 +610,9 @@ void Hexoworld::Hexagon::RiversFrame::print_in_triList(std::vector<uint32_t>& Tr
       TriList);
   }
 }
+
+void Hexoworld::Hexagon::RiversFrame::AddBasis(MapBasis& mapBasis)
+{}
 
 void Hexoworld::Hexagon::RiversFrame::make_river_begin_end(uint32_t edge)
 {
@@ -975,6 +999,15 @@ void Hexoworld::Hexagon::FloodFrame::print_in_triList(std::vector<uint32_t>& Tri
       waterPoints[i],
       waterPoints[(i + 1) % (waterPoints.size() - 1)],
       TriList);
+}
+
+void Hexoworld::Hexagon::FloodFrame::AddBasis(MapBasis& mapBasis)
+{
+  std::shared_ptr<MapBasis::FloodData> floodData = std::make_shared<MapBasis::FloodData>();
+  floodData->row = static_cast<Hexagon*>(base)->coord.row;
+  floodData->col = static_cast<Hexagon*>(base)->coord.col;
+  mapBasis.AddElem(std::static_pointer_cast<MapBasis::ElemData>(floodData));
+
 }
 
 //struct RoadFrame-----------------------------------------
@@ -1432,6 +1465,15 @@ void Hexoworld::Hexagon::RoadFrame::print_in_triList(std::vector<uint32_t>& TriL
     );
   }
 }
+void Hexoworld::Hexagon::RoadFrame::AddBasis(MapBasis& mapBasis)
+{
+  std::shared_ptr<MapBasis::RoadData> roadData =
+    std::make_shared<MapBasis::RoadData>();
+  roadData->row = static_cast<Hexagon*>(base)->coord.row;
+  roadData->col = static_cast<Hexagon*>(base)->coord.col;
+  mapBasis.AddElem(std::static_pointer_cast<MapBasis::ElemData>(roadData));
+}
+
 Hexoworld::Hexagon::RoadFrame::~RoadFrame() {
   for (int i = 0; i < 6; ++i)
   {

@@ -6,10 +6,10 @@
 
 
 Hexoworld::Hexagon::Hexagon(Hexoworld& hexoworld,
-  Eigen::Vector3d center, Coord coord)
+  Eigen::Vector3d center, Coord coord, uint32_t gen_init)
   : Object(hexoworld), coord(coord)
 {
-  frames[Usual] = std::make_shared<UsualFrame>(this, center);
+  frames[Usual] = std::make_shared<UsualFrame>(this, center, gen_init);
   drawers[Usual] = std::make_shared<UsualDrawer>(this, Eigen::Vector4i(0, 0, 0, 0));
   drawers[Usual]->colorize_points();
 }
@@ -314,4 +314,10 @@ void Hexoworld::Hexagon::colorize_points()
 
   for (auto& inv : inventory)
     inv->colorize_points();
+}
+
+void Hexoworld::Hexagon::AddBasis(MapBasis& mapBasis)
+{
+  for (auto [type, frame] : frames)
+    std::static_pointer_cast<HexagonFrame>(frame)->AddBasis(mapBasis);
 }

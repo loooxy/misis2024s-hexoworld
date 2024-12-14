@@ -55,7 +55,7 @@ std::shared_ptr<Event> Render::GetEvent() {
   return nullptr;
 }
 
-Render::Render() 
+Render::Render()
 {
   work_with_map = std::make_shared<WorkWithMap>();
 }
@@ -422,7 +422,7 @@ void Render::work()
   init_glfw();
   init_ImGui();
   init_Shaders_and_Buffers();
-  // glfwMakeContextCurrent(window);
+  glfwMakeContextCurrent(window);
   while (!glfwWindowShouldClose(window)) {
     prepare_ImGui();
     prepare_window();

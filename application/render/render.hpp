@@ -8,7 +8,7 @@
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 
-#include<hexoworld/includes.hpp>
+#include <hexoworld/includes.hpp>
 #include <events/events.hpp>
 #include <events_queue/events_queue.hpp>
 #include <data_pool/data_pool.hpp>
@@ -24,7 +24,7 @@
 
 class Render {
 public:
-	explicit Render();
+	Render();
 	~Render();
 	void work();
 

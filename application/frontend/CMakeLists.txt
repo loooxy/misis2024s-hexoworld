@@ -4,18 +4,9 @@ frontend.cpp
 )
 
 target_link_libraries(frontend
-glfw
-Eigen3::Eigen
-imgui::imgui
-glad::glad
-glm::glm
-cppzmq
-cereal::cereal
+render
 
-shader_s
-camera
-data_pool
-hexoworld
+cereal::cereal
 )
 
 set_property(TARGET frontend PROPERTY CXX_STANDARD 20)

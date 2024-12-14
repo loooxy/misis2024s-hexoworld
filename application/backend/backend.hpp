@@ -16,8 +16,6 @@ public:
   void GetMapBasis(std::string& map_basis);
 
 private:
-  void regular_event_update_river();
-
   std::shared_ptr<WorkWithMap> wwm;
   events_queue<Event> events_out;
   events_queue<Event> events_in;

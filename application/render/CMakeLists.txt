@@ -9,13 +9,14 @@ Eigen3::Eigen
 imgui::imgui
 glad::glad
 glm::glm
-cppzmq
 cereal::cereal
 
 shader_s
 camera
 data_pool
 hexoworld
+workwithmap
+events
 )
 
 set_property(TARGET render PROPERTY CXX_STANDARD 20)

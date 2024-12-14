@@ -4,17 +4,12 @@ client.cpp
 )
 
 target_link_libraries(client 
-glfw
-Eigen3::Eigen
-imgui::imgui
-glad::glad
-glm::glm
 cppzmq
 
-hexoworld
 frontend
 clock
 eventid
+zmqhelper
 )
 
 set_property(TARGET client PROPERTY CXX_STANDARD 20)

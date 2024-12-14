@@ -1,6 +1,33 @@
 #include "events.hpp"
 #include <cereal/archives/portable_binary.hpp>
 
+CEREAL_REGISTER_TYPE(ChangeHeight)
+CEREAL_REGISTER_TYPE(ChangeColor)
+CEREAL_REGISTER_TYPE(ChangeRoadState)
+CEREAL_REGISTER_TYPE(ChangeFarmState)
+CEREAL_REGISTER_TYPE(ChangeFloodState)
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeHeight)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeColor)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeRoadState)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFarmState)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFloodState)
+
+std::shared_ptr<Event> loadEv(const std::string& data) {
+	std::shared_ptr<Event> ev;
+	std::istringstream iss(data);
+	cereal::PortableBinaryInputArchive archive(iss);
+	archive(ev);
+	return ev;
+}
+
+std::string saveEv(const std::shared_ptr<Event>& ev) {
+	std::ostringstream oss;
+	cereal::PortableBinaryOutputArchive archive(oss);
+	archive(ev);
+	return oss.str();
+}
+
 // ChangeHeight
 ChangeHeight::ChangeHeight(const int row, const int col, const int new_height)
 	: Event(), row(row), col(col), new_height(new_height) {}
@@ -97,15 +124,3 @@ TypeEvent Close::type() {
 }
 void Close::execute(std::shared_ptr<WorkWithMap>& wwm) {}
 
-CEREAL_REGISTER_TYPE(ChangeHeight)
-CEREAL_REGISTER_TYPE(ChangeColor)
-CEREAL_REGISTER_TYPE(ChangeRoadState)
-CEREAL_REGISTER_TYPE(ChangeFarmState)
-CEREAL_REGISTER_TYPE(ChangeFloodState)
-
-
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeHeight)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeColor)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeRoadState)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFarmState)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Event, ChangeFloodState)

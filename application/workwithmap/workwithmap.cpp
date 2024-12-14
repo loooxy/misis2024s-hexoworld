@@ -192,8 +192,5 @@ void WorkWithMap::build_map_from_basis(const MapBasis& map_basis) {
   map = std::make_shared<Hexoworld>(map_basis);
 }
 
-template<class Archive>
-void WorkWithMap::serialize(Archive& ar) {
-  ar(n_rows, n_cols, grass, sand, sea, snow, mount, test);
-}
+
 

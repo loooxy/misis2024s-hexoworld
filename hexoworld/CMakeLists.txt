@@ -37,7 +37,7 @@ points.cpp
 main_data.cpp
 accessors.cpp
 hexoworld.cpp)
-target_link_libraries(hexoworld Eigen3::Eigen)
+target_link_libraries(hexoworld Eigen3::Eigen cereal::cereal)
 set_property(TARGET hexoworld PROPERTY CXX_STANDARD 20)
 target_include_directories(hexoworld PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>

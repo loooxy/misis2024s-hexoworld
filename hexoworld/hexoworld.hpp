@@ -13,6 +13,12 @@
 #include <sstream>
 #include <hexoworld/defines.hpp>
 
+#include <cereal/cereal.hpp>
+#include <cereal/access.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/utility.hpp>
+
 /// \brief Структура формата вывода точки.
 struct PrintingPoint {
   /// \brief Конструктор по умолчанию
@@ -63,12 +69,186 @@ struct PrintingPoint {
   uint32_t abgr; //< Цвет.
 };
 
+namespace cereal
+{
+  template <class Archive, class _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols> inline
+    typename std::enable_if<traits::is_output_serializable<BinaryData<_Scalar>, Archive>::value, void>::type
+    save(Archive& ar, Eigen::Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> const& m)
+  {
+    int32_t rows = m.rows();
+    int32_t cols = m.cols();
+    ar(rows);
+    ar(cols);
+    ar(binary_data(m.data(), rows * cols * sizeof(_Scalar)));
+  }
+
+  template <class Archive, class _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols> inline
+    typename std::enable_if<traits::is_input_serializable<BinaryData<_Scalar>, Archive>::value, void>::type
+    load(Archive& ar, Eigen::Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>& m)
+  {
+    int32_t rows;
+    int32_t cols;
+    ar(rows);
+    ar(cols);
+
+    m.resize(rows, cols);
+
+    ar(binary_data(m.data(), static_cast<std::size_t>(rows * cols * sizeof(_Scalar))));
+  }
+}
+
+class MapBasis {
+public:
+  MapBasis() = default;
+  struct MainData {
+    MainData() = default;
+    Eigen::Vector3d rowDirection_;
+    Eigen::Vector3d colDirection_;
+    Eigen::Vector3d heightDirection_;
+    Eigen::Vector3d origin_;
+    float size_;
+    float heightStep_;
+    uint32_t nTerracesOnHeightStep_;
+    uint32_t n_rows;
+    uint32_t n_cols;
+
+    Eigen::Vector4i riverColor;
+    Eigen::Vector4i floodColor;
+    Eigen::Vector4i roadColor;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+      ar(rowDirection_, colDirection_, heightDirection_, origin_, size_, heightStep_, nTerracesOnHeightStep_, n_rows, n_cols, riverColor,
+        floodColor, roadColor);
+    }
+  };
+
+  class ElemData {
+  public:
+    ElemData() = default;
+    enum TypeElem {
+      HexagonType, RiverType, FloodType, RoadType, FarmType
+    };
+    virtual TypeElem type() = 0;
+  };
+  class HexagonData : public ElemData {
+  public:
+    HexagonData() = default;
+    TypeElem type()
+    {
+      return HexagonType;
+    }
+
+    uint32_t row;
+    uint32_t col;
+    Eigen::Vector4i color;
+    uint32_t gen_init;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+      ar(row, col, color, gen_init);
+    }
+
+  };
+  class RiverData : public ElemData {
+  public:
+    RiverData() = default;
+    TypeElem type() {
+      return RiverType;
+    }
+
+    std::vector<std::pair<uint32_t, uint32_t>> hexs;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+      ar(hexs);
+    }
+  };
+  class FloodData : public ElemData {
+  public:
+    FloodData() = default;
+    TypeElem type() {
+      return FloodType;
+    }
+    uint32_t row, col;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+      ar(row, col);
+    }
+  };
+  class RoadData : public ElemData {
+  public:
+    RoadData() = default;
+    TypeElem type() {
+      return RoadType;
+    }
+    uint32_t row, col;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+      ar(row, col);
+    }
+  };
+  class FarmData : public ElemData {
+  public:
+    FarmData() = default;
+    TypeElem type() {
+      return FarmType;
+    }
+
+    uint32_t row, col;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+      ar(row, col);
+    }
+  };
+
+  MapBasis(const MainData& mainData) : mainData(mainData) {}
+  void AddElem(const std::shared_ptr<ElemData>& elem) {
+    elems.push_back(elem);
+  }
+
+  MainData get_mainData() const {
+    return mainData;
+  }
+  std::vector<std::shared_ptr<ElemData>> get_elems() const {
+    return elems;
+  }
+private:
+  MainData mainData;
+  std::vector<std::shared_ptr<ElemData>> elems;
+
+  friend class cereal::access;
+
+  template <class Archive>
+  void serialize(Archive& ar) {
+    ar(mainData, elems);
+  }
+};
+
+CEREAL_REGISTER_TYPE(MapBasis::HexagonData)
+CEREAL_REGISTER_TYPE(MapBasis::RiverData)
+CEREAL_REGISTER_TYPE(MapBasis::FloodData)
+CEREAL_REGISTER_TYPE(MapBasis::RoadData)
+CEREAL_REGISTER_TYPE(MapBasis::FarmData)
+
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(MapBasis::ElemData, MapBasis::HexagonData)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(MapBasis::ElemData, MapBasis::RiverData)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(MapBasis::ElemData, MapBasis::FloodData)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(MapBasis::ElemData, MapBasis::RoadData)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(MapBasis::ElemData, MapBasis::FarmData)
 /// \brief Класс шестиугольного мира.
 class Hexoworld
 {
 public:
   /// \brief Конструктор по умолчанию запрещён, так как необходимы параметры мира.
   Hexoworld() = delete;
+
+  Hexoworld(const MapBasis& mapBasis);
+  MapBasis GetBasis();
 
   /// \brief Создает шестиугольный мир.
   /// \param size Радиус шестиугольников.
@@ -90,7 +270,7 @@ public:
   /// \param row Номер строки.
   /// \param col Номер столбца.
   /// \param color Цвет шестиугольника.
-  void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color);
+  void add_hexagon(uint32_t row, uint32_t col, Eigen::Vector4i color, uint32_t gen_init = 0);
   void del_hexagon(uint32_t row, uint32_t col);
 
   /// \brief Добавить реку

@@ -5,6 +5,7 @@
 #include <zmq.hpp>
 #include <frontend/frontend.hpp>
 #include <string>
+#include <atomic>
 
 class Client {
 public:
@@ -13,8 +14,8 @@ public:
 	Client operator=(const Client& copy) = delete;
 	~Client();
 
-	void Work(const std::string& address);
-	void ConnectToServer(const std::string& address);
+	void Work(const std::string address);
+	void ConnectToServer(const std::string address);
 private:
 	void FillRequest(zmq::message_t& request);
 	void ForwardMapToApp(zmq::message_t& reply_map, zmq::message_t& reply_map_basis);
@@ -26,6 +27,8 @@ private:
 	std::unique_ptr<Frontend> frontend_;
 	zmq::context_t ctx_;
 	zmq::socket_t client_;
+
+	std::atomic_bool is_map_received = false;
 };
 
 #endif

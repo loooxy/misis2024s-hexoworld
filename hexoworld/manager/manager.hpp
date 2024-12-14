@@ -54,7 +54,7 @@ public:
 
   /// \brief Создать шестиугольник.
   /// \param coord Координата.
-  void add_hexagon(Coord coord);
+  void add_hexagon(Coord coord, uint32_t gen_init = 0);
   void del_hexagon(Coord coord);
 
   /// \brief Создать прямоугольник, который между двух шестиугольников.

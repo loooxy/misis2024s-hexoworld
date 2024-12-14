@@ -2,22 +2,13 @@
 #include <cereal/archives/portable_binary.hpp>
 #include <sstream>
 
-std::string saveEv(const std::shared_ptr<Event>& ev) {
-  std::ostringstream oss;
-  cereal::PortableBinaryOutputArchive archive(oss);
-  archive(ev);
-  return oss.str();
-}
-
-std::shared_ptr<Event> loadEv(const std::string& data) {
-  std::shared_ptr<Event> ev;
-  std::istringstream iss(data);
-  cereal::PortableBinaryInputArchive archive(iss);
-  archive(ev);
-  return ev;
-}
-
 void Frontend::work() {
+  //auto river_update_func = [this]() { regular_event_update_river(); };
+  //std::thread th_river_update(river_update_func);
+
+  auto render_func = [this]() { render_->work(); };
+  std::thread th_render(render_func);
+
   std::shared_ptr<Event> event = nullptr;
 
   bool was_events = false;
@@ -44,6 +35,20 @@ void Frontend::work() {
       render_->UpdateData();
     }
   }
+  application_is_alive = false;
+
+  //th_river_update.join();
+  th_render.detach();
+}
+
+void Frontend::regular_event_update_river()
+{
+  while (application_is_alive)
+  {
+    events.push(std::make_shared<UpdateRiver>());
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
 }
 
 
@@ -63,6 +68,10 @@ void Frontend::GetDataToRequest(std::string& ev) {
 Frontend::Frontend() 
 {
   render_ = std::make_unique<Render>();
+}
+
+Frontend::~Frontend() {
+
 }
 
 void Frontend::ProcessMap(std::string& map) {

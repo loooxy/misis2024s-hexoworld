@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <cereal/types/string.hpp>
 
 struct EventId {
   EventId() = default;

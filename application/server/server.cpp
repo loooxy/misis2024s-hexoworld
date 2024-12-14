@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include <zmqhelper/zmqhelper.hpp>
 
 const int REQUEST_CYCLES = 10;
 
@@ -7,29 +8,21 @@ const int HEARTBEAT_LIVENESS = 3;   //  3-5 is reasonable
 
 const int MAX_EVENT_ID = 1000000000;
 
-void send_empty(zmq::socket_t& socket) {
-  socket.send(zmq::message_t(""), zmq::send_flags::sndmore);
-}
-
-void send_id(zmq::socket_t& socket, zmq::message_t& id) {
-  socket.send(id, zmq::send_flags::sndmore);
-}
-
 // if server received heartbeat from client, it updates his time
 void client_refresh(std::map<std::string, time_point> id_to_time, const std::string& identity) {
   if (id_to_time.count(identity) == 0) {
     std::cout << "E: client " << identity << " not ready" << std::endl;
   }
   else {
-    id_to_time[identity] = msc_clock();
+    id_to_time[identity] = Clock::msc_clock();
   }
 }
 
 // if server didn't receive heartbeat from client, it deletes him
 void client_purge(std::map<std::string, time_point> id_to_time) {
-  time_point time = msc_clock();
+  time_point time = Clock::msc_clock();
   for (auto it = id_to_time.cbegin(); it != id_to_time.cend(); ) {
-    if (elapsed(it->second, time) > HEARTBEAT_INTERVAL * HEARTBEAT_LIVENESS) {
+    if (Clock::elapsed(it->second, time) > HEARTBEAT_INTERVAL * HEARTBEAT_LIVENESS) {
       id_to_time.erase(it++);
     }
     else {
@@ -70,13 +63,13 @@ void Server::UpdateEventsQueue() {
   }
 }
 
-void Server::CreateServer(const std::string& port = "5555") {
+void Server::CreateServer(const std::string port = "5555") {
   server_.bind("tcp://*:" + port);
 }
 
-void Server::Work() {
-  auto run_func = [this]() {Run(); };
-  std::thread th_run(run_func);
+void Server::Work(const std::string port) {
+  auto run_func = [this](std::string port) {Run(port); };
+  std::thread th_run(run_func, port);
 
   auto update_events_func = [this]() {UpdateEventsQueue(); };
   std::thread th_update_events(update_events_func);
@@ -86,8 +79,10 @@ void Server::Work() {
   th_update_events.detach();
 }
 
-void Server::Run() {
-  auto heartbeat_prev = msc_clock();
+void Server::Run(const std::string port){
+  CreateServer(port);
+
+  auto heartbeat_prev = Clock::msc_clock();
 
   while (true) {
     // server receive requests from clients
@@ -114,22 +109,27 @@ void Server::Run() {
       if (id_to_cam.count(id) == 0) {
         id_to_cam[id] = Camera();
         id_to_queue[id].empty();
+        id_to_time[id] = Clock::msc_clock();
       }
-
+      std::string req_str = request.to_string();
       // update client timer
-      if (request.to_string() == "HEARTBEAT") {
+      if (req_str == "HEARTBEAT") {
         client_refresh(id_to_time, id);
       }
       // first request, need to reply with map
-      else if (request.to_string() == "FR") {
+      else if (req_str == "FR") {
         zmq::message_t reply_map;
         zmq::message_t reply_map_basis;
         FillReplyMap(reply_map);
         FillReplyMapBasis(reply_map_basis);
+        ZmqHelper::send_id(server_, identity);
+        ZmqHelper::send_empty(server_);
+        server_.send(reply_map, zmq::send_flags::sndmore);
+        server_.send(reply_map_basis, zmq::send_flags::none);
       }
       // confirmation of event
-      else if (request.size() == 5) {
-        ConfirmEvent(id, request.to_string());
+      else if (req_str.size() == 5) {
+        ConfirmEvent(id, req_str);
       }
       // process event from client
       else {
@@ -138,15 +138,15 @@ void Server::Run() {
     }
 
     // send heartbeat when time is up
-    auto time = msc_clock();
-    if (elapsed(heartbeat_prev, time) > HEARTBEAT_INTERVAL) {
+    auto time = Clock::msc_clock();
+    if (Clock::elapsed(heartbeat_prev, time) > HEARTBEAT_INTERVAL) {
       for (const auto& pair : id_to_time) {
         zmq::message_t identity(pair.first);
-        send_id(server_, identity);
-        send_empty(server_);
-        server_.send(zmq::message_t("HEARTBEAT", 9), zmq::send_flags::none);
+        ZmqHelper::send_id(server_, identity);
+        ZmqHelper::send_empty(server_);
+        server_.send(zmq::message_t(std::string("HEARTBEAT")), zmq::send_flags::none);
       }
-      heartbeat_prev = msc_clock();
+      heartbeat_prev = Clock::msc_clock();
     }
 
     // send events to all clients from their queues
@@ -155,8 +155,8 @@ void Server::Run() {
       FillReplyEvent(reply_event, pair.first);
       if (reply_event.size() > 0) {
         zmq::message_t identity(pair.first);
-        send_id(server_, identity);
-        send_empty(server_);
+        ZmqHelper::send_id(server_, identity);
+        ZmqHelper::send_empty(server_);
         server_.send(reply_event, zmq::send_flags::none);
       }
     }
@@ -174,6 +174,18 @@ void Server::FillReplyEvent(zmq::message_t& reply_event, const std::string& id) 
   }
 }
 
+void Server::FillReplyMap(zmq::message_t& reply_map) {
+  std::string map;
+  backend_->GetMap(map);
+  reply_map.rebuild(map.data(), sizeof(map[0]) * map.size());
+}
+
+void Server::FillReplyMapBasis(zmq::message_t& reply_map_basis) {
+  std::string map_basis;
+  backend_->GetMapBasis(map_basis);
+  reply_map_basis.rebuild(map_basis.data(), sizeof(map_basis[0]) * map_basis.size());
+}
+
 
 void Server::ProcessRequest(zmq::message_t& request) {
   std::string ev = request.to_string();
@@ -186,5 +198,7 @@ void Server::ConfirmEvent(const std::string& id, const std::string& event_id) {
   while (!id_to_queue[id].empty() && id_to_queue[id].front().id != id_event.id) {
     id_to_queue[id].pop();
   }
-  id_to_queue[id].pop();
+  if (!id_to_queue[id].empty()) {
+    id_to_queue[id].pop();
+  }
 }

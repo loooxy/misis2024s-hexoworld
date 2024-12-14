@@ -1,18 +1,15 @@
-#include <application/application.hpp>
+#include "client.hpp"
 #include <clock/clock.hpp>
 #include <eventid/eventid.hpp>
+#include <zmqhelper/zmqhelper.hpp>
 
-const int REQUEST_TIMEOUT = 1000;
+const int REQUEST_TIMEOUT = 10000;
 const int REQUEST_RETRIES = 3;
 
 const int HEARTBEAT_LIVENESS = 3;   //  3-5 is reasonable
 const int HEARTBEAT_INTERVAL = 1000;   //  msecs
 const int INTERVAL_INIT = 1000;   //  Initial reconnect
 const int INTERVAL_MAX = 32000;    //  After exponential backoff
-
-void send_empty(zmq::socket_t& socket) {
-  socket.send(zmq::message_t(""), zmq::send_flags::sndmore);
-}
 
 Client::Client()
   :
@@ -26,26 +23,28 @@ Client::~Client() {
 
 }
 
-void Client::Work(const std::string& address = "tcp://localhost:5555") {
-  auto connect_func = [this](const std::string& address) {ConnectToServer(address); };
+void Client::Work(const std::string address = "tcp://localhost:5555") {
+  auto connect_func = [this](const std::string address) {ConnectToServer(address); };
   std::thread th_connect(connect_func, address);
 
-
+  while (!is_map_received.load()) {
+  }
   frontend_->work();
   th_connect.detach();
 }
 
-void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555") {
+void Client::ConnectToServer(const std::string address = "tcp://localhost:5555") {
   address_ = address;
   client_.connect(address);
 
   // first request for map
   RequestMap();
+  is_map_received.store(true, std::memory_order_relaxed);
 
   int liveness = HEARTBEAT_LIVENESS;
   int interval = INTERVAL_INIT;
 
-  auto heartbeat_prev = msc_clock();
+  auto heartbeat_prev = Clock::msc_clock();
 
   while (true) {
     zmq::pollitem_t items[] = {
@@ -54,7 +53,13 @@ void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555"
     zmq::poll(&items[0], 1, HEARTBEAT_INTERVAL);
 
     if (items[0].revents & ZMQ_POLLIN) {
+      zmq::message_t delimiter;
+      client_.recv(delimiter, zmq::recv_flags::none);
+
       zmq::message_t reply;
+      client_.recv(reply, zmq::recv_flags::none);
+
+      std::string str = reply.to_string();
 
       if (reply.to_string() == "HEARTBEAT") {
         liveness = HEARTBEAT_LIVENESS;
@@ -62,7 +67,7 @@ void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555"
       else {
         // send confirmimation of receiving event
         int id = ForwardEventToApp(reply);
-        send_empty(client_);
+        ZmqHelper::send_empty(client_);
         std::string id_str = saveId(Id(id));
         client_.send(zmq::message_t(id_str), zmq::send_flags::none);
         liveness = HEARTBEAT_LIVENESS;
@@ -83,18 +88,18 @@ void Client::ConnectToServer(const std::string& address = "tcp://localhost:5555"
     }
 
     // send heartbeat when time is up
-    auto time = msc_clock();
-    if (elapsed(heartbeat_prev, time) > HEARTBEAT_INTERVAL) {
+    auto time = Clock::msc_clock();
+    if (Clock::elapsed(heartbeat_prev, time) > HEARTBEAT_INTERVAL) {
       heartbeat_prev = time;
-      send_empty(client_);
-      client_.send(zmq::message_t("HEARTBEAT", 9), zmq::send_flags::none);
+      ZmqHelper::send_empty(client_);
+      client_.send(zmq::message_t(std::string("HEARTBEAT")), zmq::send_flags::none);
     }
 
     // send event if have
     zmq::message_t request;
     FillRequest(request);
     if (request.size() > 0) {
-      send_empty(client_);
+      ZmqHelper::send_empty(client_);
       client_.send(request, zmq::send_flags::none);
     }
   }
@@ -121,10 +126,10 @@ void Client::RequestMap() {
 
   while (retries_left) {
     // client fill request for map
-    zmq::message_t request("FR");
+    zmq::message_t request(std::string("FR"));
 
     // client send request
-    send_empty(client_);
+    ZmqHelper::send_empty(client_);
     client_.send(request);
 
     zmq::pollitem_t items[] = {
@@ -137,6 +142,8 @@ void Client::RequestMap() {
     if (items[0].revents & ZMQ_POLLIN) {
       zmq::message_t reply_map;
       zmq::message_t reply_map_basis;
+      zmq::message_t delimiter;
+      client_.recv(delimiter, zmq::recv_flags::none);
       client_.recv(reply_map, zmq::recv_flags::none);
       client_.recv(reply_map_basis, zmq::recv_flags::none);
 

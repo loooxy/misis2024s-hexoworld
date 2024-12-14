@@ -4,18 +4,13 @@ server.cpp
 )
 
 target_link_libraries(server
-glfw
-Eigen3::Eigen
-imgui::imgui
-glad::glad
-glm::glm
 cppzmq
 
-hexoworld
 backend
 camera
 clock
 eventid
+zmqhelper
 )
 
 set_property(TARGET server PROPERTY CXX_STANDARD 20)

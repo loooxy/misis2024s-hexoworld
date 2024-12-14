@@ -16,15 +16,17 @@ public:
 	Server operator=(const Server& copy) = delete;
 	~Server();
 
-	void CreateServer(const std::string& port);
-	void Run();
-	void Work();
+	void CreateServer(const std::string port);
+	void Run(const std::string port);
+	void Work(const std::string port);
 
 private:
 	void FillReplyEvent(zmq::message_t& reply_event, const std::string& id); 
 	void ProcessRequest(zmq::message_t& request);
 	void UpdateEventsQueue();
 	void ConfirmEvent(const std::string& id, const std::string& event_id);
+	void FillReplyMap(zmq::message_t& reply_map);
+	void FillReplyMapBasis(zmq::message_t& reply_map_basis);
 
 	std::unique_ptr<Backend> backend_;
 

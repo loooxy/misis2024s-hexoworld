@@ -51,6 +51,8 @@ private:
 
 	friend class cereal::access;
 	template<class Archive>
-	void serialize(Archive& ar);
+	void serialize(Archive& ar) {
+		ar(n_rows, n_cols, grass, sand, sea, snow, mount, test);
+	}
 };
 

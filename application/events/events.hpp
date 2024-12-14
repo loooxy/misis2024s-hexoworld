@@ -74,8 +74,9 @@ public:
 	TypeEvent type() override;
 	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 
-	int row, col;
-	bool farm_state;
+	int row = 0; 
+	int col = 0;
+	bool farm_state = false;
 
 	template <class Archive>
 	void serialize(Archive& ar);
@@ -109,3 +110,7 @@ public:
 	TypeEvent type() override;
 	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 };
+
+std::shared_ptr<Event> loadEv(const std::string& data);
+
+std::string saveEv(const std::shared_ptr<Event>& ev);
