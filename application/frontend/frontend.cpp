@@ -3,8 +3,8 @@
 #include <sstream>
 
 void Frontend::work() {
-  //auto river_update_func = [this]() { regular_event_update_river(); };
-  //std::thread th_river_update(river_update_func);
+  auto river_update_func = [this]() { regular_event_update_river(); };
+  std::thread th_river_update(river_update_func);
 
   auto render_func = [this]() { render_->work(); };
   std::thread th_render(render_func);
@@ -37,7 +37,7 @@ void Frontend::work() {
   }
   application_is_alive = false;
 
-  //th_river_update.join();
+  th_river_update.join();
   th_render.detach();
 }
 

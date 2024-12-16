@@ -161,16 +161,16 @@ void Render::init_Shaders_and_Buffers()
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_MULTISAMPLE);
-  glEnable(GL_BLEND);
-  glEnable(GL_ALPHA_TEST);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-  glBlendEquation(GL_FUNC_ADD);
+  //glEnable(GL_BLEND);
+  //glEnable(GL_ALPHA_TEST);
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  ////glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+  //glBlendEquation(GL_FUNC_ADD);
 
   // build and compile our shader program
   // ------------------------------------
   //Bilikto's common shaders
-  filledShader = std::make_unique<Shader>("../shaders/1_shader.vs", "../shaders/1_shader.fs", "../shaders/1_shader.geom");
+  filledShader = std::make_unique<Shader>("../shaders/1_shader.vs", "../shaders/1_shader.fs");
 
   //Edited with geometry shaders
   meshShader = std::make_unique<Shader>("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs", "../shaders/3.3.shader.geom");
@@ -185,6 +185,7 @@ void Render::init_Shaders_and_Buffers()
   // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attribute(s)
   glBindVertexArray(VAO);
 
+  work_with_map->get_data(data);
   data.get(Vertices, TriList);
 
   // bind VBO for Vertices
@@ -378,13 +379,13 @@ void Render::prepare_window()
   meshShader->setMat4("view", view);
 
   //light
-  float time = glfwGetTime();
-  float colorValue = (sin(0.2 * time) / 2) + 0.5;
-  //filledShader->setFloat("lightColor", colorValue);
-  auto color = glGetUniformLocation(filledShader->ID, "lightColor");
-  glUniform4f(color, colorValue, colorValue, colorValue, 1.0f);
-  //test light
-  filledShader->setVec3("lightPos", lightPos);
+  //float time = glfwGetTime();
+  //float colorValue = (sin(0.2 * time) / 2) + 0.5;
+  ////filledShader->setFloat("lightColor", colorValue);
+  //auto color = glGetUniformLocation(filledShader->ID, "lightColor");
+  //glUniform4f(color, colorValue, colorValue, colorValue, 1.0f);
+  ////test light
+  //filledShader->setVec3("lightPos", lightPos);
 }
 
 void Render::render_window()
@@ -422,7 +423,7 @@ void Render::work()
   init_glfw();
   init_ImGui();
   init_Shaders_and_Buffers();
-  glfwMakeContextCurrent(window);
+  // glfwMakeContextCurrent(window);
   while (!glfwWindowShouldClose(window)) {
     prepare_ImGui();
     prepare_window();
