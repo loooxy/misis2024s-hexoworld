@@ -300,7 +300,7 @@ void Hexoworld::Hexagon::hide_numbers()
 
 void Hexoworld::Hexagon::print_in_triList(std::vector<uint32_t>& TriList)
 {
-  for (auto& [type, frame] : frames) 
+  for (auto& [type, frame] : frames) //if (type != River)
     frame->print_in_triList(TriList);
 
   for (auto& inv : inventory)
@@ -309,7 +309,7 @@ void Hexoworld::Hexagon::print_in_triList(std::vector<uint32_t>& TriList)
 
 void Hexoworld::Hexagon::colorize_points()
 {
-  for (auto& [type, drawer] : drawers)// if (is(Flood))
+  for (auto& [type, drawer] : drawers) 
     drawer->colorize_points();
 
   for (auto& inv : inventory)

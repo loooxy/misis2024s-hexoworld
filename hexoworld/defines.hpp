@@ -1,5 +1,5 @@
 #pragma once
-//#define RANDOM
+#define RANDOM
 #define PARALLEL
 #define is(x) type == x
 //#define BOUNDARY_WALLS

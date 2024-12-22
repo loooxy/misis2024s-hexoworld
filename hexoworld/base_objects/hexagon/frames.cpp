@@ -479,6 +479,46 @@ Hexoworld::Hexagon::RiversFrame::RiversFrame(Object* base,
 {
   std::shared_ptr<MainData> mainData = static_cast<Hexagon*>(base)->mainData;
 
+  auto hide = [in, out, base, this](int id) -> void {
+    if (in != -1)
+      std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle(in, id);
+    if (out != -1)
+      std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle(out, id);
+    };
+
+  hide(16);
+  hide(15);
+  hide(14);
+  hide(8);
+  hide(7);
+  hide(9);
+  hide(4);
+  hide(3);
+  hide(2);
+  if (in != -1)
+  {
+    std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle((in + 1) % 6, 2);
+    std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle((in + 5) % 6, 3);
+  }
+  if (out != -1)
+  {
+    std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle((out + 1) % 6, 2);
+    std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle((out + 5) % 6, 3);
+  }
+  for (int i = 0; i < 6; ++i)
+  {
+    std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle(i, 0);
+    std::static_pointer_cast<UsualFrame>
+      (base->frames[Usual])->hide_triangle(i, 1);
+  }
+
   auto center = Points::get_instance().get_point(mainData->centerId);
   std::vector<Eigen::Vector3d> polygonPoints;
   for (IdType i : mainData->polygonPointsId)
@@ -497,18 +537,17 @@ Hexoworld::Hexagon::RiversFrame::RiversFrame(Object* base,
   radial_points.resize(6, std::vector<IdType>(3));
   for (int i = 0; i < 6; ++i)
   {
-    Eigen::Vector3d v = (polygonPoints[i] - center) / 4;
-    radial_points[i][0] = Points::get_instance().get_id_point(center + 1 * v + dop, this);
-    radial_points[i][1] = Points::get_instance().get_id_point(center + 2 * v + dop, this);
-    radial_points[i][2] = Points::get_instance().get_id_point(center + 3 * v + dop, this);
+    radial_points[i][0] = mainData->radial_points[i][0];
+    radial_points[i][1] = mainData->radial_points[i][0];
+    radial_points[i][2] = mainData->radial_points[i][0];
   }
 
   middle_points.resize(6, std::vector<IdType>(2));
   for (int i = 0; i < 6; ++i)
   {
     Eigen::Vector3d v = (extraPoints[i][1] - center) / 4;
-    middle_points[i][0] = Points::get_instance().get_id_point(center + 1 * v + dop, this);
-    middle_points[i][1] = Points::get_instance().get_id_point(center + 2 * v + dop, this);
+    middle_points[i][0] = mainData->inner_points[i][0];
+    middle_points[i][1] = mainData->inner_points[i][2];
   }
 
   if (in_ == -1 || out_ == -1)
@@ -616,156 +655,81 @@ void Hexoworld::Hexagon::RiversFrame::AddBasis(MapBasis& mapBasis)
 
 void Hexoworld::Hexagon::RiversFrame::make_river_begin_end(uint32_t edge)
 {
-  Eigen::Vector3d dop = base->world.dop_height(River);
+  std::shared_ptr<MainData> mainData = static_cast<Hexagon*>(base)->mainData;
 
   floor_points.push_back(middle_points[edge][1]);
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[edge][1]
-      ) + dop, 
-      this
-    )
+    mainData->extraPointsId[edge][1]
   );
-
-  shore_points.push_back(middle_points[edge][0]);
-  shore_points.push_back(middle_points[edge][0]);
+  shore_points.push_back(middle_points[(edge + 3) % 6][0]);
+  shore_points.push_back(middle_points[(edge + 3) % 6][0]);
   water_points.push_back(middle_points[edge][0]);
 
-  shore_points.push_back(radial_points[(edge + 1) % 6][1]);
-  shore_points.push_back(radial_points[edge][1]);
+  shore_points.push_back(middle_points[(edge + 2) % 6][0]);
+  shore_points.push_back(middle_points[(edge + 4) % 6][0]);
   water_points.push_back(middle_points[edge][1]);
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[edge][2]
-      ) + dop,
-      this
-    )
+        mainData->extraPointsId[edge][2]
   );
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[edge][0]
-      ) + dop,
-      this
-    )
+        mainData->extraPointsId[edge][0]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[edge][1]
-      ) + dop,
-      this
-    )
+        mainData->extraPointsId[edge][1]
   );
 }
 void Hexoworld::Hexagon::RiversFrame::make_river_directly(uint32_t in, uint32_t out)
 {
-  Eigen::Vector3d dop = base->world.dop_height(River);
+  std::shared_ptr<MainData> mainData = static_cast<Hexagon*>(base)->mainData;
 
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][1]
-      ) + dop,
-      this
-    )
+        mainData->extraPointsId[in][1] 
   );
   floor_points.push_back(middle_points[in][1]);
   floor_points.push_back(middle_points[in][0]);
   floor_points.push_back(radial_points[in][0]);
   floor_points.push_back(radial_points[(in + 1) % 6][0]);
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->centerId
-      ) + dop,
-      this
-    )
+    mainData->centerId
   );
   floor_points.push_back(radial_points[out][0]);
   floor_points.push_back(radial_points[(out + 1) % 6][0]);
   floor_points.push_back(middle_points[out][0]);
   floor_points.push_back(middle_points[out][1]);
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][1] 
   );
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][0]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][0]
   );
-  shore_points.push_back(Points::get_instance().get_id_point(
-    Points::get_instance().get_point(
-      static_cast<Hexagon*>(base)->mainData->extraPointsId[in][2]
-    ) + dop,
-    this
-  )
+  shore_points.push_back(
+    mainData->extraPointsId[in][2]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][1] 
   );
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][2]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][2]
   );
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][0]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][0]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][1]
   );
 }
 void Hexoworld::Hexagon::RiversFrame::make_river_angle_2(uint32_t in, uint32_t out)
 {
-  Eigen::Vector3d dop = base->world.dop_height(River);
+  std::shared_ptr<MainData> mainData = static_cast<Hexagon*>(base)->mainData;
 
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][1]
   );
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][1]
   );
 
   floor_points.push_back(middle_points[in][0]);
@@ -780,82 +744,46 @@ void Hexoworld::Hexagon::RiversFrame::make_river_angle_2(uint32_t in, uint32_t o
   floor_points.push_back(middle_points[middle][0]);
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][0]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][0] 
   );
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][2]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][2]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][1]
   );
 
-  shore_points.push_back(radial_points[in][1]);
-  shore_points.push_back(radial_points[(in + 1) % 6][1]);
+  shore_points.push_back(mainData->radial_points[in][1]);
+  shore_points.push_back(mainData->radial_points[(in + 1) % 6][1]);
   water_points.push_back(middle_points[in][1]);
 
-  shore_points.push_back(radial_points[(out + 1) % 6][1]);
-  shore_points.push_back(radial_points[out][1]);
+  shore_points.push_back(middle_points[(out + 2) % 6][0]);
+  shore_points.push_back(middle_points[(in + 1) % 6][0]);
+  water_points.push_back(mainData->centerId);
+
+  shore_points.push_back(mainData->radial_points[(out + 1) % 6][1]);
+  shore_points.push_back(mainData->radial_points[out][1]);
   water_points.push_back(middle_points[out][1]);
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][2]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][2]
   );
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][0]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][0]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][1]
   );
 }
 void Hexoworld::Hexagon::RiversFrame::make_river_angle_1(uint32_t in, uint32_t out)
 {
-  Eigen::Vector3d dop = base->world.dop_height(River);
+  std::shared_ptr<MainData> mainData = static_cast<Hexagon*>(base)->mainData;
 
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][1]
   );
   floor_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][1]
   );
 
   floor_points.push_back(middle_points[in][1]);
@@ -868,57 +796,31 @@ void Hexoworld::Hexagon::RiversFrame::make_river_angle_1(uint32_t in, uint32_t o
   floor_points.push_back(radial_points[out][0]);
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][0]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][0]
   );
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][2]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][2]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[in][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[in][1]
   );
 
-  shore_points.push_back(radial_points[out][0]);
-  shore_points.push_back(radial_points[out][2]);
-  water_points.push_back(radial_points[out][1]);
+  shore_points.push_back(middle_points[(in + 4) % 6][0]);
+  shore_points.push_back(mainData->radial_points[(in + 1) % 6][1]);
+  water_points.push_back(mainData->centerId);
+  
+  shore_points.push_back(middle_points[(out + 2) % 6][0]);
+  shore_points.push_back(mainData->radial_points[out][1]);
+  water_points.push_back(mainData->centerId);
 
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][2]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][2]
   );
   shore_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][0]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][0]
   );
   water_points.push_back(
-    Points::get_instance().get_id_point(
-      Points::get_instance().get_point(
-        static_cast<Hexagon*>(base)->mainData->extraPointsId[out][1]
-      ) + dop,
-      this
-    )
+    mainData->extraPointsId[out][1]
   );
 }
 
