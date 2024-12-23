@@ -10,6 +10,7 @@ workwithmap
 data_pool
 events_queue
 events
+command
 )
 
 set_property(TARGET backend PROPERTY CXX_STANDARD 20)

@@ -7,11 +7,13 @@ public:
 	~Frontend();
 	void work();
 
-	void GetDataToRequest(std::string& ev);
+	void GetEventToRequest(std::string& ev);
+	void GetCommandToRequest(std::string& com);
 	void ProcessEvent(std::string& ev);
 
 	void ProcessMap(std::string& map);
 	void ProcessMapBasis(std::string& map_basis);
+	void ProcessCameras(std::string& cameras);
 private:
 	void regular_event_update_river();
 

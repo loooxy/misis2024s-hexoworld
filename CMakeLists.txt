@@ -16,6 +16,7 @@ find_package(glad REQUIRED)
 find_package(glm REQUIRED)
 find_package(cppzmq REQUIRED)
 find_package(cereal CONFIG REQUIRED)
+find_package(assimp REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/bin.dbg)

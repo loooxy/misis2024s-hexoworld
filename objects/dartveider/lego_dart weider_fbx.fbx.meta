@@ -1,0 +1,168 @@
+fileFormatVersion: 2
+guid: 30ec2bded0689bf4ab31dc1701d6953d
+timeCreated: 1488359219
+licenseType: Free
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: Box001
+    100002: Circle001
+    100004: Circle002
+    100006: CoronaLight001
+    100008: CoronaLight001.Target
+    100010: CoronaLight002
+    100012: CoronaLight002.Target
+    100014: Cylinder002
+    100016: //RootNode
+    100018: Line001
+    100020: Line006
+    100022: Line011
+    100024: Line012
+    100026: Line015
+    100028: Line016
+    100030: Line018
+    100032: Object001
+    100034: Object003
+    100036: Object005
+    100038: Object006
+    100040: Object007
+    100042: Object008
+    100044: PhysCamera001
+    100046: PhysCamera001.Target
+    400000: Box001
+    400002: Circle001
+    400004: Circle002
+    400006: CoronaLight001
+    400008: CoronaLight001.Target
+    400010: CoronaLight002
+    400012: CoronaLight002.Target
+    400014: Cylinder002
+    400016: //RootNode
+    400018: Line001
+    400020: Line006
+    400022: Line011
+    400024: Line012
+    400026: Line015
+    400028: Line016
+    400030: Line018
+    400032: Object001
+    400034: Object003
+    400036: Object005
+    400038: Object006
+    400040: Object007
+    400042: Object008
+    400044: PhysCamera001
+    400046: PhysCamera001.Target
+    2300000: Box001
+    2300002: Circle002
+    2300004: Cylinder002
+    2300006: Line001
+    2300008: Line006
+    2300010: Line011
+    2300012: Line012
+    2300014: Line015
+    2300016: Line016
+    2300018: Line018
+    2300020: Object003
+    2300022: Object005
+    2300024: Object006
+    2300026: Object007
+    2300028: Object008
+    3300000: Box001
+    3300002: Circle002
+    3300004: Cylinder002
+    3300006: Line001
+    3300008: Line006
+    3300010: Line011
+    3300012: Line012
+    3300014: Line015
+    3300016: Line016
+    3300018: Line018
+    3300020: Object003
+    3300022: Object005
+    3300024: Object006
+    3300026: Object007
+    3300028: Object008
+    4300000: Line001
+    4300002: Line006
+    4300004: Line011
+    4300006: Line012
+    4300008: Object003
+    4300010: Cylinder002
+    4300012: Box001
+    4300014: Object005
+    4300016: Object006
+    4300018: Object007
+    4300020: Object008
+    4300022: Line018
+    4300024: Line015
+    4300026: Circle002
+    4300028: Line016
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

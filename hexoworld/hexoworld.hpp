@@ -142,11 +142,12 @@ public:
     uint32_t row;
     uint32_t col;
     Eigen::Vector4i color;
+    int32_t height;
     uint32_t gen_init;
 
     template <class Archive>
     void serialize(Archive& ar) {
-      ar(row, col, color, gen_init);
+      ar(row, col, color, height, gen_init);
     }
 
   };

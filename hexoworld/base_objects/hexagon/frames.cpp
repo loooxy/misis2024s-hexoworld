@@ -248,6 +248,7 @@ void Hexoworld::Hexagon::UsualFrame::AddBasis(MapBasis& mapBasis)
   hexagonData->col = static_cast<Hexagon*>(base)->coord.col;
   hexagonData->color = std::static_pointer_cast<UsualDrawer>(
     static_cast<Hexagon*>(base)->drawers[Usual])->get_color();
+  hexagonData->height = static_cast<Hexagon*>(base)->mainData->height;
   hexagonData->gen_init = static_cast<Hexagon*>(base)->mainData->gen_init;
 
   mapBasis.AddElem(std::static_pointer_cast<MapBasis::ElemData>(hexagonData));

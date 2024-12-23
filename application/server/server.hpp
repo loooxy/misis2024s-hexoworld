@@ -22,17 +22,19 @@ public:
 
 private:
 	void FillReplyEvent(zmq::message_t& reply_event, const std::string& id); 
-	void ProcessRequest(zmq::message_t& request);
+	void ProcessEvent(zmq::message_t& event);
+	void ProcessCommand(zmq::message_t& command, const std::string& id);
 	void UpdateEventsQueue();
 	void ConfirmEvent(const std::string& id, const std::string& event_id);
 	void FillReplyMap(zmq::message_t& reply_map);
 	void FillReplyMapBasis(zmq::message_t& reply_map_basis);
+	void FillReplyCameras(zmq::message_t& reply_cameras);
+	void PurgeClient();
 
 	std::unique_ptr<Backend> backend_;
 
 	zmq::context_t ctx_;
 	zmq::socket_t server_;
-	std::map<std::string, Camera> id_to_cam;
 	std::map<std::string, std::queue<EventId>> id_to_queue;
 	std::map<std::string, time_point> id_to_time;
 

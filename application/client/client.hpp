@@ -17,9 +17,11 @@ public:
 	void Work(const std::string address);
 	void ConnectToServer(const std::string address);
 private:
-	void FillRequest(zmq::message_t& request);
+	void FillRequestEvent(zmq::message_t& event);
+	void FillRequestCommand(zmq::message_t& command);
 	void ForwardMapToApp(zmq::message_t& reply_map, zmq::message_t& reply_map_basis);
 	void RequestMap();
+	void ForwardCamerasToApp(zmq::message_t& reply_cameras);
 	int ForwardEventToApp(zmq::message_t& reply_event);
 
 	std::string address_ = "tcp://localhost:5555";

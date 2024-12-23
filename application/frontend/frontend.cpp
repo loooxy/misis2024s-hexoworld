@@ -58,10 +58,23 @@ void Frontend::ProcessEvent(std::string& ev) {
   }
 }
 
-void Frontend::GetDataToRequest(std::string& ev) {
+void Frontend::ProcessCameras(std::string& cameras) {
+  if (!cameras.empty()) {
+    render_->UpdateCameras(cameras);
+  }
+}
+
+void Frontend::GetEventToRequest(std::string& ev) {
   std::shared_ptr<Event> event = render_->GetEvent();
   if (event != nullptr) {
     ev = saveEv(event);
+  }
+}
+
+void Frontend::GetCommandToRequest(std::string& com) {
+  std::shared_ptr<Command> command = render_->GetCommand();
+  if (command != nullptr) {
+    com = saveCommand(command);
   }
 }
 

@@ -12,6 +12,7 @@
 #include <events/events.hpp>
 #include <events_queue/events_queue.hpp>
 #include <data_pool/data_pool.hpp>
+#include <command/command.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -19,6 +20,7 @@
 
 #include <opengl/camera/camera.hpp>
 #include <opengl/shader_s/shader_s.hpp>
+#include <opengl/model/model.hpp>
 
 #include <queue>
 
@@ -29,8 +31,10 @@ public:
 	void work();
 
 	std::shared_ptr<Event> GetEvent();
+	std::shared_ptr<Command> GetCommand();
 	void UpdateMap(const std::shared_ptr<Event>& event);
 	void UpdateData();
+	void UpdateCameras(std::string& cameras);
 
 	void InitMap(std::string& map);
 	void InitMapBasis(std::string& map_basis);
@@ -69,6 +73,8 @@ private:
 	static const unsigned int SCR_HEIGHT = 1080;
 
 	// camera
+	std::map<std::string, Camera> id_to_cam;
+	std::mutex id_to_cam_mtx;
 	static Camera camera;
 	static bool firstMouse;
 	static float lastX;
@@ -81,6 +87,8 @@ private:
 	GLFWwindow* window;
 	std::unique_ptr<Shader> filledShader;
 	std::unique_ptr<Shader> meshShader;
+	std::unique_ptr<Shader> modelShader;
+	std::unique_ptr<Model> ourModel;
 	unsigned int VBO, VAO, EBO;
 	const char* glsl_version;
 	bool is_changed_shader = false;
@@ -90,7 +98,7 @@ private:
 	data_pool data;
 
 	// queue commands
-	static std::queue < std::pair<int, int> > Commands;
+	static events_queue<Command> commands;
 	events_queue<Event> events;
 
 	std::shared_ptr<WorkWithMap> work_with_map;

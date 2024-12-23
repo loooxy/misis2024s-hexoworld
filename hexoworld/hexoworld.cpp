@@ -42,18 +42,23 @@ Hexoworld::Hexoworld(const MapBasis& mapBasis)
   auto recreation_hexagon = [this](std::shared_ptr<MapBasis::HexagonData> hd) {
     manager->add_hexagon({ hd->row, hd->col }, hd->gen_init);
     add_hexagon(hd->row, hd->col, hd->color);
+    manager->get_hexagon(Coord(hd->row, hd->col))->set_height(hd->height);
+    manager->get_hexagon(Coord(hd->row, hd->col))->colorize_points();
     };
   auto recreation_river = [this](std::shared_ptr<MapBasis::RiverData> rd) {
     add_river(rd->hexs);
     };
   auto recreation_flood = [this](std::shared_ptr<MapBasis::FloodData> fd) {
     add_flood_in_hex(fd->row, fd->col);
+    manager->get_hexagon(Coord(fd->row, fd->col))->colorize_points();
     };
   auto recreation_road = [this](std::shared_ptr<MapBasis::RoadData> rd) {
     add_road_in_hex(rd->row, rd->col);
+    manager->get_hexagon(Coord(rd->row, rd->col))->colorize_points();
     };
   auto recreation_farm = [this](std::shared_ptr<MapBasis::FarmData> fd) {
     add_farm_in_hex(fd->row, fd->col);
+    manager->get_hexagon(Coord(fd->row, fd->col))->colorize_points();
     };
   for (const auto& elem : mapBasis.get_elems())
   {

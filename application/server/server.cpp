@@ -4,12 +4,22 @@
 const int REQUEST_CYCLES = 10;
 
 const int HEARTBEAT_INTERVAL = 1000;   //  msecs
-const int HEARTBEAT_LIVENESS = 3;   //  3-5 is reasonable
+const int HEARTBEAT_LIVENESS = 5;   //  3-5 is reasonable
 
 const int MAX_EVENT_ID = 1000000000;
 
+namespace logs {
+  void print_connect(const std::string& id) {
+    std::cout << "User: " << id << " has just connected" << std::endl;
+  }
+
+  void print_disconnect(const std::string& id) {
+    std::cout << "User: " << id << " has just disconnected" << std::endl;
+  }
+}
+
 // if server received heartbeat from client, it updates his time
-void client_refresh(std::map<std::string, time_point> id_to_time, const std::string& identity) {
+void client_refresh(std::map<std::string, time_point>& id_to_time, const std::string& identity) {
   if (id_to_time.count(identity) == 0) {
     std::cout << "E: client " << identity << " not ready" << std::endl;
   }
@@ -19,10 +29,14 @@ void client_refresh(std::map<std::string, time_point> id_to_time, const std::str
 }
 
 // if server didn't receive heartbeat from client, it deletes him
-void client_purge(std::map<std::string, time_point> id_to_time) {
+void Server::PurgeClient() {
   time_point time = Clock::msc_clock();
   for (auto it = id_to_time.cbegin(); it != id_to_time.cend(); ) {
     if (Clock::elapsed(it->second, time) > HEARTBEAT_INTERVAL * HEARTBEAT_LIVENESS) {
+      const std::string id = it->first;
+      logs::print_disconnect(id);
+      backend_->DeleteCamera(id);
+      id_to_queue.erase(id);
       id_to_time.erase(it++);
     }
     else {
@@ -30,6 +44,7 @@ void client_purge(std::map<std::string, time_point> id_to_time) {
     }
   }
 }
+
 
 Server::Server() 
   : 
@@ -97,27 +112,28 @@ void Server::Run(const std::string port){
       zmq::message_t identity;
       zmq::message_t delimiter;
       zmq::message_t request;
+      zmq::message_t type;
       // receive identity
       server_.recv(identity, zmq::recv_flags::none);
       // receive delimiter
       server_.recv(delimiter, zmq::recv_flags::none);
-      // receive request
-      server_.recv(request, zmq::recv_flags::none);
+      // receive type
+      server_.recv(type, zmq::recv_flags::none);
 
       // init id_to_cam, id_to_queue
       std::string id = identity.to_string();
-      if (id_to_cam.count(id) == 0) {
-        id_to_cam[id] = Camera();
+      if (id_to_time.count(id) == 0) {
         id_to_queue[id].empty();
         id_to_time[id] = Clock::msc_clock();
+        logs::print_connect(id);
       }
-      std::string req_str = request.to_string();
+      std::string type_str = type.to_string();
       // update client timer
-      if (req_str == "HEARTBEAT") {
+      if (type_str == "HEARTBEAT") {
         client_refresh(id_to_time, id);
       }
       // first request, need to reply with map
-      else if (req_str == "FR") {
+      else if (type_str == "FR") {
         zmq::message_t reply_map;
         zmq::message_t reply_map_basis;
         FillReplyMap(reply_map);
@@ -128,12 +144,22 @@ void Server::Run(const std::string port){
         server_.send(reply_map_basis, zmq::send_flags::none);
       }
       // confirmation of event
-      else if (req_str.size() == 5) {
-        ConfirmEvent(id, req_str);
+      else if (type_str == "CONFIRM") {
+        server_.recv(request, zmq::recv_flags::none);
+        ConfirmEvent(id, request.to_string());
       }
       // process event from client
+      else if (type_str == "EVENT"){
+        server_.recv(request, zmq::recv_flags::none);
+        ProcessEvent(request);
+      }
+      // process command from client
+      else if (type_str == "COMMAND") {
+        server_.recv(request, zmq::recv_flags::none);
+        ProcessCommand(request, id);
+      }
       else {
-        ProcessRequest(request);
+        std::cout << "E: invalid message from " << id << std::endl;
       }
     }
 
@@ -149,19 +175,35 @@ void Server::Run(const std::string port){
       heartbeat_prev = Clock::msc_clock();
     }
 
-    // send events to all clients from their queues
+    // reply cameras 
+    zmq::message_t reply_cameras;
+
+    // send clients requests
     for (const auto& pair : id_to_queue) {
+      // send events to all clients from their queues
       zmq::message_t reply_event;
       FillReplyEvent(reply_event, pair.first);
       if (reply_event.size() > 0) {
         zmq::message_t identity(pair.first);
         ZmqHelper::send_id(server_, identity);
         ZmqHelper::send_empty(server_);
+        server_.send(zmq::message_t(std::string("EVENT")), zmq::send_flags::sndmore);
         server_.send(reply_event, zmq::send_flags::none);
+      }
+
+      // send cameras to all clients
+      FillReplyCameras(reply_cameras);
+      if (reply_cameras.size() > 0) {
+        zmq::message_t identity(pair.first);
+        ZmqHelper::send_id(server_, identity);
+        ZmqHelper::send_empty(server_);
+        server_.send(zmq::message_t(std::string("CAMERAS")), zmq::send_flags::sndmore);
+        server_.send(reply_cameras, zmq::send_flags::none);
       }
     }
 
-    client_purge(id_to_time);
+
+    PurgeClient();
   }
 }
 
@@ -186,10 +228,20 @@ void Server::FillReplyMapBasis(zmq::message_t& reply_map_basis) {
   reply_map_basis.rebuild(map_basis.data(), sizeof(map_basis[0]) * map_basis.size());
 }
 
+void Server::FillReplyCameras(zmq::message_t& reply_cameras) {
+  std::string cameras;
+  backend_->GetCameras(cameras);
+  reply_cameras.rebuild(cameras.data(), sizeof(cameras[0]) * cameras.size());
+}
 
-void Server::ProcessRequest(zmq::message_t& request) {
-  std::string ev = request.to_string();
-  backend_->ProcessData(ev);
+void Server::ProcessEvent(zmq::message_t& event) {
+  std::string ev = event.to_string();
+  backend_->ProcessEvent(ev);
+}
+
+void Server::ProcessCommand(zmq::message_t& command, const std::string& id) {
+  std::string com = command.to_string();
+  backend_->ProcessCommand(com, id);
 }
 
 void Server::ConfirmEvent(const std::string& id, const std::string& event_id) {

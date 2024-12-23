@@ -27,7 +27,7 @@ public:
 	ChangeHeight(const int row, const int col, const int new_height);
 	TypeEvent type() override;
 
-	void execute(std::shared_ptr<WorkWithMap>& wwm);
+	void execute(std::shared_ptr<WorkWithMap>& wwm) override;
 
 	int row = 0;
 	int col = 0;

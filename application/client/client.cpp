@@ -6,7 +6,7 @@
 const int REQUEST_TIMEOUT = 10000;
 const int REQUEST_RETRIES = 3;
 
-const int HEARTBEAT_LIVENESS = 3;   //  3-5 is reasonable
+const int HEARTBEAT_LIVENESS = 5;   //  3-5 is reasonable
 const int HEARTBEAT_INTERVAL = 1000;   //  msecs
 const int INTERVAL_INIT = 1000;   //  Initial reconnect
 const int INTERVAL_MAX = 32000;    //  After exponential backoff
@@ -57,20 +57,33 @@ void Client::ConnectToServer(const std::string address = "tcp://localhost:5555")
       client_.recv(delimiter, zmq::recv_flags::none);
 
       zmq::message_t reply;
-      client_.recv(reply, zmq::recv_flags::none);
+      zmq::message_t type;
+      client_.recv(type, zmq::recv_flags::none);
 
-      std::string str = reply.to_string();
+      std::string type_str = type.to_string();
 
-      if (reply.to_string() == "HEARTBEAT") {
+      if (type_str == "HEARTBEAT") {
+        liveness = HEARTBEAT_LIVENESS;
+      }
+      else  if (type_str == "EVENT") {
+        // receive event
+        client_.recv(reply, zmq::recv_flags::none);
+        int id = ForwardEventToApp(reply);
+        // send confirmimation of receiving event
+        ZmqHelper::send_empty(client_);
+        std::string id_str = saveId(Id(id));
+        client_.send(zmq::message_t(std::string("CONFIRM")), zmq::send_flags::sndmore);
+        client_.send(zmq::message_t(id_str), zmq::send_flags::none);
+        liveness = HEARTBEAT_LIVENESS;
+      }
+      else if (type_str == "CAMERAS") {
+        // receive cameras
+        client_.recv(reply, zmq::recv_flags::none);
+        ForwardCamerasToApp(reply);
         liveness = HEARTBEAT_LIVENESS;
       }
       else {
-        // send confirmimation of receiving event
-        int id = ForwardEventToApp(reply);
-        ZmqHelper::send_empty(client_);
-        std::string id_str = saveId(Id(id));
-        client_.send(zmq::message_t(id_str), zmq::send_flags::none);
-        liveness = HEARTBEAT_LIVENESS;
+        std::cout << "E: invalid message from server" << std::endl;
       }
     }
     // reconnect if liveness = 0
@@ -97,19 +110,34 @@ void Client::ConnectToServer(const std::string address = "tcp://localhost:5555")
 
     // send event if have
     zmq::message_t request;
-    FillRequest(request);
+    FillRequestEvent(request);
     if (request.size() > 0) {
       ZmqHelper::send_empty(client_);
+      client_.send(zmq::message_t(std::string("EVENT")), zmq::send_flags::sndmore);
+      client_.send(request, zmq::send_flags::none);
+    }
+
+    // send command if have
+    FillRequestCommand(request);
+    if (request.size() > 0) {
+      ZmqHelper::send_empty(client_);
+      client_.send(zmq::message_t(std::string("COMMAND")), zmq::send_flags::sndmore);
       client_.send(request, zmq::send_flags::none);
     }
   }
 }
 
-// fill request with data about commands
-void Client::FillRequest(zmq::message_t& request) {
+// fill request with data about events
+void Client::FillRequestEvent(zmq::message_t& event) {
   std::string ev;
-  frontend_->GetDataToRequest(ev);
-  request.rebuild(ev.data(), sizeof(ev[0]) * ev.size());
+  frontend_->GetEventToRequest(ev);
+  event.rebuild(ev.data(), sizeof(ev[0]) * ev.size());
+}
+
+void Client::FillRequestCommand(zmq::message_t& command) {
+  std::string com;
+  frontend_->GetCommandToRequest(com);
+  command.rebuild(com.data(), sizeof(com[0]) * com.size());
 }
 
 // forward event to application
@@ -119,6 +147,12 @@ int Client::ForwardEventToApp(zmq::message_t& reply_event) {
   frontend_->ProcessEvent(event_id.event);
 
   return event_id.id;
+}
+
+// forward cameras to app
+void Client::ForwardCamerasToApp(zmq::message_t& reply_cameras) {
+  std::string data = reply_cameras.to_string();
+  frontend_->ProcessCameras(data);
 }
 
 void Client::RequestMap() {

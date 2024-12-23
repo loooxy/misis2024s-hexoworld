@@ -1,5 +1,7 @@
 #include "backend.hpp"
 #include <cereal/archives/portable_binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
 #include <sstream>
 
 
@@ -17,6 +19,13 @@ std::string saveMapBasis(const MapBasis& map_basis) {
   return oss.str();
 }
 
+std::string saveCameras(const std::map<std::string, Camera>& id_to_cam) {
+  std::ostringstream oss;
+  cereal::PortableBinaryOutputArchive archive(oss);
+  archive(id_to_cam);
+  return oss.str();
+}
+
 Backend::Backend() {
   wwm = std::make_shared<WorkWithMap>();
 }
@@ -24,6 +33,7 @@ Backend::Backend() {
 void Backend::work()
 {
   std::shared_ptr<Event> event = nullptr;
+  std::pair<std::string, std::shared_ptr<Command>> id_com;
 
   bool was_events = false;
   while (true)
@@ -50,6 +60,14 @@ void Backend::work()
         break;
 
     }
+
+    std::lock_guard<std::mutex> lock(commands_mtx);
+    while (!commands.empty()) {
+      id_com = commands.front();
+      commands.pop();
+
+      id_com.second->execute(id_to_cam[id_com.first]);
+    }
   }
 
 }
@@ -60,9 +78,16 @@ void Backend::GetDataToReply(std::string& ev) {
   }
 }
 
-void Backend::ProcessData(std::string& ev) {
+void Backend::ProcessEvent(std::string& ev) {
   if (!ev.empty()) {
     events_in.push(loadEv(ev));
+  }
+}
+
+void Backend::ProcessCommand(std::string& com, const std::string& id) {
+  std::lock_guard<std::mutex> lock(commands_mtx);
+  if (!com.empty()) {
+    commands.push({id, loadCommand(com) });
   }
 }
 
@@ -72,4 +97,16 @@ void Backend::GetMap(std::string& map) {
 
 void Backend::GetMapBasis(std::string& map_basis) {
   map_basis = saveMapBasis(wwm->get_map_basis());
+}
+
+void Backend::GetCameras(std::string& cameras) {
+  if (!id_to_cam.empty()) {
+    cameras = saveCameras(id_to_cam);
+  }
+}
+
+void Backend::DeleteCamera(const std::string id) {
+  if (id_to_cam.count(id) != 0) {
+    id_to_cam.erase(id);
+  }
 }

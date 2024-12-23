@@ -10,6 +10,7 @@ imgui::imgui
 glad::glad
 glm::glm
 cereal::cereal
+assimp::assimp
 
 shader_s
 camera
@@ -17,6 +18,10 @@ data_pool
 hexoworld
 workwithmap
 events
+mesh
+model
+stb_image
+command
 )
 
 set_property(TARGET render PROPERTY CXX_STANDARD 20)

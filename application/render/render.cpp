@@ -1,16 +1,18 @@
 #include "render.hpp"
 #include <cereal/archives/portable_binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
 #include <sstream>
 
 // TODO: add vector<Camera> players;
 
-Camera Render::camera(glm::vec3(-30.0f, 30.0f, 30.0f));
+Camera Render::camera;
 bool Render::firstMouse = true;
 float Render::lastX = SCR_WIDTH / 2.0;
 float Render::lastY = SCR_HEIGHT / 2.0;
 float Render::deltaTime = 0.0f;
 float Render::lastFrame = 0.0f;
-std::queue<std::pair<int, int>> Render::Commands;
+events_queue<Command> Render::commands;
 // light point
 glm::vec3 lightPos = { 5, 5, 1 };
 //temporary normal vector
@@ -32,6 +34,14 @@ MapBasis loadMapBasis(const std::string& data) {
   return map_basis;
 }
 
+std::map<std::string, Camera> loadCameras(const std::string& data) {
+  std::map<std::string, Camera> id_to_cam;
+  std::istringstream iss(data);
+  cereal::PortableBinaryInputArchive archive(iss);
+  archive(id_to_cam);
+  return id_to_cam;
+}
+
 void Render::InitMap(std::string& map) {
   work_with_map = loadMap(map);
 }
@@ -44,6 +54,13 @@ void Render::UpdateMap(const std::shared_ptr<Event>& event) {
   event->execute(work_with_map);
 }
 
+void Render::UpdateCameras(std::string& cameras) {
+  {
+    std::lock_guard<std::mutex> lock(id_to_cam_mtx);
+    id_to_cam = std::move(loadCameras(cameras));
+  }
+}
+
 void Render::UpdateData() {
   work_with_map->get_data(data);
 }
@@ -51,6 +68,13 @@ void Render::UpdateData() {
 std::shared_ptr<Event> Render::GetEvent() {
   if (!events.empty()) {
     return events.pop();
+  }
+  return nullptr;
+}
+
+std::shared_ptr<Command> Render::GetCommand() {
+  if (!commands.empty()) {
+    return commands.pop();
   }
   return nullptr;
 }
@@ -174,6 +198,11 @@ void Render::init_Shaders_and_Buffers()
 
   //Edited with geometry shaders
   meshShader = std::make_unique<Shader>("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs", "../shaders/3.3.shader.geom");
+
+  // Model shader
+  modelShader = std::make_unique<Shader>("../shaders/model.vs", "../shaders/model.fs");
+  std::string path = "../objects/Santa/Santa.obj";
+  ourModel = std::make_unique<Model>(path);
 
   // set up vertex data (and (buffers(s)) and configure vertex attributes
   // --------------------------------------------------------------------
@@ -353,11 +382,34 @@ void Render::prepare_window()
   // input
   // -----
   processInput(window);
+  processInputInQueue(window);
 
   // render
   // -----
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // matrices
+  glm::mat4 view = camera.GetViewMatrix();
+  glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 800.0f);
+
+  // model drawing
+  modelShader->use();
+  modelShader->setMat4("projection", projection);
+  modelShader->setMat4("view", view);
+
+  glm::mat4 model = glm::mat4(1.0f);
+  {
+    std::lock_guard<std::mutex> lock(id_to_cam_mtx);
+    for (const auto& id_cam : id_to_cam) {
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, id_cam.second.Position);
+      model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1.0, 0.0, 0.0));
+      model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));	// it's a bit too big for our scene, so scale it down
+      modelShader->setMat4("model", model);
+      ourModel->Draw(*modelShader);
+    }
+  }
 
   // shader handling
   // -----
@@ -369,12 +421,10 @@ void Render::prepare_window()
   }
 
   // pass projection shader to the shader (in that case it should change every frame)
-  glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 800.0f);
   filledShader->setMat4("projection", projection);
   meshShader->setMat4("projection", projection);
 
   // camera/view transformation
-  glm::mat4 view = camera.GetViewMatrix();
   filledShader->setMat4("view", view);
   meshShader->setMat4("view", view);
 
@@ -394,13 +444,17 @@ void Render::render_window()
   {
     data.get(Vertices, TriList);
     // map updating
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices[0]) * Vertices.size(), Vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TriList[0]) * TriList.size(), TriList.data(), GL_STATIC_DRAW);
   }
 
   // draw map
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, TriList.size(), GL_UNSIGNED_SHORT, 0);
+  glBindVertexArray(0);
 }
 
 void Render::render_ImGui()
@@ -466,17 +520,17 @@ void Render::processInputInQueue(GLFWwindow* window) {
 
   float cameraSpeed = static_cast<float>(2.5 * deltaTime);
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    Commands.push({ FORWARD, deltaTime });
+    commands.push(std::make_shared<MovementCommand>(FORWARD, deltaTime));
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    Commands.push({ BACKWARD, deltaTime });
+    commands.push(std::make_shared<MovementCommand>(BACKWARD, deltaTime));
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    Commands.push({ LEFT, deltaTime });
+    commands.push(std::make_shared<MovementCommand>(LEFT, deltaTime));
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    Commands.push({ RIGHT, deltaTime });
+    commands.push(std::make_shared<MovementCommand>(RIGHT, deltaTime));
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    Commands.push({ DOWN, deltaTime });
+    commands.push(std::make_shared<MovementCommand>(DOWN, deltaTime));
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    Commands.push({ UP, deltaTime });
+    commands.push(std::make_shared<MovementCommand>(UP, deltaTime));
 }
 
 // glfw: whenver the window size changed this callback function executes
@@ -505,6 +559,7 @@ void Render::mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
   if (state == GLFW_PRESS) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     camera.ProcessMouseMovement(xoffset, yoffset);
+    commands.push(std::make_shared<RotationCommand>(xoffset, yoffset));
   }
   else {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);

@@ -6,6 +6,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace glm {
+  template<class Archive> void serialize(Archive& archive, glm::vec3& v) { archive(v.x, v.y, v.z); }
+}
+
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input
 enum CameraMovement {
   FORWARD,
@@ -39,6 +43,11 @@ public:
   float MovementSpeed;
   float MouseSensivity;
   float Zoom;
+
+  template<class Archive>
+  void serialize(Archive& ar) {
+    ar(Position, Front, Up, Right, WorldUp, Yaw, Pitch, MovementSpeed, MouseSensivity, Zoom);
+  }
 
   // constructor with vectors
   Camera(glm::vec3 position = glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH)
