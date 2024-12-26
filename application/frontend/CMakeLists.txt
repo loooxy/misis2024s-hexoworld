@@ -7,6 +7,7 @@ target_link_libraries(frontend
 render
 
 cereal::cereal
+cppzmq
 )
 
 set_property(TARGET frontend PROPERTY CXX_STANDARD 20)

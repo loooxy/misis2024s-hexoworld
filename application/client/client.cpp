@@ -23,30 +23,70 @@ Client::~Client() {
 
 }
 
-void Client::Work(const std::string address = "tcp://localhost:5555") {
-  auto connect_func = [this](const std::string address) {ConnectToServer(address); };
-  std::thread th_connect(connect_func, address);
-
-  while (!is_map_received.load()) {
+void Client::ManageSignals(zmq::context_t& context) {
+  zmq::socket_t receiver(context, zmq::socket_type::pair);
+  zmq::socket_t xmitter(context, zmq::socket_type::pair);
+  receiver.bind("inproc://client");
+  xmitter.connect("inproc://frontend");
+  zmq::message_t message;
+  while (true) {
+    receiver.recv(message, zmq::recv_flags::none);
+    if (message.to_string() == "Disconnect") {
+      xmitter.send(message);
+      is_connected.store(false);
+    }else if (message.to_string() == "Exit") {
+      xmitter.send(message);
+      is_connected.store(false);
+      is_running.store(false);
+    }
+    else {
+      {
+        std::lock_guard<std::mutex> connect_lock(connect_mtx);
+        is_connected.store(true);
+        address_ = message.to_string();
+      }
+      cv_connect.notify_all();
+    }
   }
-  frontend_->work();
-  th_connect.detach();
 }
 
-void Client::ConnectToServer(const std::string address = "tcp://localhost:5555") {
-  address_ = address;
-  client_.connect(address);
+void Client::Work(zmq::context_t& context) {
+  while (is_running) {
+    auto manage_signals_func = [this](zmq::context_t& context) { ManageSignals(std::ref(context)); };
+    std::thread th_manage_signals(manage_signals_func, std::ref(context));
+
+    std::unique_lock<std::mutex> connect_lock(connect_mtx);
+    cv_connect.wait(connect_lock, [this] {return is_connected.load(); });
+
+    auto connect_func = [this]() {ConnectToServer(); };
+    std::thread th_connect(connect_func);
+
+    std::unique_lock<std::mutex> map_lock(map_mtx);
+    cv_map.wait(map_lock, [this] {return is_map_received.load(); });
+
+    frontend_->work(context);
+    th_connect.join();
+  }
+}
+
+void Client::ConnectToServer() {
+  client_.connect(address_);
 
   // first request for map
   RequestMap();
-  is_map_received.store(true, std::memory_order_relaxed);
+
+  {
+    std::lock_guard<std::mutex> map_lock(map_mtx);
+    is_map_received.store(true);
+  }
+  cv_map.notify_all();
 
   int liveness = HEARTBEAT_LIVENESS;
   int interval = INTERVAL_INIT;
 
   auto heartbeat_prev = Clock::msc_clock();
 
-  while (true) {
+  while (is_connected.load()) {
     zmq::pollitem_t items[] = {
       {client_, 0, ZMQ_POLLIN, 0}
     };

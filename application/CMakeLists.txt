@@ -6,6 +6,8 @@ application.cpp
 target_link_libraries(application 
 server
 client
+
+cppzmq
 )
 
 set_property(TARGET application PROPERTY CXX_STANDARD 20)

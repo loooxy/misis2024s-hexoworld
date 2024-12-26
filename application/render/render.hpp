@@ -39,6 +39,8 @@ public:
 	void InitMap(std::string& map);
 	void InitMapBasis(std::string& map_basis);
 
+	void Stop();
+
 private:
 	void init_glfw();
 	void init_ImGui();
@@ -92,6 +94,8 @@ private:
 	unsigned int VBO, VAO, EBO;
 	const char* glsl_version;
 	bool is_changed_shader = false;
+	
+	std::atomic_bool is_running = false;
 
 	std::vector<PrintingPoint> Vertices;
 	std::vector<uint16_t> TriList;

@@ -1,11 +1,12 @@
 #pragma once
 #include <render/render.hpp>
+#include <zmq.hpp>
 
 class Frontend {
 public:
 	Frontend();
 	~Frontend();
-	void work();
+	void work(zmq::context_t& context);
 
 	void GetEventToRequest(std::string& ev);
 	void GetCommandToRequest(std::string& com);
@@ -16,8 +17,10 @@ public:
 	void ProcessCameras(std::string& cameras);
 private:
 	void regular_event_update_river();
+	void HandleEvents();
+	void ManageSignals(zmq::context_t& context);
 
 	std::unique_ptr<Render> render_;
 	events_queue<Event> events;
-	bool application_is_alive = true;
+	atomic_bool application_is_alive = true;
 };

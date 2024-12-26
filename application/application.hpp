@@ -2,6 +2,7 @@
 
 #include <server/server.hpp>
 #include <client/client.hpp>
+#include <zmq.hpp>
 
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
 
@@ -12,9 +13,9 @@ public:
 	~Application();
 
 	void work();
-	void CreateServer(const std::string port);
-	void Connect(const std::string address);
 private:
+	void CreateServer(const std::string port);
+	void ReadCommands(zmq::context_t& context);
 	std::shared_ptr<Server> server;
 	std::shared_ptr<Client> client;
 };

@@ -42,6 +42,10 @@ std::map<std::string, Camera> loadCameras(const std::string& data) {
   return id_to_cam;
 }
 
+void Render::Stop() {
+  is_running.store(false);
+}
+
 void Render::InitMap(std::string& map) {
   work_with_map = loadMap(map);
 }
@@ -405,6 +409,8 @@ void Render::prepare_window()
       model = glm::mat4(1.0f);
       model = glm::translate(model, id_cam.second.Position);
       model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1.0, 0.0, 0.0));
+      model = glm::rotate(model, glm::radians(id_cam.second.Yaw - 90.0f), glm::vec3(0.0, 0.0, -1.0));
+      model = glm::rotate(model, glm::radians(id_cam.second.Pitch), glm::vec3(-1.0, 0.0, 0.0));
       model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));	// it's a bit too big for our scene, so scale it down
       modelShader->setMat4("model", model);
       ourModel->Draw(*modelShader);
@@ -474,11 +480,12 @@ void Render::render_ImGui()
 
 void Render::work()
 {
+  is_running.store(true);
   init_glfw();
   init_ImGui();
   init_Shaders_and_Buffers();
   // glfwMakeContextCurrent(window);
-  while (!glfwWindowShouldClose(window)) {
+  while (!glfwWindowShouldClose(window) && is_running) {
     prepare_ImGui();
     prepare_window();
 

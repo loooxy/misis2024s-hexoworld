@@ -2,17 +2,41 @@
 #include <cereal/archives/portable_binary.hpp>
 #include <sstream>
 
-void Frontend::work() {
+void Frontend::work(zmq::context_t& context) {
   auto river_update_func = [this]() { regular_event_update_river(); };
   std::thread th_river_update(river_update_func);
 
-  auto render_func = [this]() { render_->work(); };
-  std::thread th_render(render_func);
+  auto handle_func = [this]() { HandleEvents(); };
+  std::thread th_handle(handle_func);
 
+  auto manage_signals_func = [this](zmq::context_t& context) { ManageSignals(std::ref(context)); };
+  std::thread th_manage_signals(manage_signals_func, std::ref(context));
+
+  render_->work();
+
+  th_river_update.join();
+  th_handle.join();
+  th_manage_signals.join();
+}
+
+void Frontend::ManageSignals(zmq::context_t& context) {
+  zmq::socket_t receiver(context, zmq::socket_type::pair);
+  receiver.bind("inproc://frontend");
+  zmq::message_t message;
+  while (application_is_alive.load()) {
+    receiver.recv(message, zmq::recv_flags::none);
+    if (message.to_string() == "Disconnect") {
+      render_->Stop();
+      application_is_alive.store(false);
+    }
+  }
+}
+
+void Frontend::HandleEvents() {
   std::shared_ptr<Event> event = nullptr;
 
   bool was_events = false;
-  while (true)
+  while (application_is_alive.load())
   {
     was_events = false;
     events.lock();
@@ -29,21 +53,19 @@ void Frontend::work() {
     events.unlock();
 
     if (was_events) {
-      if (event != nullptr && event->type() == close)
+      if (event != nullptr && event->type() == close) {
+        application_is_alive.store(false);
         break;
+      }
 
       render_->UpdateData();
     }
   }
-  application_is_alive = false;
-
-  th_river_update.join();
-  th_render.detach();
 }
 
 void Frontend::regular_event_update_river()
 {
-  while (application_is_alive)
+  while (application_is_alive.load())
   {
     events.push(std::make_shared<UpdateRiver>());
 
