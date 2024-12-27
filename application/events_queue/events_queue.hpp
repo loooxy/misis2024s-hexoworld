@@ -20,6 +20,11 @@ public:
 
 		return ans;
 	}
+	void clear() {
+		std::lock_guard<std::recursive_mutex> locker(mtx);
+		std::queue<std::shared_ptr<Event>> empty;
+		std::swap(events, empty);
+	}
 	bool empty() {
 		std::lock_guard<std::recursive_mutex> locker(mtx);
 		return events.empty();

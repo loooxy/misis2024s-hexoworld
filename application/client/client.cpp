@@ -11,6 +11,8 @@ const int HEARTBEAT_INTERVAL = 1000;   //  msecs
 const int INTERVAL_INIT = 1000;   //  Initial reconnect
 const int INTERVAL_MAX = 32000;    //  After exponential backoff
 
+const int WAIT_TIME = 1000;
+
 Client::Client()
   :
   ctx_(1),
@@ -20,7 +22,6 @@ Client::Client()
 }
 
 Client::~Client() {
-
 }
 
 void Client::ManageSignals(zmq::context_t& context) {
@@ -29,44 +30,66 @@ void Client::ManageSignals(zmq::context_t& context) {
   receiver.bind("inproc://client");
   xmitter.connect("inproc://frontend");
   zmq::message_t message;
-  while (true) {
-    receiver.recv(message, zmq::recv_flags::none);
-    if (message.to_string() == "Disconnect") {
-      xmitter.send(message);
-      is_connected.store(false);
-    }else if (message.to_string() == "Exit") {
-      xmitter.send(message);
-      is_connected.store(false);
-      is_running.store(false);
-    }
-    else {
-      {
-        std::lock_guard<std::mutex> connect_lock(connect_mtx);
-        is_connected.store(true);
-        address_ = message.to_string();
+  while (is_running.load()) {
+    zmq::pollitem_t items[] = {
+     {receiver, 0, ZMQ_POLLIN, 0}
+    };
+    zmq::poll(&items[0], 1, WAIT_TIME);
+
+    if (items[0].revents & ZMQ_POLLIN) {
+      receiver.recv(message, zmq::recv_flags::none);
+      if (message.to_string() == "Disconnect") {
+        xmitter.send(message);
+        is_connected.store(false);
       }
-      cv_connect.notify_all();
+      else if (message.to_string() == "Exit") {
+        xmitter.send(message);
+        is_connected.store(false);
+        is_running.store(false);
+      }
+      else if (message.to_string() == "Connect"){
+        zmq::message_t addr;
+        receiver.recv(addr);
+        xmitter.send(message);
+        {
+          std::lock_guard<std::mutex> connect_lock(connect_mtx);
+          is_connected.store(true);
+        }
+        address_ = addr.to_string();
+        cv_connect.notify_all();
+      }
     }
   }
 }
 
 void Client::Work(zmq::context_t& context) {
-  while (is_running) {
-    auto manage_signals_func = [this](zmq::context_t& context) { ManageSignals(std::ref(context)); };
-    std::thread th_manage_signals(manage_signals_func, std::ref(context));
+  auto manage_signals_func = [this](zmq::context_t& context) { ManageSignals(std::ref(context)); };
+  std::thread th_manage_signals(manage_signals_func, std::ref(context));
+
+  auto frontend_signals_func = [this](zmq::context_t& context) { frontend_->ManageSignals(std::ref(context)); };
+  std::thread th_frontend_signals(frontend_signals_func, std::ref(context));
+
+  while (is_running.load()) {
 
     std::unique_lock<std::mutex> connect_lock(connect_mtx);
     cv_connect.wait(connect_lock, [this] {return is_connected.load(); });
 
+    frontend_->InitRender();
     auto connect_func = [this]() {ConnectToServer(); };
     std::thread th_connect(connect_func);
 
     std::unique_lock<std::mutex> map_lock(map_mtx);
     cv_map.wait(map_lock, [this] {return is_map_received.load(); });
 
-    frontend_->work(context);
+    frontend_->work();
+
+    is_connected.store(false);
+    is_map_received.store(false);
+
     th_connect.join();
   }
+  th_manage_signals.join();
+  th_frontend_signals.join();
 }
 
 void Client::ConnectToServer() {
@@ -165,6 +188,8 @@ void Client::ConnectToServer() {
       client_.send(request, zmq::send_flags::none);
     }
   }
+
+  client_.disconnect(address_);
 }
 
 // fill request with data about events

@@ -29,7 +29,7 @@ private:
 
 	std::string address_ = "tcp://localhost:5555";
 
-	std::unique_ptr<Frontend> frontend_;
+	std::unique_ptr<Frontend> frontend_ = nullptr;
 	zmq::context_t ctx_;
 	zmq::socket_t client_;
 

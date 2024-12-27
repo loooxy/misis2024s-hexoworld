@@ -2,21 +2,22 @@
 #include <cereal/archives/portable_binary.hpp>
 #include <sstream>
 
-void Frontend::work(zmq::context_t& context) {
+const int WAIT_TIME = 1000;
+
+void Frontend::work() {
   auto river_update_func = [this]() { regular_event_update_river(); };
   std::thread th_river_update(river_update_func);
 
   auto handle_func = [this]() { HandleEvents(); };
   std::thread th_handle(handle_func);
 
-  auto manage_signals_func = [this](zmq::context_t& context) { ManageSignals(std::ref(context)); };
-  std::thread th_manage_signals(manage_signals_func, std::ref(context));
-
   render_->work();
 
   th_river_update.join();
   th_handle.join();
-  th_manage_signals.join();
+
+  render_.reset();
+  events.clear();
 }
 
 void Frontend::ManageSignals(zmq::context_t& context) {
@@ -24,19 +25,38 @@ void Frontend::ManageSignals(zmq::context_t& context) {
   receiver.bind("inproc://frontend");
   zmq::message_t message;
   while (application_is_alive.load()) {
-    receiver.recv(message, zmq::recv_flags::none);
-    if (message.to_string() == "Disconnect") {
-      render_->Stop();
-      application_is_alive.store(false);
+    zmq::pollitem_t items[] = {
+     {receiver, 0, ZMQ_POLLIN, 0}
+    };
+    zmq::poll(&items[0], 1, WAIT_TIME);
+
+    if (items[0].revents & ZMQ_POLLIN) {
+      receiver.recv(message, zmq::recv_flags::none);
+      if (message.to_string() == "Disconnect") {
+        render_->Stop();
+        is_running.store(false);
+      }
+      else if (message.to_string() == "Connect") {
+        is_running.store(true);
+      }
+      else if (message.to_string() == "Exit") {
+        render_->Stop();
+        is_running.store(false);
+        application_is_alive.store(false);
+      }
     }
   }
+}
+
+void Frontend::InitRender() {
+  render_ = std::make_unique<Render>();
 }
 
 void Frontend::HandleEvents() {
   std::shared_ptr<Event> event = nullptr;
 
   bool was_events = false;
-  while (application_is_alive.load())
+  while (is_running.load())
   {
     was_events = false;
     events.lock();
@@ -54,7 +74,7 @@ void Frontend::HandleEvents() {
 
     if (was_events) {
       if (event != nullptr && event->type() == close) {
-        application_is_alive.store(false);
+        is_running.store(false);
         break;
       }
 
@@ -65,7 +85,7 @@ void Frontend::HandleEvents() {
 
 void Frontend::regular_event_update_river()
 {
-  while (application_is_alive.load())
+  while (is_running.load())
   {
     events.push(std::make_shared<UpdateRiver>());
 
@@ -81,19 +101,34 @@ void Frontend::ProcessEvent(std::string& ev) {
 }
 
 void Frontend::ProcessCameras(std::string& cameras) {
+  if (render_ == nullptr) {
+    return;
+  }
   if (!cameras.empty()) {
     render_->UpdateCameras(cameras);
   }
 }
 
 void Frontend::GetEventToRequest(std::string& ev) {
+  if (render_ == nullptr) {
+    return;
+  }
   std::shared_ptr<Event> event = render_->GetEvent();
-  if (event != nullptr) {
+  if (event == nullptr) {
+    return;
+  }
+  if (event->type() == close) {
+    events.push(event);
+  }
+  else {
     ev = saveEv(event);
   }
 }
 
 void Frontend::GetCommandToRequest(std::string& com) {
+  if (render_ == nullptr) {
+    return;
+  }
   std::shared_ptr<Command> command = render_->GetCommand();
   if (command != nullptr) {
     com = saveCommand(command);
@@ -102,11 +137,9 @@ void Frontend::GetCommandToRequest(std::string& com) {
 
 Frontend::Frontend() 
 {
-  render_ = std::make_unique<Render>();
 }
 
 Frontend::~Frontend() {
-
 }
 
 void Frontend::ProcessMap(std::string& map) {

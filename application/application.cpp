@@ -20,7 +20,7 @@ void Application::work() {
 
   client->Work(context);
 
-  th_read.detach();
+  th_read.join();
 }
 
 void Application::ReadCommands(zmq::context_t& context) {
@@ -41,8 +41,10 @@ void Application::ReadCommands(zmq::context_t& context) {
     if (action == "Connect") {
       std::cout << "Enter address: ";
       std::cin >> address;
-      zmq::message_t msg(address);
-      xmitter_client.send(msg, zmq::send_flags::none);
+      zmq::message_t msg(action);
+      zmq::message_t addr(address);
+      xmitter_client.send(msg, zmq::send_flags::sndmore);
+      xmitter_client.send(addr, zmq::send_flags::none);
     }
     if (action == "Disconnect") {
       zmq::message_t msg(action);
@@ -51,6 +53,7 @@ void Application::ReadCommands(zmq::context_t& context) {
     if (action == "Exit") {
       zmq::message_t msg(action);
       xmitter_client.send(msg, zmq::send_flags::none);
+      break;
     }
   }
 }
