@@ -35,6 +35,62 @@ void processInput(GLFWwindow* window);
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
+GLuint FBO; // frame buffer object
+GLuint RBO; // rendering buffer object
+GLuint texture_id; // the texture id we'll need later to create a texture
+// out of our framebuffer
+
+void create_framebuffer()
+{
+  glGenFramebuffers(1, &FBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+  glGenTextures(1, &texture_id);
+  glBindTexture(GL_TEXTURE_2D, texture_id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_id, 0);
+
+  glGenRenderbuffers(1, &RBO);
+  glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n";
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+// here we bind our framebuffer
+void bind_framebuffer()
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+}
+
+// here we unbind our framebuffer
+void unbind_framebuffer()
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+// and we rescale the buffer, so we're able to resize the window
+void rescale_framebuffer(float width, float height)
+{
+  glBindTexture(GL_TEXTURE_2D, texture_id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_id, 0);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
+}
+
 // camera
 Camera camera(glm::vec3(-60.0f, 15.0f, 50.0f));
 bool firstMouse = true;
@@ -291,6 +347,7 @@ int main() {
   glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 3 * sizeof(float) + 4 * sizeof(std::byte), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
+
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
@@ -330,9 +387,36 @@ int main() {
 
     ImGuiID dockSpaceId = ImGui::GetID("InvisibleWindowDockSpace");
 
+
     ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::End();
 
+
+    ImGui::Begin("My Scene");
+
+    // we access the ImGui window size
+    const float window_width = ImGui::GetContentRegionAvail().x;
+    const float window_height = ImGui::GetContentRegionAvail().y;
+
+    // we rescale the framebuffer to the actual window size here and reset the glViewport
+    rescale_framebuffer(window_width, window_height);
+    glViewport(0, 0, window_width, window_height);
+
+    // we get the screen position of the window
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+
+    // and here we can add our created texture as image to ImGui
+    // unfortunately we need to use the cast to void* or I didn't find another way tbh
+    ImGui::GetWindowDrawList()->AddImage(
+        (void *)texture_id,
+        ImVec2(pos.x, pos.y),
+        ImVec2(pos.x + window_width, pos.y + window_height),
+        ImVec2(0, 1),
+        ImVec2(1, 0)
+    );
+
+
+    ImGui::End();
 
     ImGui::ShowMetricsWindow();
     char buffer[50];
@@ -411,6 +495,11 @@ int main() {
     ImGui::Checkbox("Mesh Render", &is_changed_shader);
     ImGui::End();
 
+
+    ImGui::Render();
+
+    bind_framebuffer();
+
     // per-frame time logic
     // --------------------
     float currentFrame = static_cast<float>(glfwGetTime());
@@ -425,6 +514,8 @@ int main() {
     // -----
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
 
     // shader handling
     // -----
@@ -455,8 +546,6 @@ int main() {
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, TriList.size(), GL_UNSIGNED_SHORT, 0);
 
-    ImGui::Render();
-
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -467,6 +556,7 @@ int main() {
       glfwMakeContextCurrent(backup_current_context);
     }
 
+    unbind_framebuffer();
 
     // glfw: check and call events and swap buffers
     // --------------------------------------------
