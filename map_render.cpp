@@ -7,7 +7,6 @@
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
 
 #include "GLFW/glfw3.h"
-#include "GLFW/glfw3native.h"
 
 #include<hexoworld/includes.hpp>
 
