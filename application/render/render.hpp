@@ -1,12 +1,10 @@
 #pragma once
-#include <glad/glad.h>
+
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+
 
 #include "GLFW/glfw3.h"
-#include "GLFW/glfw3native.h"
 
 #include <hexoworld/includes.hpp>
 #include <events/events.hpp>
@@ -14,9 +12,7 @@
 #include <data_pool/data_pool.hpp>
 #include <command/command.hpp>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+
 
 #include <opengl/camera/camera.hpp>
 #include <opengl/shader_s/shader_s.hpp>
