@@ -3,28 +3,21 @@
 #include <glad/glad.h>
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+
 
 #include "GLFW/glfw3.h"
-#include "GLFW/glfw3native.h"
 
 #include<hexoworld/includes.hpp>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <opengl/camera.h>
 #include <opengl/shader_s.h>
 
 #include <cstdio>
-#include <string>
-#include <iostream>
 #include <vector>
-#include <chrono>
 #include <thread>
-#include <vector>
 #include <queue>
 #define Debug(x) std::cout << #x << " = " << x << std::endl;
 
